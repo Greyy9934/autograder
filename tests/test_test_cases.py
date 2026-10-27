@@ -23,6 +23,27 @@ class TestCaseAnalyzerTests(unittest.TestCase):
         self.assertEqual(case["actual_output"], "wrong\n")
         self.assertIn("differs", case["explanation"])
 
+    def test_matching_output_with_nonzero_exit_code_fails(self):
+        from unittest.mock import patch
+
+        with patch(
+            "analyzers.test_cases.run_c_program",
+            return_value={
+                "status": "completed",
+                "stdout": "expected\\n",
+                "stderr": "runtime error",
+                "exit_code": 1,
+            },
+        ):
+            result = analyze_test_cases(
+                "int main(void){return 1;}",
+                [{"input": "", "expected_output": "expected\\n"}],
+            )
+
+        case = result["results"][0]
+        self.assertFalse(case["passed"])
+        self.assertIn("exit code", case["explanation"].lower())
+
     def test_runtime_timeout_fails_case(self):
         result = analyze_test_cases(
             "int main(void){for(;;){} return 0;}",

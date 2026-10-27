@@ -59,16 +59,19 @@ def analyze_test_cases(
         run = run_c_program(source, stdin)
         status = run.get("status", "unknown")
         actual = run.get("stdout", "")
-        comparable = status == "completed"
+        exit_code = run.get("exit_code")
+        comparable = status == "completed" and exit_code == 0
         passed = (
             comparable
             and normalize_output(actual) == normalize_output(expected)
         )
 
         if passed:
-            explanation = "Output matches the expected output."
-        elif not comparable:
+            explanation = "Output matches the expected output and exit code is zero."
+        elif status != "completed":
             explanation = f"Execution did not complete normally: {status}."
+        elif exit_code != 0:
+            explanation = f"Program exited with nonzero exit code: {exit_code}."
         else:
             explanation = "Actual output differs from expected output."
 
