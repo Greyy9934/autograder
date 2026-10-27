@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "source_limits": {
+    "max_source_bytes": 262144,
+    "max_input_bytes": 262144
+  },
+  "compiler": {
+    "standard": "c17",
+    "warning_flags": ["-Wall", "-Wextra"],
+    "optimization": "-O2",
+    "timeout_seconds": 10
+  },
+  "execution": {
+    "timeout_seconds": 2,
+    "memory_limit_bytes": 268435456,
+    "output_limit_bytes": 1048576
+  },
+  "policy": {
+    "warnings_are_fatal": false,
+    "do_not_grade_if_compilation_fails": true,
+    "do_not_grade_if_execution_times_out": true
+  }
+}
