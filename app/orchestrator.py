@@ -3,6 +3,7 @@
 from typing import Any
 
 from analyzers.preflight import preflight
+from analyzers.edge_cases import analyze_edge_cases
 from analyzers.problem_reconstruction import reconstruct_problem
 from analyzers.source_risks import analyze_source_risks
 from app.ai.base import AIProviderError
@@ -34,6 +35,7 @@ def evaluate_submission(
         "preflight": preflight_result,
         "source_risks": source_risks,
         "reconstruction": None,
+        "edge_cases": None,
         "correctness_assessed": False,
         "message": None,
     }
@@ -90,6 +92,11 @@ def evaluate_submission(
         result["status"] = "invalid_request"
         result["message"] = reconstruction.get("message")
     else:
+        candidates = reconstruction.get("candidates", [])
+        if reconstruction.get("status") == "ready" and len(candidates) == 1:
+            selected_problem = dict(candidates[0])
+            selected_problem["constraints"] = reconstruction.get("constraints", [])
+            result["edge_cases"] = analyze_edge_cases(selected_problem)
         result["status"] = "reconstruction_ready"
         result["message"] = (
             "Problem reconstruction completed. Correctness still requires "

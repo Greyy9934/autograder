@@ -134,3 +134,38 @@ if __name__ == "__main__":
         self.assertIn("source_risks", result)
         self.assertGreater(result["source_risks"]["count"], 0)
         self.assertIsNone(result["reconstruction"])
+
+    @patch("app.orchestrator.preflight")
+    def test_single_candidate_generates_edge_case_ideas(self, mock_preflight):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        provider = MockAIProvider(
+            reconstruction([candidate("A", "Given an integer n, print its value.")])
+        )
+
+        result = evaluate_submission(
+            "int main(void) { return 0; }",
+            provider=provider,
+        )
+
+        self.assertEqual(result["status"], "reconstruction_ready")
+        self.assertIsNotNone(result["edge_cases"])
+        self.assertGreater(result["edge_cases"]["count"], 0)
+        self.assertFalse(result["edge_cases"]["concrete_inputs_generated"])
+
+    @patch("app.orchestrator.preflight")
+    def test_multiple_candidates_do_not_generate_edge_cases(self, mock_preflight):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        provider = MockAIProvider(
+            reconstruction([
+                candidate("A", "Print the sum."),
+                candidate("B", "Print the maximum."),
+            ])
+        )
+
+        result = evaluate_submission(
+            "int main(void) { return 0; }",
+            provider=provider,
+        )
+
+        self.assertEqual(result["status"], "needs_clarification")
+        self.assertIsNone(result["edge_cases"])
