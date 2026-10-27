@@ -14,6 +14,24 @@ from analyzers.test_cases import analyze_test_cases
 from analyzers.memory_safety import analyze_memory_safety
 from app.ai.base import AIProviderError
 from app.ai.config import create_ai_provider
+from app.grading import grade_submission
+from app.metric_scoring import derive_metric_scores
+
+
+def _attach_grading(result: dict[str, Any]) -> dict[str, Any]:
+    """Attach a conservative, rule-driven grade to any evaluation result."""
+    try:
+        scores = derive_metric_scores(result)
+        result["metric_scores"] = scores
+        result["grading"] = grade_submission(result, scores)
+    except (ValueError, OSError) as exc:
+        result["metric_scores"] = {}
+        result["grading"] = {
+            "status": "grading_error",
+            "score": None,
+            "message": str(exc),
+        }
+    return result
 
 
 def evaluate_submission(
@@ -39,6 +57,8 @@ def evaluate_submission(
 
     result: dict[str, Any] = {
         "status": "preflight_blocked",
+        "grading": None,
+        "metric_scores": {},
         "preflight": preflight_result,
         "source_risks": source_risks,
         "complexity_estimate": estimate_complexity(source),
@@ -61,7 +81,7 @@ def evaluate_submission(
             "Preflight did not allow further analysis. "
             "Correctness has not been assessed."
         )
-        return result
+        return _attach_grading(result)
 
     if test_cases is not None:
         result["test_evaluation"] = analyze_test_cases(source, test_cases)
@@ -72,7 +92,7 @@ def evaluate_submission(
         except AIProviderError as exc:
             result["status"] = "ai_configuration_error"
             result["message"] = str(exc)
-            return result
+            return _attach_grading(result)
 
     try:
         reconstruction = reconstruct_problem(
@@ -84,7 +104,7 @@ def evaluate_submission(
     except AIProviderError as exc:
         result["status"] = "ai_provider_error"
         result["message"] = str(exc)
-        return result
+        return _attach_grading(result)
 
     result["reconstruction"] = reconstruction
 
@@ -160,4 +180,4 @@ def evaluate_submission(
             "validated references and test-based evaluation."
         )
 
-    return result
+    return _attach_grading(result)

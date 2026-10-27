@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "score_scale": {
+    "minimum": 0,
+    "maximum": 100
+  },
+  "weights": {
+    "correctness": 50,
+    "edge_cases": 10,
+    "code_quality": 10,
+    "complexity": 10,
+    "memory_safety": 10,
+    "readability": 5,
+    "originality_review": 5
+  },
+  "policy": {
+    "require_successful_preflight": true,
+    "require_unambiguous_problem": true,
+    "require_explicit_test_cases_for_correctness": true,
+    "unavailable_metrics": "exclude_and_renormalize",
+    "similarity_flags_are_advisory": true,
+    "ai_judgments_are_advisory": true
+  }
+}
