@@ -1,0 +1,181 @@
+{
+  "status": "ai_unavailable",
+  "grading": {
+    "status": "not_gradeable",
+    "score": null,
+    "score_scale": {
+      "minimum": 0,
+      "maximum": 100
+    },
+    "included_weight": 0,
+    "excluded_metrics": {
+      "correctness": "The intended problem is not unambiguous.",
+      "edge_cases": "Metric score was not supplied.",
+      "code_quality": "Metric score was not supplied.",
+      "complexity": "Metric score was not supplied.",
+      "memory_safety": "Metric score was not supplied.",
+      "readability": "Metric score was not supplied.",
+      "originality_review": "Metric score was not supplied."
+    },
+    "breakdown": {
+      "correctness": {
+        "weight": 50,
+        "score": null,
+        "weighted_contribution": null,
+        "status": "excluded",
+        "reason": "The intended problem is not unambiguous."
+      },
+      "edge_cases": {
+        "weight": 10,
+        "score": null,
+        "weighted_contribution": null,
+        "status": "unavailable",
+        "reason": "Metric score was not supplied."
+      },
+      "code_quality": {
+        "weight": 10,
+        "score": null,
+        "weighted_contribution": null,
+        "status": "unavailable",
+        "reason": "Metric score was not supplied."
+      },
+      "complexity": {
+        "weight": 10,
+        "score": null,
+        "weighted_contribution": null,
+        "status": "unavailable",
+        "reason": "Metric score was not supplied."
+      },
+      "memory_safety": {
+        "weight": 10,
+        "score": null,
+        "weighted_contribution": null,
+        "status": "unavailable",
+        "reason": "Metric score was not supplied."
+      },
+      "readability": {
+        "weight": 5,
+        "score": null,
+        "weighted_contribution": null,
+        "status": "unavailable",
+        "reason": "Metric score was not supplied."
+      },
+      "originality_review": {
+        "weight": 5,
+        "score": null,
+        "weighted_contribution": null,
+        "status": "unavailable",
+        "reason": "Metric score was not supplied."
+      }
+    },
+    "message": "No eligible metric scores are available."
+  },
+  "metric_scores": {
+    "correctness": 100.0,
+    "edge_cases": null,
+    "code_quality": null,
+    "complexity": null,
+    "memory_safety": null,
+    "readability": null,
+    "originality_review": null
+  },
+  "preflight": {
+    "decision": "continue",
+    "stage": "execution",
+    "status": "completed",
+    "reasons": [],
+    "compiler_stdout": "",
+    "compiler_stderr": "",
+    "compiler_warnings": [],
+    "stdout": "",
+    "stderr": "",
+    "exit_code": 1,
+    "compile_exit_code": 0,
+    "compile_seconds": 0.0833,
+    "run_seconds": 0.0223,
+    "stdout_truncated": false,
+    "stderr_truncated": false
+  },
+  "source_risks": {
+    "status": "completed",
+    "findings": [
+      {
+        "rule_id": "unbounded_input",
+        "line": 5,
+        "severity": "medium",
+        "evidence": "if (scanf(\"%d\", &n) != 1) return 1;",
+        "message": "Input operation found; verify buffer sizes and input conversions.",
+        "confirmed_bug": false
+      }
+    ],
+    "count": 1,
+    "message": "Findings are heuristic risk indicators. Review source context and use tests or runtime diagnostics before concluding a bug exists.",
+    "limitations": [
+      "Regular expressions do not parse C syntax or understand control flow.",
+      "Comments, macros, multiline expressions, and complex types can cause misses or false positives.",
+      "A reported pattern does not establish a defect."
+    ]
+  },
+  "complexity_estimate": {
+    "status": "completed",
+    "time_complexity": "O(1) candidate; verify called functions and input-dependent work",
+    "space_complexity": "unknown; no obvious dynamic allocation detected, but stack and input-dependent storage may exist",
+    "loop_count": 0,
+    "max_loop_depth_estimate": 0,
+    "recursive_functions": [],
+    "dynamic_allocation_count": 0,
+    "findings": [],
+    "message": "These are source-pattern estimates, not measured runtime or proven asymptotic bounds.",
+    "limitations": [
+      "C syntax and control flow are not fully parsed.",
+      "Loop bounds and input-size relationships are not derived.",
+      "Recursion detection and brace-based nesting can be wrong.",
+      "Called functions, macros, compiler optimization, and data structure behavior are not modeled.",
+      "Empirical timing and profiling are separate measurements."
+    ]
+  },
+  "memory_safety": null,
+  "reconstruction": {
+    "can_continue": true,
+    "problem_statement_source": "missing",
+    "inferred_problem": null,
+    "confidence": "not_assessed",
+    "available_evidence": [
+      "c_source",
+      "user_supplied_test_cases"
+    ],
+    "valid_test_case_count": 1,
+    "invalid_test_case_count": 0,
+    "reconstruction_provider": "not_connected",
+    "ambiguity_note": "Problem statement is missing; reconstruction is needed.",
+    "status": "provider_error",
+    "message": "Gemini is temporarily unavailable."
+  },
+  "edge_cases": null,
+  "generated_edge_case_inputs": null,
+  "test_evaluation": {
+    "status": "completed",
+    "passed": 1,
+    "failed": 0,
+    "total": 1,
+    "results": [
+      {
+        "case": 1,
+        "passed": true,
+        "status": "completed",
+        "input": "21\n",
+        "expected_output": "42\n",
+        "actual_output": "42\n",
+        "stderr": "",
+        "exit_code": 0,
+        "explanation": "Output matches the expected output and exit code is zero."
+      }
+    ],
+    "message": "All supplied test cases passed."
+  },
+  "reference_solutions": null,
+  "reference_validation": null,
+  "mathematical_verification": null,
+  "correctness_assessed": false,
+  "message": "Preflight passed, but problem reconstruction was unavailable. No correctness conclusion has been made."
+}
