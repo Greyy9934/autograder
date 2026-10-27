@@ -79,7 +79,11 @@ class GeminiProvider:
                 )
             try:
                 from google import genai
-                client = genai.Client(api_key=self.api_key)
+                from google.genai import types
+                client = genai.Client(
+                    api_key=self.api_key,
+                    http_options=types.HttpOptions(timeout=10000),
+                )
             except Exception as exc:
                 raise AIProviderError(
                     f"Could not initialize Gemini client: {type(exc).__name__}",
