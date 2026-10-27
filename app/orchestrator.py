@@ -4,6 +4,7 @@ from typing import Any
 
 from analyzers.preflight import preflight
 from analyzers.problem_reconstruction import reconstruct_problem
+from analyzers.source_risks import analyze_source_risks
 from app.ai.base import AIProviderError
 from app.ai.config import create_ai_provider
 
@@ -17,12 +18,11 @@ def evaluate_submission(
     rules_path: str | None = None,
 ) -> dict[str, Any]:
     """
-    Run deterministic preflight, then optional problem reconstruction.
-
-    A provider can be injected for tests. If none is injected, configured
-    AI is used when available. This function does not claim correctness
-    based on preflight alone.
+    Run preflight and heuristic source-risk analysis, then optional
+    problem reconstruction. Source-risk findings are not confirmed bugs.
     """
+    source_risks = analyze_source_risks(source)
+
     preflight_result = (
         preflight(source, rules_path=rules_path)
         if rules_path is not None
@@ -32,6 +32,7 @@ def evaluate_submission(
     result: dict[str, Any] = {
         "status": "preflight_blocked",
         "preflight": preflight_result,
+        "source_risks": source_risks,
         "reconstruction": None,
         "correctness_assessed": False,
         "message": None,
@@ -60,7 +61,6 @@ def evaluate_submission(
             provider=provider,
         )
     except AIProviderError as exc:
-        # Defensive fallback if a provider implementation leaks its error.
         result["status"] = "ai_provider_error"
         result["message"] = str(exc)
         return result

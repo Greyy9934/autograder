@@ -102,3 +102,35 @@ class OrchestratorTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    @patch("app.orchestrator.preflight")
+    def test_source_risks_are_returned_when_preflight_passes(self, mock_preflight):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        provider = MockAIProvider(
+            reconstruction([candidate("A", "Print the sum.")])
+        )
+
+        result = evaluate_submission(
+            "int main(void) { int x = a[2]; return 0; }",
+            provider=provider,
+        )
+
+        self.assertIn("source_risks", result)
+        self.assertGreater(result["source_risks"]["count"], 0)
+        self.assertTrue(
+            all(not item["confirmed_bug"]
+                for item in result["source_risks"]["findings"])
+        )
+
+    @patch("app.orchestrator.preflight")
+    def test_source_risks_are_returned_when_preflight_blocks(self, mock_preflight):
+        mock_preflight.return_value = {"decision": "block", "status": "timeout"}
+
+        result = evaluate_submission(
+            "int main(void) { int a[2]; return a[3]; }"
+        )
+
+        self.assertEqual(result["status"], "preflight_blocked")
+        self.assertIn("source_risks", result)
+        self.assertGreater(result["source_risks"]["count"], 0)
+        self.assertIsNone(result["reconstruction"])
