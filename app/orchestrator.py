@@ -11,6 +11,7 @@ from analyzers.complexity_estimator import estimate_complexity
 from analyzers.problem_reconstruction import reconstruct_problem
 from analyzers.source_risks import analyze_source_risks
 from analyzers.test_cases import analyze_test_cases
+from analyzers.memory_safety import analyze_memory_safety
 from app.ai.base import AIProviderError
 from app.ai.config import create_ai_provider
 
@@ -22,6 +23,7 @@ def evaluate_submission(
     *,
     provider: Any = None,
     rules_path: str | None = None,
+    run_memory_diagnostics: bool = False,
 ) -> dict[str, Any]:
     """
     Run preflight and heuristic source-risk analysis, then optional
@@ -40,6 +42,7 @@ def evaluate_submission(
         "preflight": preflight_result,
         "source_risks": source_risks,
         "complexity_estimate": estimate_complexity(source),
+        "memory_safety": None,
         "reconstruction": None,
         "edge_cases": None,
         "test_evaluation": None,
@@ -49,6 +52,9 @@ def evaluate_submission(
         "correctness_assessed": False,
         "message": None,
     }
+
+    if run_memory_diagnostics and preflight_result.get("decision") == "continue":
+        result["memory_safety"] = analyze_memory_safety(source)
 
     if preflight_result.get("decision") != "continue":
         result["message"] = (

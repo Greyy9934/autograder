@@ -204,9 +204,6 @@ class OrchestratorTests(unittest.TestCase):
         self.assertFalse(result["correctness_assessed"])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
     @patch("app.orchestrator.generate_reference_solutions")
     @patch("app.orchestrator.preflight")
     def test_single_candidate_generates_untrusted_references(
@@ -396,7 +393,7 @@ if __name__ == "__main__":
 
         self.assertEqual(result["complexity_estimate"]["status"], "completed")
         self.assertEqual(result["complexity_estimate"]["loop_count"], 1)
-        self.assertIn("candidate", result["complexity_estimate"]["time_complexity"])
+        self.assertIn("bounds", result["complexity_estimate"]["time_complexity"])
 
     @patch("app.orchestrator.preflight")
     def test_complexity_estimate_is_returned_when_preflight_blocks(
@@ -411,3 +408,47 @@ if __name__ == "__main__":
         self.assertEqual(result["status"], "preflight_blocked")
         self.assertIsNotNone(result["complexity_estimate"])
         self.assertEqual(result["complexity_estimate"]["loop_count"], 1)
+
+    @patch("app.orchestrator.analyze_memory_safety")
+    @patch("app.orchestrator.preflight")
+    def test_memory_diagnostics_run_when_enabled_and_preflight_passes(
+        self, mock_preflight, mock_memory
+    ):
+        mock_preflight.return_value = {
+            "decision": "continue",
+            "status": "completed",
+        }
+        mock_memory.return_value = {"status": "completed", "results": []}
+
+        provider = MockAIProvider(
+            reconstruction([candidate("A", "Print the sum.")])
+        )
+        result = evaluate_submission(
+            "int main(void) { return 0; }",
+            provider=provider,
+            run_memory_diagnostics=True,
+        )
+
+        self.assertEqual(result["memory_safety"]["status"], "completed")
+        mock_memory.assert_called_once_with("int main(void) { return 0; }")
+
+    @patch("app.orchestrator.analyze_memory_safety")
+    @patch("app.orchestrator.preflight")
+    def test_memory_diagnostics_skip_when_preflight_blocks(
+        self, mock_preflight, mock_memory
+    ):
+        mock_preflight.return_value = {
+            "decision": "block",
+            "status": "timeout",
+        }
+
+        result = evaluate_submission(
+            "int main(void) { return 0; }",
+            run_memory_diagnostics=True,
+        )
+
+        self.assertIsNone(result["memory_safety"])
+        mock_memory.assert_not_called()
+if __name__ == "__main__":
+    unittest.main()
+
