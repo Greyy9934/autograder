@@ -43,7 +43,7 @@ class MetricScoringTests(unittest.TestCase):
         })
         self.assertIsNone(result["correctness"])
 
-    def test_complete_complexity_report_gets_analysis_coverage_score(self):
+    def test_complete_complexity_report_alone_does_not_earn_a_score(self):
         report = {
             "status": "completed",
             "time_complexity": "possibly O(n)",
@@ -57,7 +57,7 @@ class MetricScoringTests(unittest.TestCase):
             "message": "Not a proof",
         }
         result = derive_metric_scores({"complexity_estimate": report})
-        self.assertEqual(result["complexity"], 100.0)
+        self.assertIsNone(result["complexity"])
 
     def test_malformed_complexity_report_has_no_score(self):
         report = {
