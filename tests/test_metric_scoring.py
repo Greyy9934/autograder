@@ -43,6 +43,50 @@ class MetricScoringTests(unittest.TestCase):
         })
         self.assertIsNone(result["correctness"])
 
+    def test_complete_complexity_report_gets_analysis_coverage_score(self):
+        report = {
+            "status": "completed",
+            "time_complexity": "possibly O(n)",
+            "space_complexity": "unknown",
+            "loop_count": 1,
+            "max_loop_depth_estimate": 1,
+            "recursive_functions": [],
+            "dynamic_allocation_count": 0,
+            "findings": [],
+            "limitations": ["Heuristic only"],
+            "message": "Not a proof",
+        }
+        result = derive_metric_scores({"complexity_estimate": report})
+        self.assertEqual(result["complexity"], 100.0)
+
+    def test_malformed_complexity_report_has_no_score(self):
+        report = {
+            "status": "completed",
+            "time_complexity": "possibly O(n)",
+            "space_complexity": "unknown",
+            "loop_count": "unknown",
+            "max_loop_depth_estimate": 1,
+            "recursive_functions": [],
+            "dynamic_allocation_count": 0,
+            "findings": [],
+            "limitations": ["Heuristic only"],
+            "message": "Not a proof",
+        }
+        result = derive_metric_scores({"complexity_estimate": report})
+        self.assertIsNone(result["complexity"])
+
+
+    def test_incomplete_complexity_report_has_no_score(self):
+        result = derive_metric_scores({
+            "complexity_estimate": {"status": "completed"}
+        })
+        self.assertIsNone(result["complexity"])
+
+    def test_missing_complexity_report_has_no_score(self):
+        result = derive_metric_scores({})
+        self.assertIsNone(result["complexity"])
+
+
     def test_unsupported_metrics_remain_unavailable(self):
         result = derive_metric_scores({
             "complexity_estimate": {"status": "completed"},
