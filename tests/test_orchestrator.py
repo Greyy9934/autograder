@@ -100,9 +100,6 @@ class OrchestratorTests(unittest.TestCase):
         )
 
 
-if __name__ == "__main__":
-    unittest.main()
-
     @patch("app.orchestrator.preflight")
     def test_source_risks_are_returned_when_preflight_passes(self, mock_preflight):
         mock_preflight.return_value = {"decision": "continue", "status": "completed"}
@@ -204,4 +201,126 @@ if __name__ == "__main__":
 
         self.assertEqual(result["test_evaluation"]["failed"], 1)
         self.assertFalse(result["test_evaluation"]["results"][0]["passed"])
+        self.assertFalse(result["correctness_assessed"])
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+    @patch("app.orchestrator.generate_reference_solutions")
+    @patch("app.orchestrator.preflight")
+    def test_single_candidate_generates_untrusted_references(
+        self, mock_preflight, mock_generate
+    ):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        mock_generate.return_value = {
+            "status": "generated_unverified",
+            "references_trusted": False,
+        }
+        provider = MockAIProvider(reconstruction([candidate("A", "Print the sum.")]))
+
+        result = evaluate_submission(
+            "int main(void) { return 0; }", provider=provider
+        )
+
+        self.assertEqual(
+            result["reference_solutions"]["status"], "generated_unverified"
+        )
+        self.assertFalse(result["reference_solutions"]["references_trusted"])
+        mock_generate.assert_called_once()
+        self.assertIs(mock_generate.call_args.args[1], provider)
+
+    @patch("app.orchestrator.generate_reference_solutions")
+    @patch("app.orchestrator.preflight")
+    def test_multiple_candidates_skip_reference_generation(
+        self, mock_preflight, mock_generate
+    ):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        provider = MockAIProvider(reconstruction([
+            candidate("A", "Print the sum."),
+            candidate("B", "Print the maximum."),
+        ]))
+
+        result = evaluate_submission(
+            "int main(void) { return 0; }", provider=provider
+        )
+
+        self.assertEqual(result["status"], "needs_clarification")
+        self.assertIsNone(result["reference_solutions"])
+        mock_generate.assert_not_called()
+
+    @patch("app.orchestrator.validate_reference_pair")
+    @patch("app.orchestrator.generate_reference_solutions")
+    @patch("app.orchestrator.preflight")
+    def test_reference_validation_failure_is_reported(
+        self, mock_preflight, mock_generate, mock_validate
+    ):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        mock_generate.return_value = {
+            "status": "generated_unverified",
+            "references_trusted": False,
+            "brute_force": {"code": "int main(void){return 0;}"},
+            "efficient": {"code": "int main(void){return 0;}"},
+            "validation": {},
+        }
+        mock_validate.return_value = {
+            "status": "reference_agreement_inconclusive_or_failed",
+            "brute_force": {"passed": False},
+            "efficient": {"passed": True},
+            "comparisons": [],
+            "references_trusted": False,
+        }
+        provider = MockAIProvider(reconstruction([candidate("A", "Print the sum.")]))
+
+        result = evaluate_submission(
+            "int main(void){return 0;}",
+            test_cases=[{"input": "", "expected_output": "0\n"}],
+            provider=provider,
+        )
+
+        self.assertFalse(
+            result["reference_solutions"]["validation"][
+                "compiled_and_passed_supplied_cases"
+            ]
+        )
+        self.assertFalse(result["reference_solutions"]["references_trusted"])
+
+    @patch("app.orchestrator.validate_reference_pair")
+    @patch("app.orchestrator.generate_reference_solutions")
+    @patch("app.orchestrator.preflight")
+    def test_reference_validation_does_not_claim_trust(
+        self, mock_preflight, mock_generate, mock_validate
+    ):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        mock_generate.return_value = {
+            "status": "generated_unverified",
+            "references_trusted": False,
+            "brute_force": {"code": "int main(void){return 0;}"},
+            "efficient": {"code": "int main(void){return 0;}"},
+            "validation": {},
+        }
+        mock_validate.return_value = {
+            "status": "references_agree_on_tested_cases",
+            "brute_force": {"passed": True},
+            "efficient": {"passed": True},
+            "comparisons": [{"outputs_agree": True}],
+            "references_trusted": False,
+        }
+        provider = MockAIProvider(reconstruction([candidate("A", "Print the sum.")]))
+
+        result = evaluate_submission(
+            "int main(void){return 0;}",
+            test_cases=[{"input": "", "expected_output": "0\n"}],
+            provider=provider,
+        )
+
+        self.assertTrue(
+            result["reference_solutions"]["validation"][
+                "compiled_and_passed_supplied_cases"
+            ]
+        )
+        self.assertTrue(
+            result["reference_solutions"]["validation"]["differentially_tested"]
+        )
+        self.assertFalse(result["reference_solutions"]["references_trusted"])
         self.assertFalse(result["correctness_assessed"])

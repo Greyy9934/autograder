@@ -53,8 +53,18 @@ def compare_programs(
         first = run_c_program(first_source, stdin)
         second = run_c_program(second_source, stdin)
 
-        first_ok = first.get("status") == "completed" and first.get("exit_code") == 0
-        second_ok = second.get("status") == "completed" and second.get("exit_code") == 0
+        first_ok = (
+            first.get("status") == "completed"
+            and first.get("exit_code") == 0
+            and not first.get("stdout_truncated", False)
+            and not first.get("stderr_truncated", False)
+        )
+        second_ok = (
+            second.get("status") == "completed"
+            and second.get("exit_code") == 0
+            and not second.get("stdout_truncated", False)
+            and not second.get("stderr_truncated", False)
+        )
 
         if not first_ok or not second_ok:
             outcome = "execution_failure"

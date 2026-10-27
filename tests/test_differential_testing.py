@@ -86,3 +86,25 @@ class DifferentialTestingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+    def test_truncated_output_is_not_treated_as_agreement(self):
+        truncated = {
+            "status": "completed",
+            "exit_code": 0,
+            "stdout": "same\\n",
+            "stderr": "",
+            "stdout_truncated": True,
+            "stderr_truncated": False,
+        }
+        with patch(
+            "analyzers.differential_testing.run_c_program",
+            side_effect=[truncated, completed("same\\n")],
+        ):
+            result = compare_programs("a", "b", ["input\\n"])
+        self.assertEqual(result["status"], "execution_failure")
+        self.assertEqual(result["failure_count"], 1)
+
+    def test_integer_generator_rejects_invalid_bounds(self):
+        result = generate_integer_list_inputs(
+            seed=1, count=2, min_length=0
+        )
+        self.assertEqual(result["status"], "invalid_request")

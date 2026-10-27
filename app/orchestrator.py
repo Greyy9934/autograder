@@ -3,6 +3,8 @@
 from typing import Any
 
 from analyzers.preflight import preflight
+from analyzers.reference_solutions import generate_reference_solutions
+from analyzers.reference_validation import validate_reference_pair
 from analyzers.edge_cases import analyze_edge_cases
 from analyzers.problem_reconstruction import reconstruct_problem
 from analyzers.source_risks import analyze_source_risks
@@ -38,6 +40,8 @@ def evaluate_submission(
         "reconstruction": None,
         "edge_cases": None,
         "test_evaluation": None,
+        "reference_solutions": None,
+        "reference_validation": None,
         "correctness_assessed": False,
         "message": None,
     }
@@ -102,6 +106,37 @@ def evaluate_submission(
             selected_problem = dict(candidates[0])
             selected_problem["constraints"] = reconstruction.get("constraints", [])
             result["edge_cases"] = analyze_edge_cases(selected_problem)
+            if provider is not None:
+                references = generate_reference_solutions(selected_problem, provider)
+                result["reference_solutions"] = references
+
+                if (
+                    references.get("status") == "generated_unverified"
+                    and isinstance(test_cases, list)
+                    and test_cases
+                ):
+                    brute = references.get("brute_force", {})
+                    efficient = references.get("efficient", {})
+                    result["reference_validation"] = validate_reference_pair(
+                        brute.get("code", ""),
+                        efficient.get("code", ""),
+                        test_cases,
+                    )
+                    references["validation"] = {
+                        **references.get("validation", {}),
+                        "supplied_cases_checked": True,
+                        "compiled_and_passed_supplied_cases": (
+                            result["reference_validation"]["brute_force"]["passed"]
+                            and result["reference_validation"]["efficient"]["passed"]
+                        ),
+                        "differentially_tested": bool(
+                            result["reference_validation"]["comparisons"]
+                        )
+                        and all(
+                            item["outputs_agree"]
+                            for item in result["reference_validation"]["comparisons"]
+                        ),
+                    }
         result["status"] = "reconstruction_ready"
         result["message"] = (
             "Problem reconstruction completed. Correctness still requires "
