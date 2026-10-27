@@ -34,6 +34,7 @@ def _compile_and_run(
     stdin: str,
     compiler_flags: list[str],
     runtime_command: list[str],
+    address_space_limit_bytes: int | None = MEMORY_LIMIT_BYTES,
 ) -> dict[str, Any]:
     """Compile a temporary diagnostic binary and run it with bounded resources."""
     with tempfile.TemporaryDirectory(prefix="autograder-memory-") as directory:
@@ -89,7 +90,11 @@ def _compile_and_run(
             "--chdir", "/work",
             "/usr/bin/prlimit",
             f"--cpu={5}:{5}",
-            f"--as={MEMORY_LIMIT_BYTES}:{MEMORY_LIMIT_BYTES}",
+            *(
+                [f"--as={address_space_limit_bytes}:{address_space_limit_bytes}"]
+                if address_space_limit_bytes is not None
+                else []
+            ),
             f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
             "--nproc=32:32",
             "--nofile=64:64",
@@ -138,6 +143,7 @@ def run_asan(source: str, stdin: str = "") -> dict[str, Any]:
         stdin,
         ["-O1", "-fsanitize=address,undefined", "-fno-omit-frame-pointer"],
         ["/work/submission"],
+        address_space_limit_bytes=None,
     )
 
     stderr = result.get("stderr", "")
@@ -177,7 +183,7 @@ def run_valgrind(source: str, stdin: str = "") -> dict[str, Any]:
         stdin,
         ["-O0"],
         [
-            "/usr/bin/valgrind",
+            "/usr/bin/valgrind.bin",
             "--quiet",
             "--leak-check=full",
             "--show-leak-kinds=all",
