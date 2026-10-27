@@ -125,9 +125,12 @@ def generate_integer_list_inputs(
     max_value: int = 100,
 ) -> dict[str, Any]:
     """Generate reproducible inputs formatted as n followed by n integers."""
+    integer_arguments = (
+        seed, count, min_length, max_length, min_value, max_value
+    )
     if (
-        isinstance(seed, bool) or not isinstance(seed, int)
-        or isinstance(count, bool) or not isinstance(count, int)
+        any(isinstance(value, bool) or not isinstance(value, int)
+            for value in integer_arguments)
         or count < 1 or count > 1000
         or min_length < 1 or max_length < min_length or max_length > 10000
         or min_value > max_value
@@ -151,4 +154,60 @@ def generate_integer_list_inputs(
         "count": len(inputs),
         "inputs": inputs,
         "format": "n followed by n space-separated integers",
+    }
+
+
+def generate_integer_list_edge_cases(
+    *,
+    min_length: int = 1,
+    max_length: int = 20,
+    min_value: int = -100,
+    max_value: int = 100,
+) -> dict[str, Any]:
+    """Generate deterministic boundary cases for n followed by n integers."""
+    arguments = (min_length, max_length, min_value, max_value)
+    if (
+        any(isinstance(value, bool) or not isinstance(value, int)
+            for value in arguments)
+        or min_length < 1
+        or max_length < min_length
+        or max_length > 10000
+        or min_value > max_value
+    ):
+        return {"status": "invalid_request", "inputs": []}
+
+    candidates = [
+        [min_value] * min_length,
+        [max_value] * min_length,
+        [0] * min_length if min_value <= 0 <= max_value else None,
+        [min_value] * max_length,
+        [max_value] * max_length,
+        [min_value, max_value] if min_length <= 2 <= max_length else None,
+        list(range(min_value, min_value + min_length))
+        if min_value + min_length - 1 <= max_value else None,
+        list(range(min_value, min_value + max_length))
+        if min_value + max_length - 1 <= max_value else None,
+        list(range(max_value, max_value - max_length, -1))
+        if max_value - max_length + 1 >= min_value else None,
+    ]
+
+    inputs = []
+    seen = set()
+    for values in candidates:
+        if values is None:
+            continue
+        encoded = f"{len(values)}\n{' '.join(map(str, values))}\n"
+        if encoded not in seen:
+            seen.add(encoded)
+            inputs.append(encoded)
+
+    return {
+        "status": "generated",
+        "count": len(inputs),
+        "inputs": inputs,
+        "format": "n followed by n space-separated integers",
+        "message": (
+            "These are structural boundary candidates, not guaranteed "
+            "edge cases for every problem."
+        ),
     }

@@ -7,6 +7,7 @@ from analyzers.reference_solutions import generate_reference_solutions
 from analyzers.reference_validation import validate_reference_pair
 from analyzers.mathematical_verification import verify_algorithm
 from analyzers.edge_cases import analyze_edge_cases
+from analyzers.differential_testing import generate_integer_list_edge_cases
 from analyzers.complexity_estimator import estimate_complexity
 from analyzers.problem_reconstruction import reconstruct_problem
 from analyzers.source_risks import analyze_source_risks
@@ -42,6 +43,8 @@ def evaluate_submission(
     provider: Any = None,
     rules_path: str | None = None,
     run_memory_diagnostics: bool = False,
+    generate_edge_case_inputs: bool = False,
+    edge_case_input_bounds: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     """
     Run preflight and heuristic source-risk analysis, then optional
@@ -65,6 +68,7 @@ def evaluate_submission(
         "memory_safety": None,
         "reconstruction": None,
         "edge_cases": None,
+        "generated_edge_case_inputs": None,
         "test_evaluation": None,
         "reference_solutions": None,
         "reference_validation": None,
@@ -136,6 +140,31 @@ def evaluate_submission(
             selected_problem = dict(candidates[0])
             selected_problem["constraints"] = reconstruction.get("constraints", [])
             result["edge_cases"] = analyze_edge_cases(selected_problem)
+            if generate_edge_case_inputs:
+                if edge_case_input_bounds is None:
+                    result["generated_edge_case_inputs"] = {
+                        "status": "needs_explicit_bounds",
+                        "inputs": [],
+                        "message": (
+                            "Provide explicit integer-list bounds before "
+                            "generating concrete inputs."
+                        ),
+                    }
+                elif (
+                    isinstance(edge_case_input_bounds, dict)
+                    and set(edge_case_input_bounds).issubset({
+                        "min_length", "max_length", "min_value", "max_value"
+                    })
+                ):
+                    result["generated_edge_case_inputs"] = (
+                        generate_integer_list_edge_cases(**edge_case_input_bounds)
+                    )
+                else:
+                    result["generated_edge_case_inputs"] = {
+                        "status": "invalid_request",
+                        "inputs": [],
+                        "message": "Edge-case bounds must be a dictionary of supported options.",
+                    }
             if provider is not None:
                 references = generate_reference_solutions(selected_problem, provider)
                 result["reference_solutions"] = references

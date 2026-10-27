@@ -150,6 +150,62 @@ class OrchestratorTests(unittest.TestCase):
         self.assertFalse(result["edge_cases"]["concrete_inputs_generated"])
 
     @patch("app.orchestrator.preflight")
+    def test_edge_case_input_generation_is_disabled_by_default(self, mock_preflight):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        provider = MockAIProvider(
+            reconstruction([candidate("A", "Read an integer and print it.")])
+        )
+
+        result = evaluate_submission(
+            "int main(void) { return 0; }",
+            provider=provider,
+        )
+
+        self.assertIsNone(result["generated_edge_case_inputs"])
+
+    @patch("app.orchestrator.preflight")
+    def test_edge_case_input_generation_uses_explicit_bounds(self, mock_preflight):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        provider = MockAIProvider(
+            reconstruction([candidate("A", "Process an integer list.")])
+        )
+
+        result = evaluate_submission(
+            "int main(void) { return 0; }",
+            provider=provider,
+            generate_edge_case_inputs=True,
+            edge_case_input_bounds={
+                "min_length": 1,
+                "max_length": 3,
+                "min_value": -2,
+                "max_value": 2,
+            },
+        )
+
+        generated = result["generated_edge_case_inputs"]
+        self.assertEqual(generated["status"], "generated")
+        self.assertGreater(generated["count"], 0)
+        self.assertFalse(result["correctness_assessed"])
+
+    @patch("app.orchestrator.preflight")
+    def test_edge_case_input_generation_without_bounds_is_safe(self, mock_preflight):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        provider = MockAIProvider(
+            reconstruction([candidate("A", "Process an integer list.")])
+        )
+
+        result = evaluate_submission(
+            "int main(void) { return 0; }",
+            provider=provider,
+            generate_edge_case_inputs=True,
+        )
+
+        generated = result["generated_edge_case_inputs"]
+        self.assertEqual(generated["status"], "needs_explicit_bounds")
+        self.assertEqual(generated["inputs"], [])
+        self.assertFalse(result["correctness_assessed"])
+
+    @patch("app.orchestrator.preflight")
     def test_multiple_candidates_do_not_generate_edge_cases(self, mock_preflight):
         mock_preflight.return_value = {"decision": "continue", "status": "completed"}
         provider = MockAIProvider(
