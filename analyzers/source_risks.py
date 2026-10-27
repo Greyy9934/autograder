@@ -24,9 +24,9 @@ def analyze_source_risks(source: str) -> dict[str, Any]:
         ),
         (
             "unbounded_input",
-            re.compile(r"\b(?:gets|scanf)\s*\("),
-            "Input operation found; verify buffer sizes and input conversions.",
-            "medium",
+            re.compile(r'\bgets\s*\(|\bscanf\s*\(\s*"[^"]*%[^"]*s'),
+            "Potentially unbounded string input found; check the destination buffer and field width.",
+            "high",
         ),
         (
             "integer_division",

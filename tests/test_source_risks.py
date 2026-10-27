@@ -42,6 +42,18 @@ class SourceRiskTests(unittest.TestCase):
         )
         self.assertEqual(result["count"], 0)
 
+    def test_numeric_scanf_is_not_flagged_as_unbounded_input(self):
+        source = 'int n; if (scanf("%d", &n) != 1) return 1;'
+        result = analyze_source_risks(source)
+        rules = {item["rule_id"] for item in result["findings"]}
+        self.assertNotIn("unbounded_input", rules)
+
+    def test_unbounded_string_input_is_flagged(self):
+        source = 'char name[8]; scanf("%s", name);'
+        result = analyze_source_risks(source)
+        rules = {item["rule_id"] for item in result["findings"]}
+        self.assertIn("unbounded_input", rules)
+
     def test_limitations_are_disclosed(self):
         result = analyze_source_risks("int main(void) { return 0; }")
         self.assertTrue(result["limitations"])
