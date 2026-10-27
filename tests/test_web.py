@@ -40,3 +40,39 @@ def test_api_does_not_advertise_an_evaluation_endpoint():
     assert "/api/status" in paths
     assert "/health" in paths
     assert "/api/evaluate" not in paths
+
+
+def test_static_analysis_endpoint_never_claims_execution_or_grading():
+    response = client.post(
+        "/api/analyze",
+        json={"source": "int main(void) { int x = 1 / 0; return x; }"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["analysis_only"] is True
+    assert data["code_executed"] is False
+    assert "source_risks" in data
+    assert "complexity" in data
+    assert "grade" not in data
+
+
+def test_static_analysis_rejects_blank_source():
+    response = client.post("/api/analyze", json={"source": "   "})
+
+    assert response.status_code == 422
+
+
+def test_static_analysis_rejects_missing_source():
+    response = client.post("/api/analyze", json={})
+
+    assert response.status_code == 422
+
+
+def test_static_analysis_rejects_oversized_source():
+    response = client.post(
+        "/api/analyze",
+        json={"source": "x" * 262145},
+    )
+
+    assert response.status_code == 422

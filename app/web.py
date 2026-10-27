@@ -1,6 +1,10 @@
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
+
+from analyzers.source_risks import analyze_source_risks
+from analyzers.complexity_estimator import estimate_complexity
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -52,4 +56,31 @@ def api_status():
             "The interface is available. Grading remains disabled until "
             "the evaluation API and secure execution environment are connected."
         ),
+    }
+
+
+
+class AnalysisRequest(BaseModel):
+    source: str = Field(min_length=1, max_length=262144)
+
+
+@app.post("/api/analyze")
+def analyze_source(request: AnalysisRequest):
+    source_bytes = request.source.encode("utf-8")
+    if len(source_bytes) > 262144:
+        raise HTTPException(status_code=413, detail="Source exceeds 256 KiB.")
+    if not request.source.strip():
+        raise HTTPException(status_code=422, detail="Source must not be blank.")
+
+    return {
+        "status": "completed",
+        "analysis_only": True,
+        "code_executed": False,
+        "source_risks": analyze_source_risks(request.source),
+        "complexity": estimate_complexity(request.source),
+        "limitations": [
+            "This endpoint does not compile or execute submitted C code.",
+            "Findings are heuristic and do not establish correctness.",
+            "No grade or correctness verdict is produced.",
+        ],
     }
