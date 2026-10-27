@@ -87,6 +87,18 @@ class MetricScoringTests(unittest.TestCase):
         self.assertIsNone(result["complexity"])
 
 
+    def test_edge_case_ideas_alone_do_not_earn_a_score(self):
+        result = derive_metric_scores({
+            "edge_cases": {
+                "status": "ready",
+                "count": 8,
+                "concrete_inputs_generated": False,
+                "cases": [{"id": "minimum_size", "category": "applicable"}],
+            }
+        })
+        self.assertIsNone(result["edge_cases"])
+
+
     def test_unsupported_metrics_remain_unavailable(self):
         result = derive_metric_scores({
             "complexity_estimate": {"status": "completed"},
