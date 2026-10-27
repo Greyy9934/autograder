@@ -324,3 +324,58 @@ if __name__ == "__main__":
         )
         self.assertFalse(result["reference_solutions"]["references_trusted"])
         self.assertFalse(result["correctness_assessed"])
+
+    @patch("app.orchestrator.verify_algorithm")
+    @patch("app.orchestrator.generate_reference_solutions")
+    @patch("app.orchestrator.preflight")
+    def test_generated_references_trigger_mathematical_verification(
+        self, mock_preflight, mock_generate, mock_verify
+    ):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        mock_generate.return_value = {
+            "status": "generated_unverified",
+            "references_trusted": False,
+            "brute_force": {"code": "int main(void){return 0;}"},
+            "efficient": {
+                "code": "int main(void){return 0;}",
+                "algorithm": "Return a constant.",
+            },
+            "validation": {},
+        }
+        mock_verify.return_value = {
+            "status": "proof_sketch",
+            "formally_verified": False,
+        }
+        provider = MockAIProvider(reconstruction([candidate("A", "Print the sum.")]))
+
+        result = evaluate_submission(
+            "int main(void){return 0;}", provider=provider
+        )
+
+        self.assertEqual(
+            result["mathematical_verification"]["status"], "proof_sketch"
+        )
+        self.assertFalse(
+            result["mathematical_verification"]["formally_verified"]
+        )
+        mock_verify.assert_called_once()
+
+    @patch("app.orchestrator.verify_algorithm")
+    @patch("app.orchestrator.generate_reference_solutions")
+    @patch("app.orchestrator.preflight")
+    def test_provider_reference_failure_skips_mathematical_verification(
+        self, mock_preflight, mock_generate, mock_verify
+    ):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        mock_generate.return_value = {
+            "status": "provider_error",
+            "references_trusted": False,
+        }
+        provider = MockAIProvider(reconstruction([candidate("A", "Print the sum.")]))
+
+        result = evaluate_submission(
+            "int main(void){return 0;}", provider=provider
+        )
+
+        self.assertIsNone(result["mathematical_verification"])
+        mock_verify.assert_not_called()

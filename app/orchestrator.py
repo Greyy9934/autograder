@@ -5,6 +5,7 @@ from typing import Any
 from analyzers.preflight import preflight
 from analyzers.reference_solutions import generate_reference_solutions
 from analyzers.reference_validation import validate_reference_pair
+from analyzers.mathematical_verification import verify_algorithm
 from analyzers.edge_cases import analyze_edge_cases
 from analyzers.problem_reconstruction import reconstruct_problem
 from analyzers.source_risks import analyze_source_risks
@@ -42,6 +43,7 @@ def evaluate_submission(
         "test_evaluation": None,
         "reference_solutions": None,
         "reference_validation": None,
+        "mathematical_verification": None,
         "correctness_assessed": False,
         "message": None,
     }
@@ -109,6 +111,13 @@ def evaluate_submission(
             if provider is not None:
                 references = generate_reference_solutions(selected_problem, provider)
                 result["reference_solutions"] = references
+
+                if references.get("status") == "generated_unverified":
+                    result["mathematical_verification"] = verify_algorithm(
+                        selected_problem,
+                        references.get("efficient", {}),
+                        provider,
+                    )
 
                 if (
                     references.get("status") == "generated_unverified"
