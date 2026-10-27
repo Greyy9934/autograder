@@ -6,6 +6,7 @@ from analyzers.preflight import preflight
 from analyzers.edge_cases import analyze_edge_cases
 from analyzers.problem_reconstruction import reconstruct_problem
 from analyzers.source_risks import analyze_source_risks
+from analyzers.test_cases import analyze_test_cases
 from app.ai.base import AIProviderError
 from app.ai.config import create_ai_provider
 
@@ -36,6 +37,7 @@ def evaluate_submission(
         "source_risks": source_risks,
         "reconstruction": None,
         "edge_cases": None,
+        "test_evaluation": None,
         "correctness_assessed": False,
         "message": None,
     }
@@ -46,6 +48,9 @@ def evaluate_submission(
             "Correctness has not been assessed."
         )
         return result
+
+    if test_cases is not None:
+        result["test_evaluation"] = analyze_test_cases(source, test_cases)
 
     if provider is None:
         try:

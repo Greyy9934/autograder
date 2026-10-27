@@ -169,3 +169,39 @@ if __name__ == "__main__":
 
         self.assertEqual(result["status"], "needs_clarification")
         self.assertIsNone(result["edge_cases"])
+
+    @patch("app.orchestrator.preflight")
+    def test_supplied_test_cases_are_evaluated(self, mock_preflight):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        provider = MockAIProvider(
+            reconstruction([candidate("A", "Read an integer and print it.")])
+        )
+
+        result = evaluate_submission(
+            '#include <stdio.h>\nint main(void){int n;if(scanf("%d",&n)!=1)return 1;printf("%d\\n",n);}',
+            problem_statement="Read an integer and print it.",
+            test_cases=[{"input": "7\n", "expected_output": "7\n"}],
+            provider=provider,
+        )
+
+        self.assertEqual(result["test_evaluation"]["passed"], 1)
+        self.assertEqual(result["test_evaluation"]["failed"], 0)
+        self.assertFalse(result["correctness_assessed"])
+
+    @patch("app.orchestrator.preflight")
+    def test_failing_test_case_is_reported(self, mock_preflight):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        provider = MockAIProvider(
+            reconstruction([candidate("A", "Print the expected word.")])
+        )
+
+        result = evaluate_submission(
+            '#include <stdio.h>\nint main(void){puts("wrong");}',
+            problem_statement="Print the expected word.",
+            test_cases=[{"input": "", "expected_output": "right\n"}],
+            provider=provider,
+        )
+
+        self.assertEqual(result["test_evaluation"]["failed"], 1)
+        self.assertFalse(result["test_evaluation"]["results"][0]["passed"])
+        self.assertFalse(result["correctness_assessed"])
