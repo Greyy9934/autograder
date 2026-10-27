@@ -379,3 +379,35 @@ if __name__ == "__main__":
 
         self.assertIsNone(result["mathematical_verification"])
         mock_verify.assert_not_called()
+
+    @patch("app.orchestrator.preflight")
+    def test_complexity_estimate_is_returned_when_preflight_passes(
+        self, mock_preflight
+    ):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        provider = MockAIProvider(
+            reconstruction([candidate("A", "Print the sum.")])
+        )
+
+        result = evaluate_submission(
+            "int main(void) { for (int i = 0; i < 10; i++) {} return 0; }",
+            provider=provider,
+        )
+
+        self.assertEqual(result["complexity_estimate"]["status"], "completed")
+        self.assertEqual(result["complexity_estimate"]["loop_count"], 1)
+        self.assertIn("candidate", result["complexity_estimate"]["time_complexity"])
+
+    @patch("app.orchestrator.preflight")
+    def test_complexity_estimate_is_returned_when_preflight_blocks(
+        self, mock_preflight
+    ):
+        mock_preflight.return_value = {"decision": "block", "status": "timeout"}
+
+        result = evaluate_submission(
+            "int main(void) { for (;;) {} return 0; }"
+        )
+
+        self.assertEqual(result["status"], "preflight_blocked")
+        self.assertIsNotNone(result["complexity_estimate"])
+        self.assertEqual(result["complexity_estimate"]["loop_count"], 1)

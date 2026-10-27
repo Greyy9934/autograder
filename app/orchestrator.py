@@ -7,6 +7,7 @@ from analyzers.reference_solutions import generate_reference_solutions
 from analyzers.reference_validation import validate_reference_pair
 from analyzers.mathematical_verification import verify_algorithm
 from analyzers.edge_cases import analyze_edge_cases
+from analyzers.complexity_estimator import estimate_complexity
 from analyzers.problem_reconstruction import reconstruct_problem
 from analyzers.source_risks import analyze_source_risks
 from analyzers.test_cases import analyze_test_cases
@@ -38,6 +39,7 @@ def evaluate_submission(
         "status": "preflight_blocked",
         "preflight": preflight_result,
         "source_risks": source_risks,
+        "complexity_estimate": estimate_complexity(source),
         "reconstruction": None,
         "edge_cases": None,
         "test_evaluation": None,
