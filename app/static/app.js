@@ -142,8 +142,112 @@ int main(void) {
     if (event.target === helpDialog) helpDialog.close();
   });
 
-  evaluateButton?.addEventListener("click", () => {
-    showToast("Evaluation is not available yet. Secure execution is not enabled.");
+  const resultsPanel = $("#analysis-results");
+  const resultsSummary = $("#analysis-summary");
+  const resultsFindings = $("#analysis-findings");
+
+  evaluateButton?.addEventListener("click", async () => {
+    const source = editor?.value ?? "";
+
+    if (!source.trim()) {
+      showToast("Paste or load C source code first.");
+      editor?.focus();
+      return;
+    }
+
+    if (new TextEncoder().encode(source).length > 256 * 1024) {
+      showToast("Source must be 256 KiB or smaller.");
+      return;
+    }
+
+    evaluateButton.disabled = true;
+    evaluateButton.textContent = "Analyzing…";
+    if (resultsPanel) resultsPanel.hidden = false;
+    if (resultsSummary) resultsSummary.textContent = "Analyzing source patterns…";
+    if (resultsFindings) resultsFindings.replaceChildren();
+
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        body: JSON.stringify({ source })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        const detail = typeof data.detail === "string"
+          ? data.detail
+          : `Request failed (HTTP ${response.status}).`;
+        throw new Error(detail);
+      }
+
+      const risks = data.source_risks ?? {};
+      const complexity = data.complexity ?? {};
+      if (resultsSummary) {
+        resultsSummary.textContent =
+          `Static analysis complete. ${risks.count ?? 0} heuristic risk finding(s). ` +
+          `Estimated time: ${complexity.time_complexity ?? "unknown"}. ` +
+          `Estimated space: ${complexity.space_complexity ?? "unknown"}. ` +
+          "No code was executed and no grade was produced.";
+      }
+
+      const findings = [
+        ...(risks.findings ?? []).map(item => ({
+          title: `Source risk: ${item.rule_id}`,
+          line: item.line,
+          message: item.message,
+          evidence: item.evidence
+        })),
+        ...(complexity.findings ?? []).map(item => ({
+          title: `Complexity: ${item.rule_id}`,
+          line: item.line,
+          message: item.message,
+          evidence: item.evidence
+        }))
+      ];
+
+      if (resultsFindings) {
+        if (findings.length === 0) {
+          const empty = document.createElement("p");
+          empty.textContent = "No heuristic findings were detected. This does not prove the program is correct.";
+          resultsFindings.append(empty);
+        }
+
+        for (const finding of findings) {
+          const card = document.createElement("article");
+          card.style.cssText = "border-top: 1px solid var(--border, #303543); padding: 12px 0;";
+          const heading = document.createElement("h3");
+          heading.textContent = finding.title +
+            (Number.isInteger(finding.line) ? ` (line ${finding.line})` : "");
+          const message = document.createElement("p");
+          message.textContent = finding.message ?? "";
+          card.append(heading, message);
+
+          if (finding.evidence) {
+            const evidence = document.createElement("pre");
+            evidence.textContent = finding.evidence;
+            card.append(evidence);
+          }
+          resultsFindings.append(card);
+        }
+
+        const note = document.createElement("p");
+        note.textContent = (data.limitations ?? []).join(" ");
+        resultsFindings.append(note);
+      }
+
+      showToast("Static analysis completed. No code was executed.");
+    } catch (error) {
+      if (resultsSummary) resultsSummary.textContent =
+        `Analysis failed: ${error.message || "Could not reach the API."}`;
+      showToast("Could not analyze source. Please try again.");
+    } finally {
+      evaluateButton.disabled = false;
+      evaluateButton.textContent = "Analyze source →";
+    }
   });
 
   async function checkHealth() {

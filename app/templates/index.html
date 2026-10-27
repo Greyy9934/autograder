@@ -108,9 +108,14 @@
         </div>
         <div class="submit-row">
           <div class="submit-explainer">⌑ &nbsp; Submission remains in this browser.</div>
-          <button class="primary-button" id="evaluate-btn" type="button" disabled>Evaluate submission <span>→</span></button>
+          <button class="primary-button" id="evaluate-btn" type="button">Analyze source <span>→</span></button>
         </div>
-        <div class="disabled-reason">Evaluation is disabled until the grading API and secure execution environment are connected.</div>
+        <div class="disabled-reason">Static source analysis only. Submitted C code is not compiled or executed, and no grade is produced.</div>
+        <section class="panel" id="analysis-results" aria-live="polite" hidden style="margin-top: 18px; padding: 20px;">
+          <h2>Static analysis results</h2>
+          <p id="analysis-summary">Waiting for analysis…</p>
+          <div id="analysis-findings"></div>
+        </section>
       </section>
 
       <aside class="right-column">
