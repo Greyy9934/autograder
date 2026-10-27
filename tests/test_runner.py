@@ -1,6 +1,7 @@
 import subprocess
 import time
 import unittest
+from unittest.mock import patch
 
 from app.runner import run_c_program
 
@@ -17,6 +18,20 @@ class RunnerTests(unittest.TestCase):
     def test_compile_error(self):
         result = run_c_program("int main( {")
         self.assertEqual(result["status"], "compile_error")
+
+    def test_compiler_sandbox_launch_failure_is_reported(self):
+        with patch(
+            "app.runner._run_bounded",
+            return_value={
+                "status": "launch_error",
+                "message": "simulated sandbox launch failure",
+                "seconds": 0.01,
+            },
+        ):
+            result = run_c_program("int main(void){return 0;}")
+
+        self.assertEqual(result["status"], "sandbox_error")
+        self.assertIn("simulated sandbox launch failure", result["message"])
 
     def test_runtime_failure(self):
         result = run_c_program("int main(void){return 7;}")

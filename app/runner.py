@@ -200,7 +200,7 @@ def _run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
     Compile and execute C code using a restricted Bubblewrap workspace.
 
     This is a development worker, not a security-certified public sandbox.
-    Compilation is resource-limited but is not yet inside Bubblewrap.
+    Compilation and execution run inside separate Bubblewrap namespaces.
     """
     if not isinstance(source, str) or not source.strip():
         return {
@@ -230,23 +230,50 @@ def _run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
         source_path.write_text(source, encoding="utf-8")
         input_path.write_text(stdin, encoding="utf-8")
 
-        with input_path.open("rb") as program_input:
-            compile_result = _run_bounded(
-                [
-                    "/usr/bin/gcc",
-                    "-std=c17",
-                    "-Wall",
-                    "-Wextra",
-                    "-O2",
-                    str(source_path),
-                    "-o",
-                    str(executable_path),
-                ],
-                stdin_file=subprocess.DEVNULL,
-                timeout_seconds=COMPILE_TIMEOUT_SECONDS,
-                cwd=work,
-                preexec_fn=_set_compile_limits,
-            )
+        compile_command = [
+            "/usr/bin/bwrap",
+            "--unshare-all",
+            "--die-with-parent",
+            "--ro-bind", "/usr", "/usr",
+            "--ro-bind", "/lib", "/lib",
+            "--ro-bind", "/lib64", "/lib64",
+            "--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache",
+            "--proc", "/proc",
+            "--dev", "/dev",
+            "--tmpfs", "/tmp",
+            "--bind", str(work), "/work",
+            "--chdir", "/work",
+            "/usr/bin/prlimit",
+            f"--cpu={COMPILE_TIMEOUT_SECONDS}:{COMPILE_TIMEOUT_SECONDS + 1}",
+            f"--as={COMPILE_MEMORY_LIMIT_BYTES}:{COMPILE_MEMORY_LIMIT_BYTES}",
+            f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
+            f"--nproc={MAX_PROCESSES}:{MAX_PROCESSES}",
+            f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
+            "--",
+            "/usr/bin/gcc",
+            "-std=c17",
+            "-Wall",
+            "-Wextra",
+            "-O2",
+            "/work/submission.c",
+            "-o",
+            "/work/submission",
+        ]
+
+        compile_result = _run_bounded(
+            compile_command,
+            stdin_file=subprocess.DEVNULL,
+            timeout_seconds=COMPILE_TIMEOUT_SECONDS,
+            cwd=PROJECT_ROOT,
+        )
+
+        if compile_result["status"] == "launch_error":
+            return {
+                "status": "sandbox_error",
+                "message": compile_result.get(
+                    "message", "The compiler sandbox could not be launched."
+                ),
+            }
 
         if compile_result["status"] == "timeout":
             return {
