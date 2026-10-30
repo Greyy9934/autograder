@@ -10,15 +10,19 @@ from analyzers.reference_validation import (
 class ReferenceValidationTests(unittest.TestCase):
     def test_successful_case_does_not_claim_trust(self):
         with patch(
-            "analyzers.reference_validation.run_c_program",
+            "analyzers.reference_validation.run_c_batch",
             return_value={
                 "status": "completed",
-                "exit_code": 0,
-                "stdout": "42\n",
-                "stderr": "",
-                "stdout_truncated": False,
-                "stderr_truncated": False,
-                "seconds": 0.01,
+                "compiled_once": True,
+                "results": [{
+    "status": "completed",
+    "exit_code": 0,
+    "stdout": "42\n",
+    "stderr": "",
+    "stdout_truncated": False,
+    "stderr_truncated": False,
+    "run_seconds": 0.01,
+                }],
             },
         ):
             result = validate_reference_program(
@@ -30,14 +34,18 @@ class ReferenceValidationTests(unittest.TestCase):
 
     def test_nonzero_exit_fails(self):
         with patch(
-            "analyzers.reference_validation.run_c_program",
+            "analyzers.reference_validation.run_c_batch",
             return_value={
                 "status": "completed",
-                "exit_code": 7,
-                "stdout": "42\n",
-                "stderr": "",
-                "stdout_truncated": False,
-                "stderr_truncated": False,
+                "compiled_once": True,
+                "results": [{
+    "status": "completed",
+    "exit_code": 7,
+    "stdout": "42\n",
+    "stderr": "",
+    "stdout_truncated": False,
+    "stderr_truncated": False,
+                }],
             },
         ):
             result = validate_reference_program(
@@ -48,14 +56,18 @@ class ReferenceValidationTests(unittest.TestCase):
 
     def test_wrong_output_fails(self):
         with patch(
-            "analyzers.reference_validation.run_c_program",
+            "analyzers.reference_validation.run_c_batch",
             return_value={
                 "status": "completed",
-                "exit_code": 0,
-                "stdout": "41\n",
-                "stderr": "",
-                "stdout_truncated": False,
-                "stderr_truncated": False,
+                "compiled_once": True,
+                "results": [{
+    "status": "completed",
+    "exit_code": 0,
+    "stdout": "41\n",
+    "stderr": "",
+    "stdout_truncated": False,
+    "stderr_truncated": False,
+                }],
             },
         ):
             result = validate_reference_program(
@@ -76,14 +88,18 @@ class ReferenceValidationTests(unittest.TestCase):
 
     def test_pair_never_claims_trust(self):
         with patch(
-            "analyzers.reference_validation.run_c_program",
+            "analyzers.reference_validation.run_c_batch",
             return_value={
                 "status": "completed",
-                "exit_code": 0,
-                "stdout": "ok\n",
-                "stderr": "",
-                "stdout_truncated": False,
-                "stderr_truncated": False,
+                "compiled_once": True,
+                "results": [{
+    "status": "completed",
+    "exit_code": 0,
+    "stdout": "ok\n",
+    "stderr": "",
+    "stdout_truncated": False,
+    "stderr_truncated": False,
+                }],
             },
         ):
             result = validate_reference_pair(

@@ -27,12 +27,19 @@ class TestCaseAnalyzerTests(unittest.TestCase):
         from unittest.mock import patch
 
         with patch(
-            "analyzers.test_cases.run_c_program",
+            "analyzers.test_cases.run_c_batch",
             return_value={
                 "status": "completed",
-                "stdout": "expected\\n",
-                "stderr": "runtime error",
-                "exit_code": 1,
+                "compiled_once": True,
+                "results": [{
+                    "status": "completed",
+                    "stdout": "expected\\n",
+                    "stderr": "runtime error",
+                    "exit_code": 1,
+                    "stdout_truncated": False,
+                    "stderr_truncated": False,
+                    "execution_class": "program_exit",
+                }],
             },
         ):
             result = analyze_test_cases(

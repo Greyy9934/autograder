@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from app.runner import run_c_program
+from analyzers.batch_execution import run_c_batch
 
 
 def validate_reference_program(
@@ -28,13 +28,54 @@ def validate_reference_program(
             "cases": [],
         }
 
-    results = []
+    valid_cases = []
     for index, case in enumerate(test_cases):
         if (
             not isinstance(case, dict)
             or not isinstance(case.get("input", ""), str)
             or not isinstance(case.get("expected_output"), str)
         ):
+            valid_cases.append(None)
+        else:
+            valid_cases.append(case)
+
+    executable_cases = [case for case in valid_cases if case is not None]
+    if not executable_cases:
+        return {
+            "status": "validation_failed",
+            "passed": False,
+            "trusted": False,
+            "message": "No valid test cases were supplied.",
+            "cases": [
+                {
+                    "case_index": index,
+                    "status": "invalid_case",
+                    "passed": False,
+                }
+                for index in range(len(test_cases))
+            ],
+        }
+
+    batch = run_c_batch(
+        source,
+        [case.get("input", "") for case in executable_cases],
+    )
+
+    if batch["status"] not in {
+        "completed", "completed_with_inconclusive_cases"
+    }:
+        return {
+            "status": batch["status"],
+            "passed": False,
+            "trusted": False,
+            "message": "Reference execution could not be completed reliably.",
+            "cases": [],
+        }
+
+    results = []
+    run_index = 0
+    for index, case in enumerate(valid_cases):
+        if case is None:
             results.append({
                 "case_index": index,
                 "status": "invalid_case",
@@ -42,23 +83,29 @@ def validate_reference_program(
             })
             continue
 
-        actual = run_c_program(source, case.get("input", ""))
-        passed = (
+        actual = batch["results"][run_index]
+        run_index += 1
+        comparable = (
             actual.get("status") == "completed"
             and actual.get("exit_code") == 0
-            and actual.get("stdout") == case["expected_output"]
             and not actual.get("stdout_truncated", False)
             and not actual.get("stderr_truncated", False)
+        )
+        passed = comparable and (
+            actual.get("stdout") == case["expected_output"]
         )
         results.append({
             "case_index": index,
             "status": actual.get("status", "unknown"),
+            "execution_class": actual.get("execution_class"),
             "exit_code": actual.get("exit_code"),
             "passed": passed,
             "expected_output": case["expected_output"],
             "actual_output": actual.get("stdout", ""),
             "stderr": actual.get("stderr", ""),
-            "seconds": actual.get("seconds"),
+            "seconds": actual.get("run_seconds"),
+            "stdout_truncated": actual.get("stdout_truncated", False),
+            "stderr_truncated": actual.get("stderr_truncated", False),
         })
 
     all_passed = bool(results) and all(
@@ -68,10 +115,12 @@ def validate_reference_program(
         "status": "passed_all_cases" if all_passed else "validation_failed",
         "passed": all_passed,
         "trusted": False,
+        "compiled_once": batch.get("compiled_once", False),
+        "compile_seconds": batch.get("compile_seconds"),
         "message": (
             "All supplied cases passed; correctness is not proven."
             if all_passed
-            else "One or more validation cases failed or were invalid."
+            else "One or more supplied cases failed, were invalid, or were inconclusive."
         ),
         "cases": results,
     }
