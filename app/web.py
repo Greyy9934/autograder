@@ -1,3 +1,7 @@
+import time
+from collections import defaultdict, deque
+import threading
+import hashlib
 from pathlib import Path
 import os
 import secrets
@@ -72,6 +76,40 @@ class PreparationRequest(BaseModel):
     problem_statement: str | None = Field(default=None, max_length=20000)
 
 
+
+# Per-process rate limiter for authenticated preparation requests.
+_PREPARATION_REQUESTS = defaultdict(deque)
+_PREPARATION_RATE_LOCK = threading.Lock()
+
+
+def _check_preparation_rate_limit(api_key: str) -> None:
+    limit = int(os.getenv("PREPARATION_RATE_LIMIT", "10"))
+    window = int(os.getenv("PREPARATION_RATE_WINDOW_SECONDS", "60"))
+
+    if limit < 1 or window < 1:
+        raise HTTPException(status_code=503, detail="Rate limiter is misconfigured.")
+
+    key_fingerprint = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+    now = time.monotonic()
+    cutoff = now - window
+
+    with _PREPARATION_RATE_LOCK:
+        requests = _PREPARATION_REQUESTS[key_fingerprint]
+
+        while requests and requests[0] <= cutoff:
+            requests.popleft()
+
+        if len(requests) >= limit:
+            retry_after = max(1, int(window - (now - requests[0])))
+            raise HTTPException(
+                status_code=429,
+                detail="Preparation request rate limit exceeded. Try again shortly.",
+                headers={"Retry-After": str(retry_after)},
+            )
+
+        requests.append(now)
+
+
 @app.post("/api/prepare")
 def prepare_submission(
     request: PreparationRequest,
@@ -88,6 +126,8 @@ def prepare_submission(
         or not secrets.compare_digest(x_preparation_key, configured_key)
     ):
         raise HTTPException(status_code=401, detail="Invalid preparation API key.")
+
+    _check_preparation_rate_limit(x_preparation_key)
 
     if not request.source.strip():
         raise HTTPException(status_code=422, detail="Source must not be blank.")

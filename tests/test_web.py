@@ -156,3 +156,88 @@ def test_prepare_endpoint_rejects_blank_problem_statement(monkeypatch):
         json={"source": "int main(void) { return 0; }", "problem_statement": "  "},
     )
     assert response.status_code == 422
+
+
+def test_prepare_rate_limit_blocks_excess_requests(monkeypatch):
+    import app.web
+
+    monkeypatch.setenv("PREPARATION_API_KEY", "rate-test-secret")
+    monkeypatch.setenv("PREPARATION_RATE_LIMIT", "2")
+    monkeypatch.setenv("PREPARATION_RATE_WINDOW_SECONDS", "60")
+    app.web._PREPARATION_REQUESTS.clear()
+    monkeypatch.setattr(
+        app.web,
+        "evaluate_submission",
+        lambda **kwargs: {"status": "ready"},
+    )
+
+    headers = {"X-Preparation-Key": "rate-test-secret"}
+    payload = {"source": "int main(void) { return 0; }"}
+
+    assert client.post("/api/prepare", headers=headers, json=payload).status_code == 200
+    assert client.post("/api/prepare", headers=headers, json=payload).status_code == 200
+
+    blocked = client.post("/api/prepare", headers=headers, json=payload)
+    assert blocked.status_code == 429
+    assert int(blocked.headers["Retry-After"]) > 0
+
+
+def test_prepare_rate_limit_resets_after_window(monkeypatch):
+    import app.web
+
+    monkeypatch.setenv("PREPARATION_API_KEY", "reset-test-secret")
+    monkeypatch.setenv("PREPARATION_RATE_LIMIT", "1")
+    monkeypatch.setenv("PREPARATION_RATE_WINDOW_SECONDS", "60")
+    app.web._PREPARATION_REQUESTS.clear()
+    monkeypatch.setattr(
+        app.web,
+        "evaluate_submission",
+        lambda **kwargs: {"status": "ready"},
+    )
+
+    clock = {"now": 100.0}
+    monkeypatch.setattr(app.web.time, "monotonic", lambda: clock["now"])
+
+    headers = {"X-Preparation-Key": "reset-test-secret"}
+    payload = {"source": "int main(void) { return 0; }"}
+
+    assert client.post("/api/prepare", headers=headers, json=payload).status_code == 200
+    assert client.post("/api/prepare", headers=headers, json=payload).status_code == 429
+
+    clock["now"] = 161.0
+    assert client.post("/api/prepare", headers=headers, json=payload).status_code == 200
+
+
+def test_invalid_key_does_not_consume_rate_limit(monkeypatch):
+    import app.web
+
+    monkeypatch.setenv("PREPARATION_API_KEY", "valid-rate-secret")
+    monkeypatch.setenv("PREPARATION_RATE_LIMIT", "1")
+    app.web._PREPARATION_REQUESTS.clear()
+    monkeypatch.setattr(
+        app.web,
+        "evaluate_submission",
+        lambda **kwargs: {"status": "ready"},
+    )
+
+    payload = {"source": "int main(void) { return 0; }"}
+
+    invalid = client.post(
+        "/api/prepare",
+        headers={"X-Preparation-Key": "wrong-secret"},
+        json=payload,
+    )
+    valid = client.post(
+        "/api/prepare",
+        headers={"X-Preparation-Key": "valid-rate-secret"},
+        json=payload,
+    )
+    blocked = client.post(
+        "/api/prepare",
+        headers={"X-Preparation-Key": "valid-rate-secret"},
+        json=payload,
+    )
+
+    assert invalid.status_code == 401
+    assert valid.status_code == 200
+    assert blocked.status_code == 429
