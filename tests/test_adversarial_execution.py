@@ -21,13 +21,20 @@ class AdversarialExecutionTests(unittest.TestCase):
             ],
         }
 
-    @patch("analyzers.adversarial_execution.run_c_program")
+    @patch("analyzers.adversarial_execution.run_c_batch")
     def test_executes_candidates_without_assigning_verdict(self, mock_run):
         mock_run.return_value = {
             "status": "completed",
-            "stdout": "10\n",
-            "stderr": "",
-            "exit_code": 0,
+            "compile_seconds": 0.1,
+            "compiled_once": True,
+            "executed": 1,
+            "results": [{
+                "case": 1, "input": "0 10\n",
+                "status": "completed", "stdout": "10\n",
+                "stderr": "", "exit_code": 0,
+                "stdout_truncated": False,
+                "stderr_truncated": False, "run_seconds": 0.01,
+            }],
         }
         result = execute_adversarial_candidates(self.source, self.plan)
         self.assertEqual(result["status"], "completed")

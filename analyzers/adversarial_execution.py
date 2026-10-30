@@ -1,9 +1,9 @@
-"""Execute adversarial candidates and collect evidence without grading them."""
+"""Execute adversarial candidates using one compilation per batch."""
 
 import hashlib
 from typing import Any
 
-from app.runner import run_c_program
+from analyzers.batch_execution import run_c_batch
 
 
 def execute_adversarial_candidates(
@@ -24,32 +24,35 @@ def execute_adversarial_candidates(
     if not isinstance(cases, list) or not cases:
         return {"status": "invalid_plan", "results": []}
 
-    results = []
-    for index, case in enumerate(cases, start=1):
-        if not isinstance(case, dict) or not isinstance(case.get("input"), str):
-            return {
-                "status": "invalid_plan",
-                "results": results,
-                "message": f"Invalid adversarial case at position {index}.",
-            }
+    if any(not isinstance(case, dict) or not isinstance(case.get("input"), str)
+           for case in cases):
+        return {"status": "invalid_plan", "results": []}
 
-        run = run_c_program(source, case["input"])
+    batch = run_c_batch(source, [case["input"] for case in cases])
+    if batch["status"] != "completed":
+        return {"status": batch["status"], "results": [],
+                "execution_details": batch}
+
+    results = []
+    for case, run in zip(cases, batch["results"]):
         results.append({
-            "case": index,
+            "case": run["case"],
             "input": case["input"],
             "reason": case.get("reason"),
             "priority": case.get("priority"),
             "source_trigger": case.get("source_trigger"),
-            "execution_status": run.get("status", "unknown"),
-            "stdout": run.get("stdout", ""),
-            "stderr": run.get("stderr", ""),
-            "exit_code": run.get("exit_code"),
-            "timed_out": run.get("timed_out", False),
+            "execution_status": run["status"],
+            "stdout": run["stdout"],
+            "stderr": run["stderr"],
+            "exit_code": run["exit_code"],
+            "timed_out": run["status"] == "timeout",
             "verdict": "unclassified",
         })
 
     return {
         "status": "completed",
+        "compile_seconds": batch["compile_seconds"],
+        "compiled_once": True,
         "executed": len(results),
         "results": results,
         "interpretation": (
