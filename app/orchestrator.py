@@ -146,6 +146,9 @@ def evaluate_execution_evidence(
             provider,
         )
 
+    from app.execution_summary import summarize_execution_evidence
+
+    result["execution_evidence_summary"] = summarize_execution_evidence(result)
     result["execution_status"] = "completed"
     return _attach_grading(result)
 
