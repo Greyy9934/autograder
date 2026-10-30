@@ -76,6 +76,60 @@ class PreparationRequest(BaseModel):
     problem_statement: str | None = Field(default=None, max_length=20000)
 
 
+class ConfirmAssignmentRequest(BaseModel):
+    assignment_spec: dict
+    expected_fingerprint: str = Field(min_length=64, max_length=64)
+    instructor_approved: bool
+
+
+
+@app.post("/api/confirm-assignment")
+def confirm_assignment(
+    request: ConfirmAssignmentRequest,
+    x_instructor_key: str | None = Header(default=None),
+):
+    configured_key = os.getenv("INSTRUCTOR_CONFIRMATION_KEY", "").strip()
+    if not configured_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Instructor confirmation is not configured.",
+        )
+    if (
+        not x_instructor_key
+        or not secrets.compare_digest(x_instructor_key, configured_key)
+    ):
+        raise HTTPException(status_code=401, detail="Invalid instructor key.")
+
+    if request.instructor_approved is not True:
+        raise HTTPException(
+            status_code=403,
+            detail="Explicit instructor approval is required.",
+        )
+
+    from analyzers.assignment_spec import AssignmentSpec
+
+    try:
+        values = dict(request.assignment_spec)
+        values["constraints"] = tuple(values.get("constraints", ()))
+        draft = AssignmentSpec(**values)
+        if draft.confirmed:
+            raise ValueError("The submitted specification must be an unconfirmed draft.")
+        if not secrets.compare_digest(
+            draft.fingerprint(), request.expected_fingerprint
+        ):
+            raise ValueError("Assignment specification fingerprint mismatch.")
+
+        confirmed = draft.confirm(instructor_approved=True)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return {
+        "status": "confirmed",
+        "assignment_spec": confirmed.to_dict(),
+        "assignment_spec_fingerprint": confirmed.fingerprint(),
+        "confirmation": "instructor_approved",
+    }
+
 
 # Per-process rate limiter for authenticated preparation requests.
 _PREPARATION_REQUESTS = defaultdict(deque)
@@ -164,3 +218,44 @@ def analyze_source(request: AnalysisRequest):
             "No grade or correctness verdict is produced.",
         ],
     }
+
+
+class ReferenceGenerationRequest(BaseModel):
+    assignment_spec: dict
+    expected_fingerprint: str = Field(min_length=64, max_length=64)
+
+
+@app.post("/api/generate-references")
+def generate_references(
+    request: ReferenceGenerationRequest,
+    x_instructor_key: str | None = Header(default=None),
+):
+    configured_key = os.getenv("INSTRUCTOR_CONFIRMATION_KEY", "").strip()
+    if not configured_key:
+        raise HTTPException(status_code=503, detail="Instructor confirmation is not configured.")
+
+    if not x_instructor_key or not secrets.compare_digest(
+        x_instructor_key, configured_key
+    ):
+        raise HTTPException(status_code=401, detail="Invalid instructor key.")
+
+    from analyzers.assignment_spec import AssignmentSpec
+    from app.orchestrator import generate_reference_solutions_for_confirmed_spec
+
+    try:
+        values = dict(request.assignment_spec)
+        values["constraints"] = tuple(values.get("constraints", ()))
+        spec = AssignmentSpec(**values)
+
+        if not spec.confirmed:
+            raise ValueError("Instructor-confirmed specification required.")
+
+        if not secrets.compare_digest(
+            spec.fingerprint(), request.expected_fingerprint
+        ):
+            raise ValueError("Assignment specification fingerprint mismatch.")
+
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return generate_reference_solutions_for_confirmed_spec(spec)

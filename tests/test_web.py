@@ -241,3 +241,193 @@ def test_invalid_key_does_not_consume_rate_limit(monkeypatch):
     assert invalid.status_code == 401
     assert valid.status_code == 200
     assert blocked.status_code == 429
+
+
+def test_instructor_confirmation_endpoint_confirms_valid_draft(monkeypatch):
+    from analyzers.assignment_spec import AssignmentSpec
+
+    monkeypatch.setenv("INSTRUCTOR_CONFIRMATION_KEY", "instructor-secret")
+    draft = AssignmentSpec.create_draft(
+        {
+            "id": "sum",
+            "title": "Sum two integers",
+            "problem_statement": "Read two integers and print their sum.",
+        },
+        constraints=("Both integers are within signed 32-bit range.",),
+        input_format="Two integers separated by whitespace.",
+        output_format="Print their sum followed by a newline.",
+    )
+
+    response = client.post(
+        "/api/confirm-assignment",
+        headers={"X-Instructor-Key": "instructor-secret"},
+        json={
+            "assignment_spec": draft.to_dict(),
+            "expected_fingerprint": draft.fingerprint(),
+            "instructor_approved": True,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "confirmed"
+    assert data["assignment_spec"]["confirmed"] is True
+
+
+def test_instructor_confirmation_requires_separate_key(monkeypatch):
+    monkeypatch.delenv("INSTRUCTOR_CONFIRMATION_KEY", raising=False)
+    response = client.post(
+        "/api/confirm-assignment",
+        json={
+            "assignment_spec": {},
+            "expected_fingerprint": "0" * 64,
+            "instructor_approved": True,
+        },
+    )
+    assert response.status_code == 503
+
+
+def test_instructor_confirmation_rejects_wrong_key(monkeypatch):
+    monkeypatch.setenv("INSTRUCTOR_CONFIRMATION_KEY", "correct-instructor-key")
+    response = client.post(
+        "/api/confirm-assignment",
+        headers={"X-Instructor-Key": "wrong-key"},
+        json={
+            "assignment_spec": {},
+            "expected_fingerprint": "0" * 64,
+            "instructor_approved": True,
+        },
+    )
+    assert response.status_code == 401
+
+
+def test_instructor_confirmation_rejects_missing_approval(monkeypatch):
+    monkeypatch.setenv("INSTRUCTOR_CONFIRMATION_KEY", "instructor-secret")
+    response = client.post(
+        "/api/confirm-assignment",
+        headers={"X-Instructor-Key": "instructor-secret"},
+        json={
+            "assignment_spec": {},
+            "expected_fingerprint": "0" * 64,
+            "instructor_approved": False,
+        },
+    )
+    assert response.status_code == 403
+
+
+def test_instructor_confirmation_rejects_modified_draft(monkeypatch):
+    from analyzers.assignment_spec import AssignmentSpec
+
+    monkeypatch.setenv("INSTRUCTOR_CONFIRMATION_KEY", "instructor-secret")
+    draft = AssignmentSpec.create_draft(
+        {
+            "id": "sum",
+            "title": "Sum two integers",
+            "problem_statement": "Read two integers and print their sum.",
+        },
+        input_format="Two integers.",
+        output_format="Print their sum.",
+    )
+    modified = draft.to_dict()
+    modified["output_format"] = "Print their product."
+
+    response = client.post(
+        "/api/confirm-assignment",
+        headers={"X-Instructor-Key": "instructor-secret"},
+        json={
+            "assignment_spec": modified,
+            "expected_fingerprint": draft.fingerprint(),
+            "instructor_approved": True,
+        },
+    )
+    assert response.status_code == 422
+
+
+def _reference_generation_spec(confirmed=True):
+    from analyzers.assignment_spec import AssignmentSpec
+
+    draft = AssignmentSpec.create_draft(
+        {
+            "id": "sum",
+            "title": "Sum two integers",
+            "problem_statement": "Read two integers and print their sum.",
+        },
+        input_format="Two integers separated by whitespace.",
+        output_format="Print their sum followed by a newline.",
+    )
+    return draft.confirm(instructor_approved=True) if confirmed else draft
+
+
+def test_reference_generation_endpoint_accepts_confirmed_spec(monkeypatch):
+    from unittest.mock import patch
+
+    monkeypatch.setenv("INSTRUCTOR_CONFIRMATION_KEY", "instructor-secret")
+    spec = _reference_generation_spec()
+
+    with patch(
+        "app.orchestrator.generate_reference_solutions_for_confirmed_spec",
+        return_value={"status": "generated_unverified", "references_trusted": False},
+    ) as generate:
+        response = client.post(
+            "/api/generate-references",
+            headers={"X-Instructor-Key": "instructor-secret"},
+            json={
+                "assignment_spec": spec.to_dict(),
+                "expected_fingerprint": spec.fingerprint(),
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "generated_unverified"
+    assert response.json()["references_trusted"] is False
+    generate.assert_called_once()
+
+
+def test_reference_generation_endpoint_rejects_unconfirmed_spec(monkeypatch):
+    monkeypatch.setenv("INSTRUCTOR_CONFIRMATION_KEY", "instructor-secret")
+    spec = _reference_generation_spec(confirmed=False)
+
+    response = client.post(
+        "/api/generate-references",
+        headers={"X-Instructor-Key": "instructor-secret"},
+        json={
+            "assignment_spec": spec.to_dict(),
+            "expected_fingerprint": spec.fingerprint(),
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_reference_generation_endpoint_rejects_wrong_key(monkeypatch):
+    monkeypatch.setenv("INSTRUCTOR_CONFIRMATION_KEY", "instructor-secret")
+    spec = _reference_generation_spec()
+
+    response = client.post(
+        "/api/generate-references",
+        headers={"X-Instructor-Key": "wrong-key"},
+        json={
+            "assignment_spec": spec.to_dict(),
+            "expected_fingerprint": spec.fingerprint(),
+        },
+    )
+
+    assert response.status_code == 401
+
+
+def test_reference_generation_endpoint_rejects_modified_spec(monkeypatch):
+    monkeypatch.setenv("INSTRUCTOR_CONFIRMATION_KEY", "instructor-secret")
+    spec = _reference_generation_spec()
+    modified = spec.to_dict()
+    modified["output_format"] = "Print their product."
+
+    response = client.post(
+        "/api/generate-references",
+        headers={"X-Instructor-Key": "instructor-secret"},
+        json={
+            "assignment_spec": modified,
+            "expected_fingerprint": spec.fingerprint(),
+        },
+    )
+
+    assert response.status_code == 422
