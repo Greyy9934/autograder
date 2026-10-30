@@ -1,10 +1,13 @@
 from pathlib import Path
+import os
+import secrets
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel, Field
 
 from analyzers.source_risks import analyze_source_risks
 from analyzers.complexity_estimator import estimate_complexity
+from app.orchestrator import evaluate_submission
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -62,6 +65,43 @@ def api_status():
 
 class AnalysisRequest(BaseModel):
     source: str = Field(min_length=1, max_length=262144)
+
+
+class PreparationRequest(BaseModel):
+    source: str = Field(min_length=1, max_length=262144)
+    problem_statement: str | None = Field(default=None, max_length=20000)
+
+
+@app.post("/api/prepare")
+def prepare_submission(
+    request: PreparationRequest,
+    x_preparation_key: str | None = Header(default=None),
+):
+    configured_key = os.getenv("PREPARATION_API_KEY", "").strip()
+    if not configured_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Preparation API is not configured.",
+        )
+    if (
+        not x_preparation_key
+        or not secrets.compare_digest(x_preparation_key, configured_key)
+    ):
+        raise HTTPException(status_code=401, detail="Invalid preparation API key.")
+
+    if not request.source.strip():
+        raise HTTPException(status_code=422, detail="Source must not be blank.")
+
+    if request.problem_statement is not None and not request.problem_statement.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Problem statement must not be blank when supplied.",
+        )
+
+    return evaluate_submission(
+        source=request.source,
+        problem_statement=request.problem_statement,
+    )
 
 
 @app.post("/api/analyze")
