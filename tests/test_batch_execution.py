@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from analyzers.batch_execution import run_c_batch
@@ -7,14 +8,39 @@ from analyzers.batch_execution import run_c_batch
 class BatchExecutionTests(unittest.TestCase):
     @patch("analyzers.batch_execution.runner._run_bounded")
     def test_compiles_once_and_runs_each_input(self, mock_run):
-        mock_run.side_effect = [
-            {"status": "completed", "exit_code": 0, "seconds": 0.1},
-            {"status": "completed", "exit_code": 0, "stdout": "3\n",
-             "stderr": "", "seconds": 0.01},
-            {"status": "completed", "exit_code": 0, "stdout": "7\n",
-             "stderr": "", "seconds": 0.02},
-        ]
-        result = run_c_batch("int main(void){return 0;}", ["1 2\n", "3 4\n"])
+        run_count = 0
+
+        def fake_run(command, **kwargs):
+            nonlocal run_count
+            run_count += 1
+
+            if "/usr/bin/gcc" in command:
+                work = Path(command[command.index("--bind") + 1])
+                (work / "submission").write_text("mock executable")
+                return {
+                    "status": "completed",
+                    "exit_code": 0,
+                    "seconds": 0.1,
+                }
+
+            output = "3\n" if run_count == 2 else "7\n"
+            return {
+                "status": "completed",
+                "exit_code": 0,
+                "stdout": output,
+                "stderr": "",
+                "seconds": 0.01,
+                "stdout_truncated": False,
+                "stderr_truncated": False,
+            }
+
+        mock_run.side_effect = fake_run
+
+        result = run_c_batch(
+            "int main(void){return 0;}",
+            ["1 2\n", "3 4\n"],
+        )
+
         self.assertEqual(result["status"], "completed")
         self.assertTrue(result["compiled_once"])
         self.assertEqual(result["executed"], 2)
@@ -23,7 +49,9 @@ class BatchExecutionTests(unittest.TestCase):
     @patch("analyzers.batch_execution.runner._run_bounded")
     def test_compile_failure_prevents_execution(self, mock_run):
         mock_run.return_value = {
-            "status": "completed", "exit_code": 1, "stderr": "compile error",
+            "status": "completed",
+            "exit_code": 1,
+            "stderr": "compile error",
         }
         result = run_c_batch("invalid C", ["1\n"])
         self.assertEqual(result["status"], "compile_failed")

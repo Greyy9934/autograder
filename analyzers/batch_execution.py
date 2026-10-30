@@ -78,6 +78,22 @@ def run_c_batch(source: str, inputs: list[str]) -> dict[str, Any]:
                 "results": [],
             }
 
+        if not executable_path.is_file():
+            return {
+                "status": "compile_failed",
+                "compile_status": "missing_executable",
+                "results": [],
+            }
+
+        if not executable_path.is_file():
+            return {
+                "status": "compile_failed",
+                "compile_status": "missing_executable",
+                "results": [],
+            }
+
+        executable_path.chmod(0o555)
+
         for index, value in enumerate(inputs, start=1):
             input_path = work / f"stdin-{index}.txt"
             input_path.write_text(value, encoding="utf-8")
@@ -91,7 +107,7 @@ def run_c_batch(source: str, inputs: list[str]) -> dict[str, Any]:
                 "--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache",
                 "--proc", "/proc", "--dev", "/dev",
                 "--tmpfs", "/tmp",
-                "--bind", str(work), "/work",
+                "--ro-bind", str(work), "/work",
                 "--chdir", "/work",
                 "/usr/bin/prlimit",
                 f"--cpu={runner.CPU_LIMIT_SECONDS}:{runner.CPU_LIMIT_SECONDS}",
