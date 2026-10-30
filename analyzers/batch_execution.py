@@ -63,9 +63,12 @@ def run_c_batch(source: str, inputs: list[str]) -> dict[str, Any]:
 
         if compile_result["status"] != "completed":
             return {
-                "status": "compile_failed",
+                "status": "infrastructure_error"
+                if compile_result["status"] == "launch_error"
+                else "compile_inconclusive",
                 "compile_status": compile_result["status"],
                 "compiler_stderr": compile_result.get("stderr", ""),
+                "message": compile_result.get("message"),
                 "results": [],
             }
 
@@ -75,13 +78,6 @@ def run_c_batch(source: str, inputs: list[str]) -> dict[str, Any]:
                 "compile_status": "compile_error",
                 "compile_exit_code": compile_result["exit_code"],
                 "compiler_stderr": compile_result.get("stderr", ""),
-                "results": [],
-            }
-
-        if not executable_path.is_file():
-            return {
-                "status": "compile_failed",
-                "compile_status": "missing_executable",
                 "results": [],
             }
 
@@ -131,6 +127,18 @@ def run_c_batch(source: str, inputs: list[str]) -> dict[str, Any]:
                 "case": index,
                 "input": value,
                 "status": run["status"],
+                "execution_class": (
+                    "infrastructure_error"
+                    if run["status"] == "launch_error"
+                    else "execution_inconclusive"
+                    if run["status"] in {
+                        "timeout",
+                        "output_limit",
+                        "terminated_by_signal",
+                        "resource_limit_or_forced_kill",
+                    }
+                    else "program_exit"
+                ),
                 "exit_code": run.get("exit_code"),
                 "stdout": run.get("stdout", ""),
                 "stderr": run.get("stderr", ""),
@@ -140,7 +148,11 @@ def run_c_batch(source: str, inputs: list[str]) -> dict[str, Any]:
             })
 
     return {
-        "status": "completed",
+        "status": (
+            "completed"
+            if all(item["status"] == "completed" for item in results)
+            else "completed_with_inconclusive_cases"
+        ),
         "compile_seconds": compile_result["seconds"],
         "compiled_once": True,
         "executed": len(results),
