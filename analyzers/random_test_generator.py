@@ -91,3 +91,34 @@ def generate_random_test_batch(
             "Random test generation does not establish program correctness.",
         ],
     }
+
+
+def generate_schema_test_batch(
+    spec: AssignmentSpec,
+    *,
+    schema,
+    seed: int,
+    count: int,
+    distribution: str = "uniform",
+) -> dict[str, Any]:
+    """Generate tests using an explicit integer input schema."""
+    if not isinstance(spec, AssignmentSpec) or not spec.confirmed:
+        return {
+            "status": "rejected",
+            "reason": "A confirmed assignment specification is required.",
+            "inputs": [],
+        }
+
+    from analyzers.input_schema import IntegerInputSchema
+
+    if not isinstance(schema, IntegerInputSchema):
+        return {"status": "invalid_request", "inputs": []}
+
+    return generate_random_test_batch(
+        spec,
+        seed=seed,
+        count=count,
+        distribution=distribution,
+        input_generator=lambda rng, _spec, mode: schema.generate(rng, mode),
+        input_validator=lambda text, _spec: schema.validate(text),
+    )
