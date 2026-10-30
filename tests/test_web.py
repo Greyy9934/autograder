@@ -247,6 +247,7 @@ def test_instructor_confirmation_endpoint_confirms_valid_draft(monkeypatch):
     from analyzers.assignment_spec import AssignmentSpec
 
     monkeypatch.setenv("INSTRUCTOR_CONFIRMATION_KEY", "instructor-secret")
+    monkeypatch.setenv("INSTRUCTOR_TOKEN_SIGNING_KEY", "test-signing-key-12345678901234567890")
     draft = AssignmentSpec.create_draft(
         {
             "id": "sum",
@@ -362,7 +363,10 @@ def test_reference_generation_endpoint_accepts_confirmed_spec(monkeypatch):
     from unittest.mock import patch
 
     monkeypatch.setenv("INSTRUCTOR_CONFIRMATION_KEY", "instructor-secret")
+    monkeypatch.setenv("INSTRUCTOR_TOKEN_SIGNING_KEY", "test-signing-key-12345678901234567890")
     spec = _reference_generation_spec()
+    from app.web import _create_approval_token
+    token = _create_approval_token(spec.fingerprint())
 
     with patch(
         "app.orchestrator.generate_reference_solutions_for_confirmed_spec",
@@ -374,6 +378,7 @@ def test_reference_generation_endpoint_accepts_confirmed_spec(monkeypatch):
             json={
                 "assignment_spec": spec.to_dict(),
                 "expected_fingerprint": spec.fingerprint(),
+                "approval_token": token,
             },
         )
 
@@ -393,6 +398,7 @@ def test_reference_generation_endpoint_rejects_unconfirmed_spec(monkeypatch):
         json={
             "assignment_spec": spec.to_dict(),
             "expected_fingerprint": spec.fingerprint(),
+            "approval_token": "test-invalid-token",
         },
     )
 
@@ -409,6 +415,7 @@ def test_reference_generation_endpoint_rejects_wrong_key(monkeypatch):
         json={
             "assignment_spec": spec.to_dict(),
             "expected_fingerprint": spec.fingerprint(),
+            "approval_token": "test-invalid-token",
         },
     )
 
@@ -427,6 +434,7 @@ def test_reference_generation_endpoint_rejects_modified_spec(monkeypatch):
         json={
             "assignment_spec": modified,
             "expected_fingerprint": spec.fingerprint(),
+            "approval_token": "test-invalid-token",
         },
     )
 

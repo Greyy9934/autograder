@@ -2,6 +2,7 @@ import time
 from collections import defaultdict, deque
 import threading
 import hashlib
+import hmac
 from pathlib import Path
 import os
 import secrets
@@ -32,6 +33,43 @@ app.mount(
 )
 
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
+
+
+def _approval_signing_key() -> bytes:
+    key = os.getenv("INSTRUCTOR_TOKEN_SIGNING_KEY", "").strip()
+    if len(key) < 32:
+        raise HTTPException(
+            status_code=503,
+            detail="Instructor token signing is not configured securely.",
+        )
+    return key.encode("utf-8")
+
+
+def _create_approval_token(fingerprint: str) -> str:
+    issued_at = str(int(time.time()))
+    message = f"{fingerprint}:{issued_at}".encode("utf-8")
+    signature = hmac.new(
+        _approval_signing_key(), message, hashlib.sha256
+    ).hexdigest()
+    return f"{issued_at}.{signature}"
+
+
+def _verify_approval_token(fingerprint: str, token: str) -> bool:
+    try:
+        issued_text, supplied_signature = token.split(".", 1)
+        issued_at = int(issued_text)
+    except (ValueError, AttributeError):
+        return False
+
+    now = int(time.time())
+    if issued_at > now or now - issued_at > 900:
+        return False
+
+    message = f"{fingerprint}:{issued_text}".encode("utf-8")
+    expected = hmac.new(
+        _approval_signing_key(), message, hashlib.sha256
+    ).hexdigest()
+    return secrets.compare_digest(expected, supplied_signature)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
@@ -123,10 +161,13 @@ def confirm_assignment(
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+    fingerprint = confirmed.fingerprint()
     return {
         "status": "confirmed",
         "assignment_spec": confirmed.to_dict(),
-        "assignment_spec_fingerprint": confirmed.fingerprint(),
+        "assignment_spec_fingerprint": fingerprint,
+        "approval_token": _create_approval_token(fingerprint),
+        "approval_token_expires_in_seconds": 900,
         "confirmation": "instructor_approved",
     }
 
@@ -223,6 +264,7 @@ def analyze_source(request: AnalysisRequest):
 class ReferenceGenerationRequest(BaseModel):
     assignment_spec: dict
     expected_fingerprint: str = Field(min_length=64, max_length=64)
+    approval_token: str = Field(min_length=1, max_length=256)
 
 
 @app.post("/api/generate-references")
@@ -254,6 +296,11 @@ def generate_references(
             spec.fingerprint(), request.expected_fingerprint
         ):
             raise ValueError("Assignment specification fingerprint mismatch.")
+
+        if not _verify_approval_token(
+            spec.fingerprint(), request.approval_token
+        ):
+            raise ValueError("Invalid or expired instructor approval token.")
 
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
