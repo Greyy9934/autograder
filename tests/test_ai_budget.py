@@ -64,3 +64,45 @@ def test_budgeted_provider_blocks_before_call(tmp_path):
 
     assert caught.value.category == "budget_exhausted"
     assert provider.calls == 1
+
+
+def test_rejects_empty_database_path():
+    with pytest.raises(AIProviderError) as caught:
+        RequestBudget("", daily_limit=10)
+
+    assert caught.value.category == "budget_configuration_error"
+
+
+def test_rejects_unavailable_database_storage(tmp_path):
+    parent_file = tmp_path / "not-a-directory"
+    parent_file.write_text("occupied")
+
+    with pytest.raises(AIProviderError) as caught:
+        RequestBudget(parent_file / "usage.sqlite3", daily_limit=10)
+
+    assert caught.value.category == "budget_storage_error"
+
+
+@pytest.mark.parametrize("raw_limit", ["abc", "0", "-5", ""])
+def test_invalid_environment_budget_limit_fails_closed(monkeypatch, raw_limit, tmp_path):
+    from app.ai.budget import create_request_budget
+
+    monkeypatch.setenv("AI_DAILY_REQUEST_CREDITS", raw_limit)
+    monkeypatch.setenv("AI_BUDGET_DB", str(tmp_path / "usage.sqlite3"))
+
+    with pytest.raises(AIProviderError) as caught:
+        create_request_budget()
+
+    assert caught.value.category == "budget_configuration_error"
+
+
+def test_budget_storage_failure_blocks_provider_call(tmp_path):
+    parent_file = tmp_path / "occupied"
+    parent_file.write_text("not a directory")
+    provider = FakeProvider()
+
+    with pytest.raises(AIProviderError):
+        budget = RequestBudget(parent_file / "usage.sqlite3", daily_limit=10)
+        BudgetedProvider(provider, budget).generate_json("task", {}, {})
+
+    assert provider.calls == 0

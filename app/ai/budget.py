@@ -17,17 +17,29 @@ class RequestBudget:
         if isinstance(daily_limit, bool) or not isinstance(daily_limit, int) or daily_limit < 1:
             raise ValueError("daily_limit must be a positive integer.")
 
-        self.database_path = str(database_path)
+        self.database_path = str(database_path).strip()
         self.daily_limit = daily_limit
-        Path(self.database_path).parent.mkdir(parents=True, exist_ok=True)
 
-        with closing(self._connect()) as connection:
-            connection.execute("""
-                CREATE TABLE IF NOT EXISTS ai_usage (
-                    usage_date TEXT PRIMARY KEY,
-                    reserved_credits INTEGER NOT NULL
-                )
-            """)
+        if not self.database_path:
+            raise AIProviderError(
+                "AI budget database path is empty; request blocked.",
+                category="budget_configuration_error",
+            )
+
+        try:
+            Path(self.database_path).parent.mkdir(parents=True, exist_ok=True)
+            with closing(self._connect()) as connection:
+                connection.execute("""
+                    CREATE TABLE IF NOT EXISTS ai_usage (
+                        usage_date TEXT PRIMARY KEY,
+                        reserved_credits INTEGER NOT NULL
+                    )
+                """)
+        except (sqlite3.Error, OSError) as exc:
+            raise AIProviderError(
+                "AI budget storage could not be initialized; request blocked.",
+                category="budget_storage_error",
+            ) from exc
 
     def _connect(self):
         connection = sqlite3.connect(
@@ -113,6 +125,21 @@ class BudgetedProvider:
 
 def create_request_budget() -> RequestBudget:
     default_path = Path.home() / ".local" / "share" / "autograder" / "ai-budget.sqlite3"
-    path = os.getenv("AI_BUDGET_DB", str(default_path))
-    limit = int(os.getenv("AI_DAILY_REQUEST_CREDITS", "60"))
+    path = os.getenv("AI_BUDGET_DB", str(default_path)).strip()
+    raw_limit = os.getenv("AI_DAILY_REQUEST_CREDITS", "60").strip()
+
+    try:
+        limit = int(raw_limit)
+    except (TypeError, ValueError) as exc:
+        raise AIProviderError(
+            "AI_DAILY_REQUEST_CREDITS must be a positive integer.",
+            category="budget_configuration_error",
+        ) from exc
+
+    if limit < 1:
+        raise AIProviderError(
+            "AI_DAILY_REQUEST_CREDITS must be a positive integer.",
+            category="budget_configuration_error",
+        )
+
     return RequestBudget(path, limit)
