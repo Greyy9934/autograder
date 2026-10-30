@@ -300,3 +300,1583 @@ h1 em { color: var(--purple); font-style: normal; }
   .primary-button { width: 100%; }
   .disabled-reason { text-align: left; }
 }
+
+/* ===== EXACT CLASSIC 4CHAN REFERENCE PALETTE ===== */
+:root {
+  color-scheme: light;
+  --void: #ffffee;
+  --black: #ffffee;
+  --surface: #ffffff;
+  --surface2: #ffccaa;
+  --edge: #880000;
+  --green: #789922;
+  --green2: #477b58;
+  --pale: #222222;
+  --muted: #666666;
+}
+
+body {
+  background: #ffffee;
+  color: #222222;
+  font: 13px/1.4 Arial, Helvetica, sans-serif;
+}
+body::before, body::after { display: none; }
+
+a { color: #0000ee; text-decoration: underline; }
+a:visited { color: #551a8b; }
+a:hover { color: #dd0000; text-shadow: none; }
+
+.board-header {
+  background: #ffffee;
+  border-color: #880000;
+}
+.site-logo, .site-logo b { color: #880000; }
+.site-logo small { color: #666666; }
+.logo-glyph {
+  background: #880000;
+  border-color: #880000;
+  color: white;
+  box-shadow: none;
+}
+.logo-glyph span { color: #ffccaa; }
+
+.header-links a, .header-links button { color: #0000ee; }
+.board-banner {
+  background: #ffccaa;
+  border-color: #880000;
+  color: #880000;
+}
+.banner-status { color: #477b58; }
+.board-nav { color: #666666; }
+.board-nav a { color: #0000ee; }
+.nav-right { color: #666666; }
+
+h1 { color: #880000; text-shadow: none; }
+h1 span { color: #555555; }
+.welcome-strip p { color: #555555; }
+.welcome-strip::after { color: #88000008; }
+.board-counter {
+  background: #ffffff;
+  border-color: #880000;
+  color: #666666;
+}
+.board-counter b { color: #477b58; }
+
+.announcement {
+  background: #ffffff;
+  border: 1px solid #880000;
+  box-shadow: none;
+  color: #222222;
+}
+.announcement b { color: #880000; }
+
+.thread, .side-box {
+  background: #ffffff;
+  border: 1px solid #880000;
+  box-shadow: none;
+}
+.thread::before, .side-box::before { display: none; }
+
+.thread-heading, .side-heading {
+  background: #ffccaa;
+  border-bottom: 1px solid #880000;
+  color: #880000;
+  text-shadow: none;
+  font-family: Arial, sans-serif;
+  letter-spacing: 0;
+}
+.post { border-color: #e5d5ca; }
+.post-meta { color: #666666; }
+.post-meta b { color: #117743; }
+.post-id, .post-date { color: #888888; }
+.post-body h2 { color: #880000; text-shadow: none; }
+.post-intro { color: #444444; }
+
+.field-label label { color: #222222; }
+.field-label small, .field-label > span { color: #777777; }
+.field-block textarea {
+  background: #ffffff;
+  border-color: #aaaaaa;
+  color: #222222;
+}
+.field-block textarea:focus {
+  border-color: #880000;
+  box-shadow: none;
+}
+.field-block textarea::placeholder { color: #999999; }
+
+.editor {
+  background: #ffffff;
+  border-color: #880000;
+  box-shadow: none;
+}
+.editor-top {
+  background: #ffccaa;
+  border-color: #880000;
+  color: #880000;
+}
+.editor-file { color: #880000; }
+.c-file-icon {
+  background: #ffffff;
+  border-color: #880000;
+  color: #880000;
+}
+.editor-body { background: #ffffff; }
+.line-numbers {
+  background: #fffaf4;
+  border-color: #e5d5ca;
+  color: #888888;
+}
+.editor-body textarea {
+  color: #222222;
+  caret-color: #880000;
+}
+.editor-footer {
+  background: #fffaf4;
+  border-color: #e5d5ca;
+  color: #777777;
+}
+.editor-tools button, .editor-tools label { color: #0000ee; }
+.microcopy { color: #777777; }
+
+.submit-row { border-color: #e5d5ca; color: #666666; }
+.primary-button {
+  background: #ffccaa;
+  border: 1px solid #880000;
+  color: #880000;
+  text-shadow: none;
+  box-shadow: none;
+  font-family: Arial, sans-serif;
+}
+.primary-button:hover:not(:disabled) {
+  background: #ffb98c;
+  color: #880000;
+}
+.primary-button:disabled {
+  background: #eeeeee;
+  border-color: #aaaaaa;
+  color: #888888;
+}
+.disabled-reason { color: #777777; }
+
+.reply-list, .rubric-list { border-color: #e5d5ca; }
+.reply { border-color: #e5d5ca; }
+.reply-no { color: #888888; }
+.reply b, .rubric-list b { color: #880000; }
+.reply p, .rubric-list span { color: #555555; }
+.reply-state { color: #777777; }
+.quote { color: #789922; text-shadow: none; }
+
+.status-row { border-color: #e5d5ca; color: #444444; }
+.status-row b { color: #880000; }
+.status-good { color: #477b58 !important; }
+.status-pending { color: #a07832 !important; }
+.status-foot { color: #477b58; }
+
+.board-footer { border-color: #880000; color: #777777; }
+
+.toast {
+  background: #ffffff;
+  color: #880000;
+  border-color: #880000;
+  box-shadow: 0 2px 8px #0002;
+}
+.help-dialog {
+  background: #ffffff;
+  color: #222222;
+  border-color: #880000;
+  box-shadow: 0 5px 25px #0003;
+}
+.help-dialog::backdrop { background: #2228; }
+.help-dialog h2 { color: #880000; }
+.help-dialog p, .help-dialog li { color: #555555; }
+.dialog-close { color: #880000; }
+
+/* Lain stays a dark green transmission window. */
+.lain-box { border-color: #880000; }
+.lain-box .side-heading {
+  background: #ffccaa;
+  color: #880000;
+  border-color: #880000;
+}
+.lain-frame { background: #07140b; }
+.lain-terminal {
+  background: #101a11;
+  color: #a5c69a;
+}
+.lain-indicator { color: #83ff4f; }
+
+
+/* === FUTABA / 4CHAN IMAGEBOARD RESTORATION === */
+:root {
+  color-scheme: light;
+  --board-bg: #ffffee;
+  --post-bg: #f0e0d6;
+  --post-head: #ffccaa;
+  --board-red: #880000;
+  --board-link: #0000ee;
+  --board-visited: #551a8b;
+  --quote-green: #789922;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0 !important;
+  padding: 12px !important;
+  background: var(--board-bg) !important;
+  color: #000 !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+a, a:link { color: var(--board-link) !important; }
+a:visited { color: var(--board-visited) !important; }
+
+.board-wrap {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.board-header {
+  border-bottom: 1px solid #d9b8a5;
+  padding: 5px 0 10px;
+  margin-bottom: 18px;
+}
+
+.board-brand {
+  color: var(--board-red);
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.board-brand a {
+  color: var(--board-red) !important;
+  text-decoration: none;
+}
+
+.brand-sub {
+  font-size: 12px;
+  font-weight: normal;
+  color: #555;
+}
+
+.board-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  margin: 8px 0;
+}
+
+.board-nav button,
+.field-actions button,
+#health-check,
+#close-help {
+  font: inherit;
+  color: var(--board-link);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.board-status {
+  padding: 6px 8px;
+  background: #f0e0d6;
+  border: 1px solid #d9b8a5;
+  font-size: 11px;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #789922;
+  margin-right: 5px;
+}
+
+.status-divider { padding: 0 8px; color: #999; }
+
+.board-heading {
+  text-align: center;
+  margin: 20px auto 22px;
+  max-width: 850px;
+}
+
+.board-kicker {
+  color: #666;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+.board-heading h1 {
+  color: var(--board-red) !important;
+  font-size: 30px !important;
+  line-height: 1.2;
+  margin: 8px 0;
+}
+
+.board-heading > p { margin: 8px 0 14px; }
+
+.board-notice {
+  display: inline-block;
+  max-width: 760px;
+  text-align: left;
+  background: #f0e0d6;
+  border: 1px solid #d9b8a5;
+  padding: 8px 12px;
+}
+
+.board-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 18px;
+  align-items: start;
+}
+
+.board-main,
+.board-side {
+  min-width: 0;
+}
+
+.thread {
+  margin: 0 0 18px;
+  border: 1px solid var(--board-red);
+  background: var(--post-bg);
+}
+
+.thread-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 5px 9px;
+  background: var(--post-head);
+  color: var(--board-red);
+  border-bottom: 1px solid #d9a88b;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.post {
+  padding: 10px 12px 14px;
+}
+
+.post-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 11px;
+}
+
+.post-info strong { color: #117743; }
+.post-id { color: #888; }
+
+.post h2 {
+  color: var(--board-red);
+  font-size: 17px;
+  margin: 8px 0 10px;
+}
+
+.post p { margin: 8px 0 12px; }
+
+.field-block { margin: 15px 0; }
+
+.field-block > label,
+.field-heading > label {
+  display: block;
+  color: var(--board-red);
+  font-weight: bold;
+  font-size: 11px;
+  margin-bottom: 5px;
+}
+
+.field-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.field-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.file-label {
+  color: var(--board-link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+textarea {
+  display: block;
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  border: 1px solid #b8a99f;
+  border-radius: 0;
+  padding: 9px;
+  background: #fff;
+  color: #111;
+  font: 13px/1.5 monospace;
+}
+
+#source {
+  min-height: 300px;
+  background: #fff;
+  tab-size: 4;
+}
+
+.editor-shell {
+  display: grid;
+  grid-template-columns: 35px minmax(0, 1fr);
+  border: 1px solid #b8a99f;
+  background: #fff;
+}
+
+.editor-shell .line-numbers {
+  padding: 10px 6px;
+  overflow: hidden;
+  text-align: right;
+  white-space: pre;
+  color: #999;
+  background: #f5eee8;
+  border-right: 1px solid #ddd;
+  font: 12px/1.5 monospace;
+}
+
+.editor-shell textarea {
+  border: 0;
+  min-width: 0;
+}
+
+.editor-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 4px 0;
+  color: #777;
+  font-size: 10px;
+}
+
+.submit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+#evaluate-btn {
+  padding: 8px 15px;
+  color: #fff;
+  background: var(--board-red);
+  border: 1px solid #550000;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#evaluate-btn:hover { background: #aa2222; }
+
+.safe-note { color: #666; font-size: 10px; }
+
+.pipeline-list,
+.rubric-list,
+.principles-list {
+  padding-left: 22px;
+}
+
+.pipeline-list li,
+.rubric-list li,
+.principles-list li {
+  margin: 10px 0;
+}
+
+.pipeline-list li::marker { color: var(--board-red); }
+
+.board-side {
+  position: sticky;
+  top: 12px;
+}
+
+.side-box {
+  margin-bottom: 15px;
+  border: 1px solid var(--board-red);
+  background: var(--post-bg);
+  padding: 9px;
+  overflow-wrap: anywhere;
+}
+
+.side-box-header {
+  margin: -9px -9px 9px;
+  padding: 6px 8px;
+  color: var(--board-red);
+  background: var(--post-head);
+  border-bottom: 1px solid #d9a88b;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.lain-frame {
+  background: #111;
+  border: 1px solid #555;
+  padding: 4px;
+  text-align: center;
+}
+
+.lain-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 310px;
+  object-fit: contain;
+}
+
+.lain-scan {
+  color: #789922;
+  text-align: center;
+  font: bold 10px monospace;
+  margin-top: 8px;
+}
+
+.lain-caption {
+  text-align: center;
+  color: var(--board-red);
+  font-style: italic;
+}
+
+.lain-terminal {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  background: #111;
+  color: #9bc77b;
+  font: 10px monospace;
+  overflow-wrap: anywhere;
+}
+
+.status-entry {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px dotted #c8aa99;
+  font-size: 10px;
+}
+
+.status-entry strong { color: var(--board-red); }
+
+#health-detail {
+  color: #666;
+  font-size: 11px;
+}
+
+.board-footer {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-top: 1px solid #d9b8a5;
+  margin-top: 20px;
+  padding: 12px 0;
+  color: #777;
+  font-size: 10px;
+}
+
+.toast {
+  position: fixed;
+  right: 15px;
+  bottom: 15px;
+  z-index: 100;
+}
+
+#help-dialog {
+  max-width: 460px;
+  width: calc(100% - 30px);
+  border: 1px solid var(--board-red);
+  background: var(--board-bg);
+  color: #111;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  background: var(--post-head);
+  color: var(--board-red);
+  padding: 9px;
+}
+
+.dialog-content { padding: 12px; }
+
+@media (max-width: 760px) {
+  body { padding: 7px !important; }
+  .board-columns { grid-template-columns: 1fr; }
+  .board-side { position: static; }
+  .board-heading h1 { font-size: 24px !important; }
+  .lain-frame img { max-height: 360px; }
+}
+
+/* Preserve the custom algorithm cursor */
+body, a, button, label {
+  cursor: url("/static/binary-search-cursor.png") 3 2, auto !important;
+}
+textarea, input, [contenteditable="true"] { cursor: text !important; }
+
+
+/* Standalone evaluation workflow page */
+.workflow-page {
+  max-width: 1100px;
+}
+
+.workflow-heading {
+  text-align: center;
+  margin: 24px auto;
+}
+
+.workflow-heading h1 {
+  color: #880000;
+  font-size: 28px;
+  margin: 8px 0;
+}
+
+.workflow-heading p {
+  margin: 10px 0;
+}
+
+.workflow-content {
+  max-width: 950px;
+  margin: 0 auto;
+}
+
+.workflow-content .thread {
+  margin-bottom: 18px;
+}
+
+.workflow-content .pipeline-phase {
+  padding: 13px 15px;
+  margin: 13px 0;
+  border: 1px solid #d9b8a5;
+  background: #f0e0d6;
+}
+
+.workflow-content .pipeline-phase h3 {
+  margin: -13px -15px 12px;
+  padding: 9px 12px;
+  background: #ffccaa;
+  border-bottom: 1px solid #d9a88b;
+  color: #880000;
+  font-size: 13px;
+}
+
+.workflow-content .pipeline-phase p {
+  margin: 8px 0;
+}
+
+.workflow-content .pipeline-note {
+  margin-top: 18px;
+  padding: 12px;
+  border: 1px solid #880000;
+  background: #f0e0d6;
+}
+
+@media (max-width: 700px) {
+  .workflow-content { width: 100%; }
+  .workflow-content .pipeline-phase { padding: 10px; }
+}
+
+
+/* Frieren journey loading overlay */
+#frieren-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #ffffee;
+  color: #880000;
+  transition: opacity .4s ease, visibility .4s ease;
+}
+#frieren-loader.frieren-loader-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.frieren-loader-title {
+  font-size: 30px;
+  font-weight: bold;
+}
+.frieren-loader-subtitle {
+  font-size: 12px;
+  margin-bottom: 22px;
+}
+.frieren-walk-scene {
+  width: min(900px, 94vw);
+  overflow: hidden;
+}
+.frieren-walk-scene img {
+  display: block;
+  width: 100%;
+  height: auto;
+  animation: frieren-walk 3s ease-in-out infinite alternate;
+}
+@keyframes frieren-walk {
+  from { transform: translateX(-12px); }
+  to { transform: translateX(12px); }
+}
+.frieren-loading-label {
+  margin-top: 22px;
+  font-weight: bold;
+}
+.frieren-progress {
+  width: min(300px, 75vw);
+  height: 9px;
+  margin: 12px 0;
+  border: 1px solid #880000;
+  padding: 2px;
+}
+.frieren-progress span {
+  display: block;
+  height: 100%;
+  width: 35%;
+  background: #880000;
+  animation: frieren-progress 2s ease-in-out infinite alternate;
+}
+@keyframes frieren-progress {
+  from { width: 12%; }
+  to { width: 96%; }
+}
+.frieren-loading-caption {
+  font-size: 11px;
+  color: #666;
+}
+
+/* Yotsuba countryside hero background */
+.board-heading {
+  position: relative;
+  min-height: 370px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 38px 18px 24px;
+  margin: 20px auto 26px;
+  background-image:
+    linear-gradient(rgba(255,255,238,.12), rgba(255,255,238,.08)),
+    url("/static/yotsuba.png");
+  background-size: cover;
+  background-position: center 54%;
+  background-repeat: no-repeat;
+  border: 1px solid #d9b8a5;
+}
+
+.board-heading .board-kicker,
+.board-heading h1,
+.board-heading > p {
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 1px 3px rgba(255,255,238,.85);
+}
+
+.board-heading h1 {
+  margin-top: 8px;
+}
+
+.board-notice {
+  background: rgba(240,224,214,.91);
+  backdrop-filter: blur(2px);
+}
+
+@media (max-width: 700px) {
+  .board-heading {
+    min-height: 290px;
+    padding: 25px 10px 18px;
+    background-position: 43% center;
+  }
+}
+
+/* Full-width Yotsuba hero — use existing artwork */
+.board-heading {
+  width: 100vw !important;
+  max-width: none !important;
+  min-height: 440px !important;
+  margin-left: calc(50% - 50vw) !important;
+  margin-right: calc(50% - 50vw) !important;
+  margin-top: 20px !important;
+  margin-bottom: 26px !important;
+  padding: 48px 24px 30px !important;
+  border: 0 !important;
+  background-image: url("/static/yotsuba.png") !important;
+  background-size: cover !important;
+  background-position: center 54% !important;
+  background-repeat: no-repeat !important;
+}
+
+.board-notice {
+  display: none !important;
+}
+
+@media (max-width: 700px) {
+  .board-heading {
+    min-height: 350px !important;
+    padding: 30px 14px 20px !important;
+    background-position: 48% center !important;
+  }
+}
+
+/* Full-width Yotsuba hero — use existing artwork */
+.board-heading {
+  width: 100vw !important;
+  max-width: none !important;
+  min-height: 440px !important;
+  margin-left: calc(50% - 50vw) !important;
+  margin-right: calc(50% - 50vw) !important;
+  margin-top: 20px !important;
+  margin-bottom: 26px !important;
+  padding: 48px 24px 30px !important;
+  border: 0 !important;
+  background-image: url("/static/yotsuba.png") !important;
+  background-size: cover !important;
+  background-position: center 54% !important;
+  background-repeat: no-repeat !important;
+}
+
+.board-notice {
+  display: none !important;
+}
+
+@media (max-width: 700px) {
+  .board-heading {
+    min-height: 350px !important;
+    padding: 30px 14px 20px !important;
+    background-position: 48% center !important;
+  }
+}
+
+/* Force the navigation header to break out of the centered wrapper */
+html body .board-header {
+  position: relative !important;
+  left: 50% !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  margin-left: -50vw !important;
+  margin-right: 0 !important;
+  padding: 16px clamp(24px, 4vw, 76px) 14px !important;
+  border-bottom: 1px solid #d9b8a5 !important;
+  background: #ffffee !important;
+}
+
+html body .board-header .board-brand,
+html body .board-header .board-nav,
+html body .board-header .board-status {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+html body .board-heading {
+  margin-top: 0 !important;
+}
+
+
+/* AutoGrader mascot brand lockup */
+.board-brand {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+}
+
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: #880000 !important;
+  text-decoration: none !important;
+}
+
+.brand-lockup img {
+  display: block;
+  width: 112px;
+  height: 78px;
+  object-fit: contain;
+  object-position: center;
+}
+
+.brand-wording {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.brand-wording strong {
+  color: #880000;
+  font-family: Georgia, serif;
+  font-size: 27px;
+  line-height: 1.05;
+  letter-spacing: -0.7px;
+}
+
+.brand-wording small {
+  color: #555;
+  font-size: 11px;
+  font-weight: normal;
+  letter-spacing: .35px;
+}
+
+@media (max-width: 600px) {
+  .brand-lockup img {
+    width: 76px;
+    height: 62px;
+  }
+  .brand-wording strong { font-size: 22px; }
+  .brand-wording small { font-size: 9px; }
+}
+
+/* Full-bleed service status panel */
+.board-header .board-status {
+  position: relative;
+  width: 100vw !important;
+  max-width: none !important;
+  margin-left: calc(50% - 50vw) !important;
+  margin-right: calc(50% - 50vw) !important;
+  padding: 10px max(24px, calc((100vw - 1500px) / 2)) !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Fix header and status strip full-width alignment */
+.board-header {
+  width: 100vw !important;
+  max-width: none !important;
+  position: relative !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  margin: 0 0 20px !important;
+  padding: 8px max(24px, calc((100vw - 1500px) / 2)) 12px !important;
+  box-sizing: border-box !important;
+}
+
+.board-header .board-status {
+  position: static !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 10px 0 0 !important;
+  padding: 10px 14px !important;
+  box-sizing: border-box !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+}
+
+
+/* === HEADER LAYOUT FIX === */
+.board-header {
+  width: auto !important;
+  max-width: none !important;
+  position: relative !important;
+  left: auto !important;
+  transform: none !important;
+  margin: 0 0 20px !important;
+  padding: 8px 0 12px !important;
+  box-sizing: border-box !important;
+}
+
+/* Keep the logo and navigation visible and aligned */
+.board-header .board-brand,
+.board-header .board-nav {
+  position: relative;
+  width: 100%;
+  margin-left: 0;
+}
+
+/* Only the status strip breaks out to screen edges */
+.board-header .board-status {
+  position: relative !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  margin: 12px 0 0 !important;
+  padding: 10px  max(24px, calc((100vw - 1500px) / 2)) !important;
+  box-sizing: border-box !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+}
+
+/* Prevent horizontal overflow */
+html, body {
+  overflow-x: clip;
+}
+
+/* ==========================================
+   LAIN / THE WIRED — NEON TERMINAL SIDEBAR
+   ========================================== */
+
+.board-side .side-box {
+  background: #020b02 !important;
+  color: #39ff14 !important;
+  border: 1px solid #39ff14 !important;
+  box-shadow:
+    0 0 5px #39ff14,
+    0 0 12px rgba(57,255,20,.45),
+    inset 0 0 16px rgba(57,255,20,.08) !important;
+  margin-bottom: 18px !important;
+}
+
+.board-side .side-box > h2,
+.board-side .side-box > h3,
+.board-side .side-box .side-header {
+  background: #031503 !important;
+  color: #39ff14 !important;
+  border-bottom: 1px solid #39ff14 !important;
+  text-shadow: 0 0 7px #39ff14, 0 0 15px #39ff14;
+  padding: 12px !important;
+  letter-spacing: 1px;
+}
+
+.board-side .side-box .post,
+.board-side .side-box .side-content {
+  background: #020b02 !important;
+  color: #39ff14 !important;
+}
+
+/* Lain portrait */
+.board-side .lain-box img {
+  border: 3px solid #39ff14 !important;
+  box-shadow: 0 0 9px #39ff14, 0 0 20px rgba(57,255,20,.5);
+  filter: grayscale(1) sepia(1) hue-rotate(65deg) saturate(5) contrast(1.2);
+}
+
+/* Lain text */
+.board-side .lain-box,
+.board-side .lain-box p,
+.board-side .lain-box .lain-caption,
+.board-side .lain-box .lain-coordinate {
+  color: #39ff14 !important;
+  text-shadow: 0 0 5px rgba(57,255,20,.65);
+}
+
+.board-side .lain-box .lain-terminal,
+.board-side .lain-box pre {
+  background: #000 !important;
+  color: #8cff75 !important;
+  border: 1px solid #238b16;
+  padding: 12px !important;
+  font-family: "Courier New", monospace !important;
+  line-height: 1.7;
+  text-shadow: 0 0 6px #39ff14;
+}
+
+/* Status rows */
+.board-side .side-box .status-row,
+.board-side .side-box .system-row,
+.board-side .side-box .info-row {
+  border-bottom: 1px dotted rgba(57,255,20,.5) !important;
+  padding: 10px 0 !important;
+  color: #8cff75 !important;
+}
+
+.board-side .side-box strong,
+.board-side .side-box b {
+  color: #39ff14 !important;
+  text-shadow: 0 0 7px rgba(57,255,20,.8);
+}
+
+/* Online / locked / API status labels */
+.board-side .online,
+.board-side .status-online,
+.board-side .status-value,
+.board-side .health-online {
+  color: #39ff14 !important;
+  text-shadow: 0 0 5px #39ff14, 0 0 12px #39ff14;
+  font-weight: bold;
+}
+
+.board-side .side-box a {
+  color: #8cff75 !important;
+  text-shadow: 0 0 6px #39ff14;
+}
+
+/* CRT scanline overlay */
+.board-side .side-box {
+  position: relative;
+  overflow: hidden;
+}
+
+.board-side .side-box::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(57,255,20,.035) 4px
+  );
+  z-index: 2;
+}
+
+/* Subtle electrical flicker */
+@keyframes wired-glow {
+  0%, 100% {
+    text-shadow: 0 0 5px #39ff14, 0 0 12px rgba(57,255,20,.6);
+  }
+  50% {
+    text-shadow: 0 0 8px #39ff14, 0 0 20px #39ff14;
+  }
+}
+
+.board-side .online,
+.board-side .status-online,
+.board-side .status-value {
+  animation: wired-glow 2.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-side .online,
+  .board-side .status-online,
+  .board-side .status-value {
+    animation: none;
+  }
+}
+
+/* WIRED SIDEBAR: make ALL panel headings neon */
+.board-side .side-box .thread-header,
+.board-side .side-box .side-header,
+.board-side .side-box > h2,
+.board-side .side-box > h3 {
+  background: #001000 !important;
+  color: #39ff14 !important;
+  border-bottom: 1px solid #39ff14 !important;
+  text-shadow: 0 0 5px #39ff14, 0 0 14px #39ff14 !important;
+}
+
+/* Dynamic status states */
+.board-side .wired-positive {
+  color: #39ff14 !important;
+  font-weight: bold !important;
+  text-shadow: 0 0 5px #39ff14, 0 0 12px #39ff14 !important;
+  animation: wired-glow 2s ease-in-out infinite;
+}
+
+.board-side .wired-warning {
+  color: #ffe66d !important;
+  font-weight: bold !important;
+  text-shadow: 0 0 5px #ffe66d, 0 0 12px rgba(255,230,109,.7) !important;
+}
+
+.board-side .wired-neutral {
+  color: #8cff75 !important;
+  text-shadow: 0 0 4px rgba(57,255,20,.4);
+}
+
+@keyframes wired-glow {
+  0%, 100% { text-shadow: 0 0 4px #39ff14, 0 0 9px #39ff14; }
+  50% { text-shadow: 0 0 8px #39ff14, 0 0 19px #39ff14; }
+}
+
+/* FINAL WIRED SIDEBAR HEADING OVERRIDE */
+.board-side .side-box .thread-header,
+.board-side .side-box .thread-header *,
+.board-side .side-box .side-header,
+.board-side .side-box .side-header *,
+.board-side .side-box > h2,
+.board-side .side-box > h3,
+.board-side .side-box > header {
+  background: #080000 !important;
+  background-color: #080000 !important;
+  color: #ff2929 !important;
+  border-color: #ff2929 !important;
+  text-shadow:
+    0 0 4px #ff0000,
+    0 0 9px #ff0000,
+    0 0 18px rgba(255,0,0,.9) !important;
+  box-shadow: inset 0 -1px 0 #ff2929 !important;
+}
+
+/* Catch heading bars regardless of their original class */
+.board-side .side-box > div:first-child {
+  background: #080000 !important;
+  color: #ff2929 !important;
+  border-bottom: 1px solid #ff2929 !important;
+  text-shadow: 0 0 5px #ff0000, 0 0 15px #ff0000 !important;
+}
+
+/* Red neon panel outlines */
+.board-side .side-box {
+  border: 1px solid #ff2929 !important;
+  box-shadow:
+    0 0 5px #ff0000,
+    0 0 12px rgba(255,0,0,.65),
+    inset 0 0 12px rgba(255,0,0,.08) !important;
+}
+
+/* Preserve green online indicators */
+.board-side .wired-positive {
+  color: #39ff14 !important;
+  text-shadow: 0 0 6px #39ff14, 0 0 16px #39ff14 !important;
+}
+
+/* Yellow warning indicators */
+.board-side .wired-warning {
+  color: #ffe66d !important;
+  text-shadow: 0 0 6px #ffe66d, 0 0 16px #ffe66d !important;
+}
+
+/* Restore neon-green sidebar headings */
+.board-side .side-box .thread-header,
+.board-side .side-box .thread-header *,
+.board-side .side-box .side-header,
+.board-side .side-box .side-header *,
+.board-side .side-box > h2,
+.board-side .side-box > h3,
+.board-side .side-box > header,
+.board-side .side-box > div:first-child {
+  background: #001000 !important;
+  background-color: #001000 !important;
+  color: #39ff14 !important;
+  border-color: #39ff14 !important;
+  text-shadow: 0 0 5px #39ff14, 0 0 14px #39ff14 !important;
+}
+
+/* Restore green panel outlines */
+.board-side .side-box {
+  border: 1px solid #39ff14 !important;
+  box-shadow:
+    0 0 5px #39ff14,
+    0 0 12px rgba(57,255,20,.45),
+    inset 0 0 12px rgba(57,255,20,.06) !important;
+}
+
+/* Dynamic status colours */
+.board-side .wired-positive {
+  color: #00bfff !important;
+  text-shadow:
+    0 0 5px #00bfff,
+    0 0 12px #00bfff,
+    0 0 20px rgba(0,191,255,.8) !important;
+  animation: status-blue-glow 2s ease-in-out infinite;
+}
+
+.board-side .wired-warning {
+  color: #ff2929 !important;
+  text-shadow:
+    0 0 5px #ff0000,
+    0 0 12px #ff0000,
+    0 0 20px rgba(255,0,0,.8) !important;
+}
+
+.board-side .wired-neutral {
+  color: #888 !important;
+  text-shadow: none !important;
+}
+
+@keyframes status-blue-glow {
+  0%, 100% {
+    text-shadow: 0 0 4px #00bfff, 0 0 9px #00bfff;
+  }
+  50% {
+    text-shadow: 0 0 8px #00bfff, 0 0 19px #00bfff;
+  }
+}
+
+/* Force negative sidebar states to pure neon red */
+.board-side .wired-warning,
+.board-side .wired-warning *,
+.board-side .status-negative,
+.board-side .status-locked,
+.board-side .status-disconnected {
+  color: #ff0000 !important;
+  -webkit-text-fill-color: #ff0000 !important;
+  text-shadow:
+    0 0 3px #ff0000,
+    0 0 8px #ff0000,
+    0 0 16px #ff0000,
+    0 0 24px rgba(255,0,0,.9) !important;
+  animation: wired-red-pulse 1.8s ease-in-out infinite !important;
+}
+
+@keyframes wired-red-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.6); }
+}
+
+/* Sleeping kitty — bottom-left footer decoration */
+.board-footer {
+  position: relative !important;
+  min-height: 190px !important;
+  padding: 20px 12px 18px 230px !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  overflow: visible !important;
+}
+
+.board-footer::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 220px;
+  height: 175px;
+  background-image: url("/static/kittycat.png");
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  background-size: contain;
+  pointer-events: none;
+}
+
+@media (max-width: 700px) {
+  .board-footer {
+    min-height: 145px !important;
+    padding-left: 150px !important;
+  }
+  .board-footer::before {
+    width: 145px;
+    height: 125px;
+  }
+}
+
+/* Move sleeping kitty from footer to Analysis Results */
+.board-footer::before {
+  display: none !important;
+}
+
+#analysis-results {
+  position: relative !important;
+  min-height: 205px !important;
+  padding-right: 245px !important;
+  overflow: visible !important;
+}
+
+#analysis-results::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  bottom: 8px;
+  width: 225px;
+  height: 175px;
+  background: url("/static/kittycat.png") right bottom / contain no-repeat;
+  pointer-events: none;
+}
+
+@media (max-width: 700px) {
+  #analysis-results {
+    padding-right: 12px !important;
+    padding-bottom: 145px !important;
+  }
+
+  #analysis-results::after {
+    width: 145px;
+    height: 125px;
+    right: 8px;
+  }
+}
+
+/* Kitty beside Analysis Results — outside the left border */
+#analysis-results {
+  position: relative !important;
+  padding-right: 18px !important;
+  overflow: visible !important;
+  min-height: 175px;
+}
+
+/* Remove the previous inside-the-panel placement */
+#analysis-results::after {
+  content: none !important;
+  display: none !important;
+}
+
+#analysis-results::before {
+  content: "";
+  position: absolute;
+  width: 185px;
+  height: 160px;
+  right: calc(100% + 12px);
+  bottom: 0;
+  background: url("/static/kittycat.png") center bottom / contain no-repeat;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Keep the cat from colliding with the report on smaller screens */
+@media (max-width: 900px) {
+  #analysis-results::before {
+    width: 115px;
+    height: 105px;
+    right: calc(100% + 5px);
+  }
+}
+@media (max-width: 600px) {
+  #analysis-results::before {
+    display: none;
+  }
+}
+
+/* Fix analysis report spacing and preserve left-side kitty */
+#analysis-results {
+  min-height: 0 !important;
+  height: auto !important;
+  padding-bottom: 18px !important;
+  margin-bottom: 0 !important;
+}
+
+#analysis-results::before {
+  width: 185px !important;
+  height: 150px !important;
+  right: calc(100% + 12px) !important;
+  bottom: 0 !important;
+}
+
+/* Remove the oversized footer spacing */
+.board-footer {
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 18px 12px !important;
+  margin-top: 24px !important;
+}
+
+.board-footer::before {
+  display: none !important;
+}
+
+/* Refined kitty placement */
+#analysis-results::before {
+  width: 145px !important;
+  height: 125px !important;
+  right: calc(100% + 18px) !important;
+  bottom: 8px !important;
+  background-position: center bottom !important;
+  background-size: contain !important;
+}
+
+@media (max-width: 900px) {
+  #analysis-results::before {
+    width: 105px !important;
+    height: 95px !important;
+    right: calc(100% + 10px) !important;
+  }
+}
+
+#analysis-results::before {
+  right: calc(100% + 33px) !important;
+}
+
+/* Move sleeping kitty to the top-right of the hero */
+#analysis-results::before {
+  display: none !important;
+  content: none !important;
+}
+
+.board-heading {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.board-heading::after {
+  content: "";
+  position: absolute;
+  z-index: 5;
+  top: 12px;
+  right: 24px;
+  width: 145px;
+  height: 125px;
+  background: url("/static/kittycat.png") center / contain no-repeat;
+  pointer-events: none;
+}
+
+@media (max-width: 700px) {
+  .board-heading::after {
+    width: 90px;
+    height: 80px;
+    top: 8px;
+    right: 8px;
+  }
+}
+
+/* Kitty belongs in the top-right of the navigation header */
+.board-heading::after {
+  display: none !important;
+  content: none !important;
+}
+
+.board-header {
+  position: relative !important;
+  min-height: 155px !important;
+  padding-right: 190px !important;
+}
+
+.board-header::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  right: 35px;
+  width: 135px;
+  height: 125px;
+  background: url("/static/kittycat.png") center / contain no-repeat;
+  pointer-events: none;
+  z-index: 10;
+}
+
+@media (max-width: 700px) {
+  .board-header {
+    padding-right: 110px !important;
+    min-height: 120px !important;
+  }
+  .board-header::after {
+    width: 95px;
+    height: 90px;
+    right: 8px;
+  }
+}
+
+.board-header::after {
+  width: 155px !important;
+  height: 140px !important;
+  right: 55px !important;
+  top: 5px !important;
+}
+
+.board-header::after {
+  width: 195px !important;
+  height: 170px !important;
+  right: 55px !important;
+  top: -2px !important;
+}
+
+.board-header::after {
+  right: 70px !important;
+  top: -17px !important;
+}
+
+/* Larger AutoGrader mascot logo */
+.board-header .brand-logo,
+.board-header .logo-image,
+.board-header img {
+  width: 175px !important;
+  height: 105px !important;
+  max-width: none !important;
+  object-fit: contain !important;
+}
+
+/* Give the brand row room for the larger logo */
+.board-header .brand,
+.board-header .brand-container,
+.board-header .brand-row {
+  gap: 20px !important;
+  align-items: center !important;
+}

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>/c/ — GRADING RUBRIC</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<div id="frieren-loader" aria-label="Loading AutoGrader">
+  <div class="frieren-loader-title">AutoGrader</div>
+  <div class="frieren-loader-subtitle">/ C PROGRAMMING BOARD</div>
+  <div class="frieren-walk-scene">
+    <img src="/static/frieren-loading.png" alt="Frieren on her journey">
+  </div>
+  <div class="frieren-loading-label">Loading the Wired...</div>
+  <div class="frieren-progress"><span></span></div>
+  <div class="frieren-loading-caption">A journey begins with a single step.</div>
+</div>
+<script>
+(() => {
+  const loader = document.getElementById("frieren-loader");
+  if (!loader) return;
+  const hide = () => {
+    loader.classList.add("frieren-loader-hidden");
+    setTimeout(() => loader.remove(), 450);
+  };
+  if (document.readyState === "complete") {
+    requestAnimationFrame(hide);
+  } else {
+    window.addEventListener("load", hide, { once: true });
+  }
+  setTimeout(hide, 7000);
+})();
+</script>
+
+  <div class="board-wrap workflow-page">
+    <header class="board-header">
+      <div class="board-brand">
+  <a class="brand-lockup" href="/" aria-label="AutoGrader home">
+    <img src="/static/yotsubaAGlogo.png" alt="AutoGrader mascot">
+    <span class="brand-wording">
+      <strong>AutoGrader</strong>
+      <small>/ C PROGRAMMING BOARD</small>
+    </span>
+  </a>
+</div>
+      <nav class="board-nav">
+        <a href="/">[ board ]</a>
+        <a href="/#submission">[ submit ]</a>
+        <a href="/workflow">[ workflow ]</a>
+        <a href="/rubric">[ grading rubric ]</a>
+        <a href="/principles">[ principles ]</a>
+        <a href="/docs">[ API ]</a>
+        <a href="/#help-dialog">[ help ]</a>
+      </nav>
+      <div class="board-status">
+        <span class="status-dot"></span>
+        GRADING CRITERIA / EVALUATION RULES
+      </div>
+    </header>
+
+    <div class="workflow-heading">
+      <div class="board-kicker">SYSTEM DOCUMENTATION / 002</div>
+      <h1>Grading rubric</h1>
+      <p>Evaluation dimensions, evidence requirements and scoring principles.</p>
+      <a href="/">← Back to the submission board</a>
+    </div>
+
+    <main class="workflow-content">
+<section class="thread" id="rubric">
+            <div class="thread-header">
+
+              <span>GRADING RUBRIC</span>
+            </div>
+            <div class="post">
+              <div class="post-info">
+                <strong>System</strong>
+                <span>Evaluation criteria</span>
+
+              </div>
+              <h2>Independent evaluation dimensions</h2>
+              <p>
+                Each dimension is assessed separately. Missing evidence must
+                remain missing; uncertain results must not be presented as facts.
+              </p>
+              <ul class="rubric-list">
+                <li><strong>Correctness</strong> — agreement with the approved
+                  specification and verified test evidence.</li>
+                <li><strong>Compilation and syntax</strong> — compiler diagnostics
+                  and language-level issues.</li>
+                <li><strong>Memory safety</strong> — pointer use, bounds,
+                  allocation and lifetime risks.</li>
+                <li><strong>Time complexity</strong> — theoretical analysis
+                  supported by empirical measurements.</li>
+                <li><strong>Space complexity</strong> — auxiliary memory use
+                  and growth behaviour.</li>
+                <li><strong>Mathematical correctness</strong> — proof quality,
+                  invariants and counterexamples.</li>
+                <li><strong>Code quality</strong> — readability, modularity
+                  and maintainability.</li>
+                <li><strong>Originality signals</strong> — similarity indicators
+                  for investigation, never automatic proof of plagiarism.</li>
+              </ul>
+            </div>
+          </section>
+    </main>
+
+    <footer class="board-footer">
+      <span>/c/ — PROGRAMMING</span>
+      <span>AUTOGRADER / GRADING RULES</span>
+      <a href="/">RETURN TO BOARD ↑</a>
+    </footer>
+  </div>
+
+<script>
+(() => {
+
+function updateWiredStatuses() {
+  const sidebar = document.querySelector(".board-side");
+  if (!sidebar) return;
+
+  const positive = /\b(online|connected|successful|established|healthy|ready|operational|active)\b/i;
+  const negative = /\b(offline|disconnected|not connected|locked|unavailable|degraded|failed|failure|error|disabled|timeout)\b/i;
+  const neutral = /\b(pending|unknown|checking|loading)\b/i;
+
+  sidebar.querySelectorAll("*").forEach(el => {
+    if (el.children.length > 0) return;
+
+    const text = (el.textContent || "").trim();
+    if (!text || text.length > 100) return;
+
+    el.classList.remove("wired-positive", "wired-warning", "wired-neutral");
+
+    if (negative.test(text)) {
+      el.classList.add("wired-warning");
+    } else if (positive.test(text)) {
+      el.classList.add("wired-positive");
+    } else if (neutral.test(text)) {
+      el.classList.add("wired-neutral");
+    }
+  });
+}
+
+updateWiredStatuses();
+
+const sidebar = document.querySelector(".board-side");
+if (sidebar) {
+  new MutationObserver(updateWiredStatuses).observe(sidebar, {
+    subtree: true,
+    childList: true,
+    characterData: true
+  });
+}
+
+window.addEventListener("load", updateWiredStatuses);
+})();
+</script>
+
+</body>
+</html>

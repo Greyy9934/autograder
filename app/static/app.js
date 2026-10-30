@@ -161,6 +161,7 @@ int main(void) {
     }
 
     evaluateButton.disabled = true;
+    document.body.classList.add("analysis-casting");
     evaluateButton.textContent = "Analyzing…";
     if (resultsPanel) resultsPanel.hidden = false;
     if (resultsSummary) resultsSummary.textContent = "Analyzing source patterns…";
@@ -245,6 +246,7 @@ int main(void) {
         `Analysis failed: ${error.message || "Could not reach the API."}`;
       showToast("Could not analyze source. Please try again.");
     } finally {
+      document.body.classList.remove("analysis-casting");
       evaluateButton.disabled = false;
       evaluateButton.textContent = "Analyze source →";
     }
@@ -288,4 +290,29 @@ int main(void) {
   }
 
   checkHealth();
+
+  // Magical cursor feedback: lightweight DOM particles, no external library.
+  function createSpellBurst(x, y) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const burst = document.createElement("span");
+    burst.className = "spell-burst";
+    burst.style.left = `${x}px`;
+    burst.style.top = `${y}px`;
+
+    for (let i = 0; i < 8; i++) {
+      const particle = document.createElement("i");
+      const angle = (Math.PI * 2 * i) / 8;
+      const distance = 22 + Math.random() * 27;
+      particle.style.setProperty("--dx", `${Math.cos(angle) * distance}px`);
+      particle.style.setProperty("--dy", `${Math.sin(angle) * distance}px`);
+      burst.append(particle);
+    }
+    document.body.append(burst);
+    burst.addEventListener("animationend", () => burst.remove(), { once: true });
+  }
+
+  document.addEventListener("click", (event) => {
+    createSpellBurst(event.clientX, event.clientY);
+  });
+
 })();

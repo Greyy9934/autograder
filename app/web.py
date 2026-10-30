@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from analyzers.source_risks import analyze_source_risks
 from analyzers.complexity_estimator import estimate_complexity
 from app.orchestrator import evaluate_submission
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
@@ -348,3 +348,30 @@ def generate_references(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     return generate_reference_solutions_for_confirmed_spec(spec)
+
+
+@app.get("/workflow", include_in_schema=False)
+async def evaluation_workflow_page():
+    """Serve the standalone evaluation workflow page."""
+    return FileResponse(
+        Path(__file__).resolve().parent / "templates" / "workflow.html",
+        media_type="text/html"
+    )
+
+
+@app.get("/rubric", include_in_schema=False)
+async def grading_rubric_page():
+    """Serve the standalone grading rubric page."""
+    return FileResponse(
+        Path(__file__).resolve().parent / "templates" / "rubric.html",
+        media_type="text/html"
+    )
+
+
+@app.get("/principles", include_in_schema=False)
+async def design_principles_page():
+    """Serve the standalone design principles page."""
+    return FileResponse(
+        Path(__file__).resolve().parent / "templates" / "principles.html",
+        media_type="text/html"
+    )

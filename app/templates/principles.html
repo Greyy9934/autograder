@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>/c/ — DESIGN PRINCIPLES</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<div id="frieren-loader" aria-label="Loading AutoGrader">
+  <div class="frieren-loader-title">AutoGrader</div>
+  <div class="frieren-loader-subtitle">/ C PROGRAMMING BOARD</div>
+  <div class="frieren-walk-scene">
+    <img src="/static/frieren-loading.png" alt="Frieren on her journey">
+  </div>
+  <div class="frieren-loading-label">Loading the Wired...</div>
+  <div class="frieren-progress"><span></span></div>
+  <div class="frieren-loading-caption">A journey begins with a single step.</div>
+</div>
+<script>
+(() => {
+  const loader = document.getElementById("frieren-loader");
+  if (!loader) return;
+  const hide = () => {
+    loader.classList.add("frieren-loader-hidden");
+    setTimeout(() => loader.remove(), 450);
+  };
+  if (document.readyState === "complete") {
+    requestAnimationFrame(hide);
+  } else {
+    window.addEventListener("load", hide, { once: true });
+  }
+  setTimeout(hide, 7000);
+})();
+</script>
+
+  <div class="board-wrap workflow-page">
+    <header class="board-header">
+      <div class="board-brand">
+  <a class="brand-lockup" href="/" aria-label="AutoGrader home">
+    <img src="/static/yotsubaAGlogo.png" alt="AutoGrader mascot">
+    <span class="brand-wording">
+      <strong>AutoGrader</strong>
+      <small>/ C PROGRAMMING BOARD</small>
+    </span>
+  </a>
+</div>
+      <nav class="board-nav">
+        <a href="/">[ board ]</a>
+        <a href="/#submission">[ submit ]</a>
+        <a href="/workflow">[ workflow ]</a>
+        <a href="/rubric">[ grading rubric ]</a>
+        <a href="/principles">[ principles ]</a>
+        <a href="/docs">[ API ]</a>
+        <a href="/#help-dialog">[ help ]</a>
+      </nav>
+      <div class="board-status">
+        <span class="status-dot"></span>
+        DESIGN PRINCIPLES / SYSTEM RULES
+      </div>
+    </header>
+
+    <div class="workflow-heading">
+      <div class="board-kicker">SYSTEM DOCUMENTATION / 003</div>
+      <h1>Design principles</h1>
+      <p>The rules governing evidence, AI assistance, verification and grading.</p>
+      <a href="/">← Back to the submission board</a>
+    </div>
+
+    <main class="workflow-content">
+      <section class="thread">
+        <div class="thread-header">
+
+          <span>EVIDENCE AND RELIABILITY</span>
+        </div>
+        <div class="post">
+          <h2>Evidence over guesswork</h2>
+          <ul class="principles-list">
+            <li>Every reported finding should be traceable to evidence.</li>
+            <li>AI-generated answers are suggestions, not ground truth.</li>
+            <li>Reference solutions require instructor-approved specifications.</li>
+            <li>Generated tests do not prove correctness by themselves.</li>
+            <li>Execution failures and infrastructure failures are different.</li>
+            <li>Inconclusive evidence must never be silently counted as failure.</li>
+            <li>Complexity measurements are evidence, not mathematical proof.</li>
+            <li>Similarity flags are investigation signals, not proof of plagiarism.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="thread">
+        <div class="thread-header">
+
+          <span>SEPARATION OF RESPONSIBILITIES</span>
+        </div>
+        <div class="post">
+          <h2>AI reasoning is not deterministic verification</h2>
+          <ul class="principles-list">
+            <li>Each AI agent has a clearly defined responsibility and output.</li>
+            <li>The orchestrator coordinates work; it is not an AI agent.</li>
+            <li>Compilation, execution, comparison and scoring are deterministic software operations.</li>
+            <li>AI-generated reference implementations must be validated before being trusted as correctness oracles.</li>
+            <li>Mathematical proof, empirical performance and test outcomes remain separate forms of evidence.</li>
+            <li>The grading engine, not an AI model, controls the final score.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="thread">
+        <div class="thread-header">
+
+          <span>SAFETY AND FAIRNESS</span>
+        </div>
+        <div class="post">
+          <h2>Safe, explainable evaluation</h2>
+          <ul class="principles-list">
+            <li>Untrusted student programs must execute only inside an appropriately isolated environment.</li>
+            <li>Resource limits must apply to compilation and execution.</li>
+            <li>Infrastructure problems must not unfairly penalize a submission.</li>
+            <li>Missing evidence must be reported as missing, not invented.</li>
+            <li>Provisional results must be distinguished from final grades.</li>
+            <li>Every score should be explainable through its rubric and supporting evidence.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="board-footer">
+      <span>/c/ — PROGRAMMING</span>
+      <span>AUTOGRADER / DESIGN PRINCIPLES</span>
+      <a href="/">RETURN TO BOARD ↑</a>
+    </footer>
+  </div>
+
+<script>
+(() => {
+
+function updateWiredStatuses() {
+  const sidebar = document.querySelector(".board-side");
+  if (!sidebar) return;
+
+  const positive = /\b(online|connected|successful|established|healthy|ready|operational|active)\b/i;
+  const negative = /\b(offline|disconnected|not connected|locked|unavailable|degraded|failed|failure|error|disabled|timeout)\b/i;
+  const neutral = /\b(pending|unknown|checking|loading)\b/i;
+
+  sidebar.querySelectorAll("*").forEach(el => {
+    if (el.children.length > 0) return;
+
+    const text = (el.textContent || "").trim();
+    if (!text || text.length > 100) return;
+
+    el.classList.remove("wired-positive", "wired-warning", "wired-neutral");
+
+    if (negative.test(text)) {
+      el.classList.add("wired-warning");
+    } else if (positive.test(text)) {
+      el.classList.add("wired-positive");
+    } else if (neutral.test(text)) {
+      el.classList.add("wired-neutral");
+    }
+  });
+}
+
+updateWiredStatuses();
+
+const sidebar = document.querySelector(".board-side");
+if (sidebar) {
+  new MutationObserver(updateWiredStatuses).observe(sidebar, {
+    subtree: true,
+    childList: true,
+    characterData: true
+  });
+}
+
+window.addEventListener("load", updateWiredStatuses);
+})();
+</script>
+
+</body>
+</html>

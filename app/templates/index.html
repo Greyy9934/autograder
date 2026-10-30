@@ -1,179 +1,316 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b0d12">
-  <title>AutoGrader — Evaluation Lab</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>/c/ — PROGRAMMING</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-<div class="app-shell">
-  <aside class="sidebar">
-    <a class="brand" href="/">
-      <span class="brand-mark"><i></i><i></i><i></i></span>
-      <span class="brand-name">auto<span>grader</span><small>RULE-DRIVEN EVALUATION</small></span>
-    </a>
-    <div class="workspace-switch">
-      <div class="workspace-icon">AG</div>
-      <div><b>Assignment workspace</b><small>Personal project</small></div>
-    </div>
-    <div class="nav-label">WORKSPACE</div>
-    <nav class="nav">
-      <a class="nav-item active" href="#workspace"><span>⌘</span> Evaluation lab</a>
-      <a class="nav-item" href="#pipeline"><span>◈</span> Analysis pipeline</a>
-      <a class="nav-item" href="#rubric"><span>☷</span> Grading rubric</a>
-      <a class="nav-item" href="#principles"><span>◎</span> Design principles</a>
-    </nav>
-    <div class="sidebar-spacer"></div>
-    <div class="sandbox-card">
-      <div class="sandbox-heading"><span class="pulse-dot"></span> SANDBOX STATUS</div>
-      <strong>Evaluation locked</strong>
-      <p>Public code execution is disabled until the grading API and hardened runner are connected.</p>
-      <div class="sandbox-foot">⌑ &nbsp; Safety gate enabled</div>
-    </div>
-    <div class="sidebar-bottom">
-      <div class="avatar">AG</div><div><b>AutoGrader</b><small>Prototype · v0.2</small></div>
-    </div>
-  </aside>
 
-  <main class="main">
-    <header class="topbar">
-      <div class="breadcrumbs">Workspace <span>/</span> <b>Evaluation lab</b></div>
-      <div class="top-actions">
-        <div class="status-chip"><span class="pulse-dot"></span><span id="service-status">Checking service…</span></div>
-        <a class="icon-button" href="/docs" title="API documentation">↗</a>
-        <button class="help-button" id="help-btn" type="button">? Help</button>
+<div id="frieren-loader" aria-label="Loading AutoGrader">
+  <div class="frieren-loader-title">AutoGrader</div>
+  <div class="frieren-loader-subtitle">/ C PROGRAMMING BOARD</div>
+  <div class="frieren-walk-scene">
+    <img src="/static/frieren-loading.png" alt="Frieren on her journey">
+  </div>
+  <div class="frieren-loading-label">Loading the Wired...</div>
+  <div class="frieren-progress"><span></span></div>
+  <div class="frieren-loading-caption">A journey begins with a single step.</div>
+</div>
+<script>
+(() => {
+  const loader = document.getElementById("frieren-loader");
+  if (!loader) return;
+  const hide = () => {
+    loader.classList.add("frieren-loader-hidden");
+    setTimeout(() => loader.remove(), 450);
+  };
+  if (document.readyState === "complete") {
+    requestAnimationFrame(hide);
+  } else {
+    window.addEventListener("load", hide, { once: true });
+  }
+  setTimeout(hide, 7000);
+})();
+</script>
+
+  <div class="board-wrap">
+
+    <header class="board-header">
+      <div class="board-brand">
+  <a class="brand-lockup" href="/" aria-label="AutoGrader home">
+    <img src="/static/yotsubaAGlogo.png" alt="AutoGrader mascot">
+    <span class="brand-wording">
+      <strong>AutoGrader</strong>
+      <small>/ C PROGRAMMING BOARD</small>
+    </span>
+  </a>
+</div>
+      <nav class="board-nav">
+        <a href="/">[ board ]</a>
+        <a href="/#submission">[ submit ]</a>
+        <a href="/workflow">[ workflow ]</a>
+        <a href="/rubric">[ grading rubric ]</a>
+        <a href="/principles">[ principles ]</a>
+        <a href="/docs">[ API ]</a>
+        <a href="/#help-dialog">[ help ]</a>
+      </nav>
+      <div class="board-status">
+        <span class="status-dot"></span>
+        <span id="service-status">SERVICE ONLINE</span>
+        <span class="status-divider">|</span>
+        <strong>PUBLIC EXECUTION: DISABLED</strong>
       </div>
     </header>
 
-    <section class="page-heading" id="workspace">
-      <div>
-        <div class="eyebrow"><span></span> C PROGRAM ANALYSIS PLATFORM</div>
-        <h1>Evaluation <em>lab.</em></h1>
-        <p class="page-subtitle">Inspect a submission across correctness, code quality, safety and algorithmic reasoning.</p>
+    <main>
+      <div class="board-heading">
+        <div class="board-kicker">ANONYMOUS PROGRAMMING DISCUSSION BOARD</div>
+        <h1>/c/ — PROGRAMMING</h1>
+        <p>Submit code. Inspect evidence. Understand the algorithm.</p>
+        <div class="board-notice">
+          <strong>NOTICE:</strong>
+          This public instance performs static analysis only. Uploaded programs
+          are not compiled or executed, and no fake grade will be generated.
+        </div>
       </div>
-      <div class="heading-meta"><div class="meta-icon">⌁</div><div><small>GRADING MODEL</small><b>Rule-driven · Reproducible</b></div></div>
-    </section>
 
-    <section class="notice">
-      <div class="notice-icon">i</div>
-      <div><strong>Interface preview — evaluation is not active yet</strong>
-        <p>Prepare a submission and explore the workflow. This public instance does not compile or execute uploaded code, and will not generate a fake grade.</p>
+      <div class="board-columns">
+
+        <div class="board-main">
+
+          <section class="thread" id="submission">
+            <div class="thread-header">
+
+              <span>SUBMISSION / SOURCE ANALYSIS</span>
+            </div>
+            <div class="post">
+              <div class="post-info">
+                <strong>Anonymous</strong>
+                <span>10/30/26</span>
+
+              </div>
+              <h2>Submit your C program</h2>
+              <p>
+                Provide the problem statement and source code. The analyzer
+                examines the submitted source and reports evidence-based
+                observations.
+              </p>
+
+              <div class="field-block">
+                <label for="problem">PROBLEM STATEMENT</label>
+                <textarea id="problem" rows="5"
+                  placeholder="Paste the complete problem statement here..."></textarea>
+              </div>
+
+              <div class="field-block">
+                <div class="field-heading">
+                  <label for="source">SOURCE CODE</label>
+                  <div class="field-actions">
+                    <label class="file-label" for="source-file">[ upload .c ]</label>
+                    <input id="source-file" type="file" accept=".c,text/plain" hidden>
+                    <button id="load-example" type="button">[ load example ]</button>
+                  </div>
+                </div>
+                <div class="editor-shell">
+                  <div id="line-numbers" class="line-numbers">1</div>
+                  <textarea id="source" spellcheck="false"
+                    placeholder="#include &lt;stdio.h&gt;&#10;&#10;int main(void) {&#10;    return 0;&#10;}"
+                    aria-label="C source code"></textarea>
+                </div>
+                <div class="editor-stats">
+                  <span id="filename">untitled.c</span>
+                  <span id="line-count">1 lines</span>
+                  <span id="char-count">0 characters</span>
+                </div>
+              </div>
+
+              <div class="field-block">
+                <label for="stdin">STANDARD INPUT (OPTIONAL)</label>
+                <textarea id="stdin" rows="3"
+                  placeholder="Example input for your program..."></textarea>
+              </div>
+
+              <div class="field-block">
+                <label for="testcases">TEST CASES (OPTIONAL)</label>
+                <textarea id="testcases" rows="4"
+                  placeholder="Add sample input/output cases here..."></textarea>
+              </div>
+
+              <div class="submit-row">
+                <button id="evaluate-btn" type="button">ANALYZE SOURCE</button>
+                <span class="safe-note">STATIC ANALYSIS ONLY · NO CODE EXECUTION</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="thread" id="analysis">
+            <div class="thread-header">
+
+              <span>ANALYSIS RESULTS</span>
+            </div>
+            <div class="post">
+              <div class="post-info">
+                <strong>System</strong>
+                <span>Analysis output</span>
+
+              </div>
+              <h2>Source inspection report</h2>
+              <div id="analysis-results">
+                <p id="analysis-summary">
+                  No analysis has been performed yet. Submit source code to
+                  inspect potential risks and complexity indicators.
+                </p>
+                <div id="analysis-findings"></div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+
+        <aside class="board-side">
+
+          <section class="side-box lain-box">
+            <div class="side-box-header">TRANSMISSION / 玲音</div>
+            <div class="lain-frame">
+              <img src="/static/lain-reference.webp" alt="Lain transmission">
+            </div>
+            <div class="lain-scan">PRESENT DAY. PRESENT TIME.</div>
+            <p class="lain-caption">
+              No matter where you go, everyone is connected.
+            </p>
+            <div class="lain-terminal">
+              <span>&gt; connection established</span>
+              <span>&gt; observing the wired...</span>
+              <span>&gt; are you connected?</span>
+            </div>
+          </section>
+
+          <section class="side-box" id="system-status">
+            <div class="side-box-header">SYSTEM STATUS</div>
+            <div class="status-entry">
+              <span>WEB INTERFACE</span>
+              <strong>ONLINE</strong>
+            </div>
+            <div class="status-entry">
+              <span>HEALTH ENDPOINT</span>
+              <strong id="health-state">CHECKING</strong>
+            </div>
+            <p id="health-detail">Waiting for health check...</p>
+            <button id="health-check" type="button">[ check connection ]</button>
+            <div class="status-entry">
+              <span>PUBLIC CODE EXECUTION</span>
+              <strong>LOCKED</strong>
+            </div>
+            <div class="status-entry">
+              <span>GRADING API</span>
+              <strong>NOT CONNECTED</strong>
+            </div>
+          </section>
+
+          <section class="side-box">
+            <div class="side-box-header">BOARD INFORMATION</div>
+            <p><strong>Board:</strong> /c/ Programming</p>
+            <p><strong>Engine:</strong> Rule-driven</p>
+            <p><strong>Scoring:</strong> Deterministic</p>
+            <p><strong>AI assistance:</strong> Advisory</p>
+            <p><strong>Execution:</strong> Locked on public instance</p>
+          </section>
+
+          <section class="side-box">
+            <div class="side-box-header">IMPORTANT</div>
+            <p>
+              Static analysis can identify suspicious patterns, but it cannot
+              prove arbitrary C programs correct or memory-safe.
+            </p>
+            <p>
+              A real evaluation requires verified specifications, trusted
+              references and isolated execution.
+            </p>
+          </section>
+
+        </aside>
       </div>
-      <span class="notice-tag">SAFE MODE</span>
-    </section>
+    </main>
 
-    <section class="stats-grid">
-      <article class="stat-card"><div class="stat-top">ANALYSIS DIMENSIONS <span class="stat-icon purple">◈</span></div><div class="stat-number">09</div><div class="stat-caption">Independent metric groups</div><div class="stat-bar"><i style="width:90%"></i></div></article>
-      <article class="stat-card"><div class="stat-top">DETERMINISTIC CORE <span class="stat-icon mint">⌘</span></div><div class="stat-number">01 <small>engine</small></div><div class="stat-caption">Rule engine controls scoring</div><div class="stat-bar mint-bar"><i style="width:78%"></i></div></article>
-      <article class="stat-card"><div class="stat-top">AI ASSISTANCE <span class="stat-icon blue">✳</span></div><div class="stat-number">Optional</div><div class="stat-caption">Advisory, never the sole judge</div><div class="stat-bar blue-bar"><i style="width:63%"></i></div></article>
-      <article class="stat-card"><div class="stat-top">EXECUTION MODE <span class="stat-icon amber">⌑</span></div><div class="stat-number">Locked</div><div class="stat-caption">Public code execution disabled</div><div class="stat-bar amber-bar"><i style="width:100%"></i></div></article>
-    </section>
+    <footer class="board-footer">
+      <span>/c/ — PROGRAMMING</span>
+      <span id="footer-status">AUTO GRADER · PROTOTYPE</span>
+      <span>THE WIRED IS WATCHING</span>
+    </footer>
 
-    <div class="content-grid">
-      <section class="panel submission-panel">
-        <div class="panel-header">
-          <div><div class="section-kicker">01 / SUBMISSION</div><h2>Prepare your code</h2><p>Provide the source and problem context.</p></div>
-          <span class="file-badge"><span></span> C / C11</span>
-        </div>
+  </div>
 
-        <div class="field-block">
-          <div class="field-label"><label for="problem">Problem statement <small>OPTIONAL</small></label><span>Help reconstruct expected behavior</span></div>
-          <textarea id="problem" rows="3" placeholder="e.g. Read n integers and print the maximum value…"></textarea>
-        </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-        <div class="field-block">
-          <div class="field-label">
-            <label for="source">Source code <small class="required">*</small></label>
-            <div class="editor-tools"><button type="button" id="load-example">Load example</button><label for="source-file">Upload .c</label><input id="source-file" type="file" accept=".c,text/plain" hidden></div>
-          </div>
-          <div class="editor">
-            <div class="editor-top"><div class="editor-file"><span class="c-file-icon">C</span><span id="filename">main.c</span></div><span class="editor-language">● C11</span></div>
-            <div class="editor-body"><div class="line-numbers" id="line-numbers">1</div><textarea id="source" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="C source code" placeholder="// Paste your C program here…"></textarea></div>
-            <div class="editor-footer"><span id="line-count">1 line</span><span id="char-count">0 characters</span><span>UTF-8</span></div>
-          </div>
-          <p class="microcopy">Maximum 256 KB · Source stays in this browser in the current preview.</p>
-        </div>
-
-        <div class="field-block">
-          <div class="field-label"><label for="stdin">Program input <small>OPTIONAL</small></label><span>Standard input for a future test run</span></div>
-          <textarea id="stdin" class="mono-input" rows="3" placeholder="5&#10;12 7 19 3 10"></textarea>
-        </div>
-        <div class="field-block">
-          <div class="field-label"><label for="testcases">Test cases <small>OPTIONAL</small></label><span>Document inputs and expected outputs</span></div>
-          <textarea id="testcases" class="mono-input" rows="4" placeholder="Input: 3 8 2 5&#10;Expected: 8&#10;&#10;Input: 1 -4&#10;Expected: -4"></textarea>
-        </div>
-        <div class="submit-row">
-          <div class="submit-explainer">⌑ &nbsp; Submission remains in this browser.</div>
-          <button class="primary-button" id="evaluate-btn" type="button">Analyze source <span>→</span></button>
-        </div>
-        <div class="disabled-reason">Static source analysis only. Submitted C code is not compiled or executed, and no grade is produced.</div>
-        <section class="panel" id="analysis-results" aria-live="polite" hidden style="margin-top: 18px; padding: 20px;">
-          <h2>Static analysis results</h2>
-          <p id="analysis-summary">Waiting for analysis…</p>
-          <div id="analysis-findings"></div>
-        </section>
-      </section>
-
-      <aside class="right-column">
-        <section class="panel side-panel">
-          <div class="panel-header compact"><div><div class="section-kicker">02 / SYSTEM</div><h2>Readiness check</h2></div><span class="readiness-icon">⌁</span></div>
-          <div class="readiness-list">
-            <div class="readiness-item"><span class="check">✓</span><div><b>Web interface</b><small>Served by FastAPI</small></div><strong class="ready">READY</strong></div>
-            <div class="readiness-item"><span class="check" id="health-check">·</span><div><b>Health endpoint</b><small id="health-detail">Checking /health…</small></div><strong class="ready" id="health-state">CHECKING</strong></div>
-            <div class="readiness-item"><span class="check pending">·</span><div><b>Grading API</b><small>Evaluation route not connected</small></div><strong class="pending-text">PENDING</strong></div>
-            <div class="readiness-item"><span class="check pending">·</span><div><b>Isolated execution</b><small>Public execution remains off</small></div><strong class="pending-text">LOCKED</strong></div>
-          </div>
-          <div class="readiness-note"><span>✳</span><p><b>Safety by default</b><br>We won't run untrusted C code publicly until the execution boundary is hardened and verified.</p></div>
-        </section>
-
-        <section class="panel side-panel" id="pipeline">
-          <div class="panel-header compact"><div><div class="section-kicker">03 / PIPELINE</div><h2>Analysis pipeline</h2></div><span class="pipeline-count">9 METRICS</span></div>
-          <div class="pipeline-list">
-            <div class="pipeline-item"><span class="pipeline-node purple-node">01</span><div><b>Preflight & compilation</b><small>Source validation and compiler diagnostics</small></div><span class="pipeline-status">CORE</span></div>
-            <div class="pipeline-item"><span class="pipeline-node blue-node">02</span><div><b>Correctness & edge cases</b><small>Tests, boundaries and differential checks</small></div><span class="pipeline-status">CORE</span></div>
-            <div class="pipeline-item"><span class="pipeline-node mint-node">03</span><div><b>Complexity & memory</b><small>Static estimates and runtime diagnostics</small></div><span class="pipeline-status">TOOLS</span></div>
-            <div class="pipeline-item"><span class="pipeline-node amber-node">04</span><div><b>Quality & originality</b><small>Maintainability and similarity flags</small></div><span class="pipeline-status">ADVISORY</span></div>
-          </div>
-          <a class="panel-link" href="#rubric">Explore grading dimensions <span>→</span></a>
-        </section>
-      </aside>
+  <dialog id="help-dialog">
+    <div class="dialog-header">
+      <strong>HELP / HOW TO USE THIS BOARD</strong>
+      <button type="button" id="close-help">[ close ]</button>
     </div>
+    <div class="dialog-content">
+      <p>Paste a C source file or upload a .c file.</p>
+      <p>Add the problem statement if available.</p>
+      <p>Press ANALYZE SOURCE to request static inspection.</p>
+      <p>This public instance does not compile or execute submitted code.</p>
+    </div>
+  </dialog>
 
-    <section class="panel rubric-panel" id="rubric">
-      <div class="panel-header"><div><div class="section-kicker">04 / SCORING</div><h2>What gets evaluated</h2><p>Rule-based metrics provide reproducible scoring; AI assessments remain advisory.</p></div><span class="rubric-note">CONFIGURABLE WEIGHTS</span></div>
-      <div class="rubric-grid">
-        <div class="rubric-item"><span class="rubric-symbol purple-text">✓</span><div><b>Correctness</b><small>Test outcomes and counterexamples</small></div><span class="weight">TESTS</span></div>
-        <div class="rubric-item"><span class="rubric-symbol blue-text">⌘</span><div><b>Compiler & syntax</b><small>Errors and warning diagnostics</small></div><span class="weight">STATIC</span></div>
-        <div class="rubric-item"><span class="rubric-symbol mint-text">⌁</span><div><b>Memory safety</b><small>Sanitizer and Valgrind findings</small></div><span class="weight">TOOLS</span></div>
-        <div class="rubric-item"><span class="rubric-symbol amber-text">↗</span><div><b>Complexity</b><small>Algorithmic estimate and evidence</small></div><span class="weight">ANALYSIS</span></div>
-        <div class="rubric-item"><span class="rubric-symbol purple-text">◈</span><div><b>Modularity & structure</b><small>Function design and decomposition</small></div><span class="weight">STATIC</span></div>
-        <div class="rubric-item"><span class="rubric-symbol blue-text">✳</span><div><b>Readability</b><small>Naming, clarity and maintainability</small></div><span class="weight">ADVISORY</span></div>
-        <div class="rubric-item"><span class="rubric-symbol amber-text">⌕</span><div><b>Originality signals</b><small>Similarity flags for human review</small></div><span class="weight">ADVISORY</span></div>
-        <div class="rubric-item"><span class="rubric-symbol mint-text">◎</span><div><b>Mathematical review</b><small>Independent search for counterexamples</small></div><span class="weight">VERIFY</span></div>
-      </div>
-    </section>
+  <script src="/static/app.js" defer></script>
+  <script>
+    (() => {
+      const dialog = document.getElementById("help-dialog");
+      const open = document.getElementById("help-btn");
+      const close = document.getElementById("close-help");
+      if (open && dialog) open.addEventListener("click", () => dialog.showModal());
+      if (close && dialog) close.addEventListener("click", () => dialog.close());
+    })();
+  </script>
 
-    <section class="bottom-grid" id="principles">
-      <div class="panel principles-panel"><div class="section-kicker">DESIGN PRINCIPLES</div><h2>Evidence over guesswork.</h2><p>AutoGrader separates deterministic checks from AI advice, reports uncertainty explicitly, and never treats a similarity score as proof of plagiarism.</p><div class="principle-tags"><span>Reproducible rules</span><span>Independent verification</span><span>Transparent limitations</span></div></div>
-      <div class="panel next-panel"><div class="next-icon">↗</div><div><div class="section-kicker">NEXT MILESTONE</div><h2>Connect the evaluator</h2><p>Connect the existing orchestrator to a protected API, then enable execution only after the public sandbox has been verified.</p><a href="https://github.com/Greyy9934/autograder" target="_blank" rel="noreferrer">View source on GitHub ↗</a></div></div>
-    </section>
+<script>
+(() => {
 
-    <footer class="footer"><div class="footer-brand">▥ AutoGrader <span>v0.2</span></div><span>Built for transparent, rule-driven C evaluation.</span><span class="footer-right"><span class="pulse-dot"></span><span id="footer-status">Connecting…</span></span></footer>
-  </main>
-</div>
+function updateWiredStatuses() {
+  const sidebar = document.querySelector(".board-side");
+  if (!sidebar) return;
 
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
-<dialog id="help-dialog" class="help-dialog">
-  <form method="dialog"><button class="dialog-close" aria-label="Close help">×</button></form>
-  <div class="section-kicker">QUICK HELP</div><h2>Welcome to the Evaluation Lab</h2>
-  <p>This is currently a submission-preparation and status preview. Paste or upload source, add context and explore the rubric.</p>
-  <ul><li>Your input stays in the browser; this preview does not upload it.</li><li>Evaluation is disabled until the backend and secure runner are connected.</li><li>Grades must be supported by actual tests and reproducible rules.</li></ul>
-  <form method="dialog"><button class="primary-button">Got it</button></form>
-</dialog>
-<script src="/static/app.js" defer></script>
+  const positive = /\b(online|connected|successful|established|healthy|ready|operational|active)\b/i;
+  const negative = /\b(offline|disconnected|not connected|locked|unavailable|degraded|failed|failure|error|disabled|timeout)\b/i;
+  const neutral = /\b(pending|unknown|checking|loading)\b/i;
+
+  sidebar.querySelectorAll("*").forEach(el => {
+    if (el.children.length > 0) return;
+
+    const text = (el.textContent || "").trim();
+    if (!text || text.length > 100) return;
+
+    el.classList.remove("wired-positive", "wired-warning", "wired-neutral");
+
+    if (negative.test(text)) {
+      el.classList.add("wired-warning");
+    } else if (positive.test(text)) {
+      el.classList.add("wired-positive");
+    } else if (neutral.test(text)) {
+      el.classList.add("wired-neutral");
+    }
+  });
+}
+
+updateWiredStatuses();
+
+const sidebar = document.querySelector(".board-side");
+if (sidebar) {
+  new MutationObserver(updateWiredStatuses).observe(sidebar, {
+    subtree: true,
+    childList: true,
+    characterData: true
+  });
+}
+
+window.addEventListener("load", updateWiredStatuses);
+})();
+</script>
+
 </body>
 </html>

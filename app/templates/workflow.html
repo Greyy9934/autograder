@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>/c/ — EVALUATION WORKFLOW</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<div id="frieren-loader" aria-label="Loading AutoGrader">
+  <div class="frieren-loader-title">AutoGrader</div>
+  <div class="frieren-loader-subtitle">/ C PROGRAMMING BOARD</div>
+  <div class="frieren-walk-scene">
+    <img src="/static/frieren-loading.png" alt="Frieren on her journey">
+  </div>
+  <div class="frieren-loading-label">Loading the Wired...</div>
+  <div class="frieren-progress"><span></span></div>
+  <div class="frieren-loading-caption">A journey begins with a single step.</div>
+</div>
+<script>
+(() => {
+  const loader = document.getElementById("frieren-loader");
+  if (!loader) return;
+  const hide = () => {
+    loader.classList.add("frieren-loader-hidden");
+    setTimeout(() => loader.remove(), 450);
+  };
+  if (document.readyState === "complete") {
+    requestAnimationFrame(hide);
+  } else {
+    window.addEventListener("load", hide, { once: true });
+  }
+  setTimeout(hide, 7000);
+})();
+</script>
+
+  <div class="board-wrap workflow-page">
+    <header class="board-header">
+      <div class="board-brand">
+  <a class="brand-lockup" href="/" aria-label="AutoGrader home">
+    <img src="/static/yotsubaAGlogo.png" alt="AutoGrader mascot">
+    <span class="brand-wording">
+      <strong>AutoGrader</strong>
+      <small>/ C PROGRAMMING BOARD</small>
+    </span>
+  </a>
+</div>
+      <nav class="board-nav">
+        <a href="/">[ board ]</a>
+        <a href="/#submission">[ submit ]</a>
+        <a href="/workflow">[ workflow ]</a>
+        <a href="/rubric">[ grading rubric ]</a>
+        <a href="/principles">[ principles ]</a>
+        <a href="/docs">[ API ]</a>
+        <a href="/#help-dialog">[ help ]</a>
+      </nav>
+      <div class="board-status">
+        <span class="status-dot"></span>
+        SYSTEM ARCHITECTURE / EVALUATION WORKFLOW
+      </div>
+    </header>
+
+    <div class="workflow-heading">
+      <div class="board-kicker">SYSTEM DOCUMENTATION / 001</div>
+      <h1>Evaluation workflow</h1>
+      <p>Eight sequential phases. Six specialized AI agents. Deterministic verification and grading.</p>
+      <a href="/">← Back to the submission board</a>
+    </div>
+
+    <main class="workflow-content">
+<section class="thread" id="pipeline">
+            <div class="thread-header">
+
+              <span>END-TO-END EVALUATION WORKFLOW</span>
+            </div>
+            <div class="post">
+              <div class="post-info">
+                <strong>System Architecture</strong>
+                <span>Sequential workflow / evidence-driven</span>
+
+              </div>
+
+              <h2>How a submission moves through the evaluator</h2>
+              <p>
+                The evaluator follows one ordered workflow. Each phase consumes
+                the previous phase's outputs and produces evidence for the next.
+                AI agents perform specialized reasoning; deterministic software
+                performs validation, execution, scoring and report generation.
+              </p>
+
+              <div class="pipeline-list">
+
+                <article class="pipeline-phase">
+                  <h3>PHASE 01 — SUBMISSION INTAKE AND STATIC INSPECTION</h3>
+                  <p><strong>Performed by:</strong> Intake and static-analysis software</p>
+                  <p><strong>Input:</strong> C source file and submitted problem statement, if provided.</p>
+                  <p><strong>Operations:</strong></p>
+                  <ul>
+                    <li>Validate source presence, size and basic structure.</li>
+                    <li>Inspect headers, dependencies, declarations and functions.</li>
+                    <li>Analyze variables, loops, recursion, arrays and pointers.</li>
+                    <li>Inspect input/output handling, memory operations and unsafe functions.</li>
+                    <li>Identify suspicious arithmetic, integer and control-flow patterns.</li>
+                    <li>Estimate preliminary complexity indicators and record source locations.</li>
+                  </ul>
+                  <p><strong>Output:</strong> Validated submission, source fingerprint and structured static-analysis findings.</p>
+                  <p><strong>Gate:</strong> Invalid or unusable submissions stop here. Static findings are not proof of defects.</p>
+                </article>
+
+                <article class="pipeline-phase">
+                  <h3>PHASE 02 — PROBLEM RECONSTRUCTION</h3>
+                  <p><strong>Performed by:</strong> Agent 1 — Problem Understanding</p>
+                  <p><strong>Input:</strong> Submitted problem statement, source code and static-analysis evidence.</p>
+                  <p><strong>Operations:</strong></p>
+                  <ul>
+                    <li>Reconstruct the intended task and expected behavior.</li>
+                    <li>Identify input format, output format and constraints.</li>
+                    <li>Separate explicitly stated facts from assumptions.</li>
+                    <li>Identify ambiguity, missing requirements and contradictions.</li>
+                    <li>Ask targeted clarification questions when the specification is incomplete.</li>
+                    <li>Report confidence and limitations.</li>
+                  </ul>
+                  <p><strong>Output:</strong> Structured assignment-specification draft and clarification requirements.</p>
+                  <p><strong>Gate:</strong> An incomplete or ambiguous specification cannot proceed to reference generation.</p>
+                </article>
+
+                <article class="pipeline-phase">
+                  <h3>PHASE 03 — INSTRUCTOR REVIEW AND SPECIFICATION APPROVAL</h3>
+                  <p><strong>Performed by:</strong> Instructor approval workflow and deterministic validation software</p>
+                  <p><strong>Input:</strong> Agent 1's specification draft and its evidence.</p>
+                  <p><strong>Operations:</strong></p>
+                  <ul>
+                    <li>Present the reconstructed task, formats, constraints and assumptions for review.</li>
+                    <li>Allow the instructor to correct or clarify the specification.</li>
+                    <li>Validate the final specification and calculate its fingerprint.</li>
+                    <li>Record explicit instructor approval.</li>
+                  </ul>
+                  <p><strong>Output:</strong> Immutable, confirmed assignment specification and approval evidence.</p>
+                  <p><strong>Gate:</strong> No confirmed specification means no reference generation or specification-dependent test generation.</p>
+                </article>
+
+                <article class="pipeline-phase">
+                  <h3>PHASE 04 — REFERENCE SOLUTION GENERATION AND VALIDATION</h3>
+                  <p><strong>Performed by:</strong> Agent 2 — Reference Solution Generator, followed by deterministic validation software</p>
+                  <p><strong>Input:</strong> Confirmed assignment specification.</p>
+                  <p><strong>Operations:</strong></p>
+                  <ul>
+                    <li>Generate a straightforward or brute-force reference implementation.</li>
+                    <li>Generate an efficient reference implementation where appropriate.</li>
+                    <li>Explain the algorithm, assumptions, time complexity and space complexity.</li>
+                    <li>Check generated implementations against the approved specification.</li>
+                    <li>Use independent reasoning, instructor examples and exhaustive small cases where feasible.</li>
+                    <li>Record the provenance and validation limitations of each reference.</li>
+                  </ul>
+                  <p><strong>Output:</strong> Reference implementations, explanations and validation records.</p>
+                  <p><strong>Gate:</strong> An unvalidated AI-generated reference is not automatically trusted as a correctness oracle. Its permitted use must be recorded.</p>
+                </article>
+
+                <article class="pipeline-phase">
+                  <h3>PHASE 05 — TEST DESIGN AND GENERATION</h3>
+                  <p><strong>Performed by:</strong> Agent 3A — Random Test Generator; Agent 3B — Adversarial Test Planner; deterministic test-validation software</p>
+                  <p><strong>Input:</strong> Confirmed specification, input constraints, student source and available reference solutions.</p>
+                  <p><strong>Operations:</strong></p>
+                  <ul>
+                    <li>Agent 3A generates reproducible random inputs using explicit schemas, seeds and distributions.</li>
+                    <li>Agent 3B examines the submitted implementation for likely failure conditions.</li>
+                    <li>Design edge cases for boundaries, empty and singleton inputs, duplicates, ordering assumptions and maximum constraints.</li>
+                    <li>Target likely implementation defects such as off-by-one errors and integer overflow.</li>
+                    <li>Validate generated inputs against the approved input schema.</li>
+                    <li>Record test rationale, expected behavior and source locations of suspected weaknesses.</li>
+                  </ul>
+                  <p><strong>Output:</strong> Validated random-test batches and prioritized adversarial test plans.</p>
+                  <p><strong>Gate:</strong> Test proposals are not test failures. They must be executed before conclusions are drawn.</p>
+                </article>
+
+                <article class="pipeline-phase">
+                  <h3>PHASE 06 — ISOLATED EXECUTION AND DETERMINISTIC VERIFICATION</h3>
+                  <p><strong>Performed by:</strong> Secure execution subsystem and deterministic comparison software</p>
+                  <p><strong>Input:</strong> Student source, validated test inputs, confirmed specification and eligible reference implementations.</p>
+                  <p><strong>Operations:</strong></p>
+                  <ul>
+                    <li>Compile programs inside the configured isolated execution environment.</li>
+                    <li>Run student and eligible reference programs against the same inputs.</li>
+                    <li>Capture standard output, standard error, exit codes and resource usage.</li>
+                    <li>Apply execution time, memory, process and output limits.</li>
+                    <li>Compare outputs using the configured comparison rules.</li>
+                    <li>Classify passing, failing and inconclusive outcomes separately.</li>
+                    <li>Preserve execution logs and reproducible failure evidence.</li>
+                  </ul>
+                  <p><strong>Output:</strong> Compilation records, execution evidence, test outcomes and differential-comparison results.</p>
+                  <p><strong>Gate:</strong> Infrastructure errors are not student failures. Untrusted references cannot independently establish incorrectness.</p>
+                </article>
+
+                <article class="pipeline-phase">
+                  <h3>PHASE 07 — COMPLEXITY, CORRECTNESS AND CODE-QUALITY ASSESSMENT</h3>
+                  <p><strong>Performed by:</strong> Agent 4, Agent 5, Agent 6 and supporting analysis software</p>
+                  <p><strong>Input:</strong> Original submission, approved specification, static findings and available execution evidence.</p>
+                  <p><strong>Agent 4 — Complexity Analysis:</strong></p>
+                  <ul>
+                    <li>Derive theoretical time and auxiliary-space complexity.</li>
+                    <li>Examine loops, recursion, data structures and dominant operations.</li>
+                    <li>Measure runtime over controlled input sizes and distributions.</li>
+                    <li>Compare growth ratios and fit candidate complexity models.</li>
+                    <li>Present theoretical and empirical results with graphs and limitations.</li>
+                  </ul>
+                  <p><strong>Agent 5 — Mathematical Correctness:</strong></p>
+                  <ul>
+                    <li>Examine algorithm logic, preconditions and postconditions.</li>
+                    <li>Review loop invariants, induction arguments and proof obligations.</li>
+                    <li>Search for counterexamples and unsupported assumptions.</li>
+                    <li>Classify conclusions as proved, proof-reviewed, unproven, disproved or inconclusive.</li>
+                  </ul>
+                  <p><strong>Agent 6 — Code Quality and Feedback:</strong></p>
+                  <ul>
+                    <li>Assess readability, modularity, organization and maintainability.</li>
+                    <li>Review implementation choices and code structure.</li>
+                    <li>Identify originality or similarity signals for human investigation.</li>
+                    <li>Produce source-linked explanations and actionable improvements.</li>
+                  </ul>
+                  <p><strong>Output:</strong> Three separate assessment records with supporting evidence, reasoning and limitations.</p>
+                  <p><strong>Gate:</strong> An empirical trend is not a proof; an AI proof sketch is not automatically a verified proof; similarity is not proof of plagiarism.</p>
+                </article>
+
+                <article class="pipeline-phase">
+                  <h3>PHASE 08 — DETERMINISTIC GRADING AND FINAL REPORT</h3>
+                  <p><strong>Performed by:</strong> Grading engine, report-generation module and orchestration software</p>
+                  <p><strong>Input:</strong> All eligible evidence and assessment records from the preceding phases.</p>
+                  <p><strong>Operations:</strong></p>
+                  <ul>
+                    <li>Check evidence completeness, provenance and scoring eligibility.</li>
+                    <li>Apply the configured grading rubric and deterministic scoring rules.</li>
+                    <li>Exclude unsupported or inconclusive evidence from inappropriate score calculations.</li>
+                    <li>Distinguish provisional results from eligible final grades.</li>
+                    <li>Assemble the specification, references, static findings, test results, complexity analysis, correctness review and code-quality feedback.</li>
+                    <li>Generate a downloadable PDF with consistent content, evidence and score breakdown.</li>
+                  </ul>
+                  <p><strong>Output:</strong> Evaluation result, score breakdown, evidence-linked feedback and final PDF report.</p>
+                  <p><strong>Completion condition:</strong> A final grade is issued only when the required evidence and grading eligibility conditions are satisfied. Otherwise, the result remains provisional or inconclusive.</p>
+                </article>
+
+              </div>
+
+              <div class="pipeline-note">
+                <strong>ARCHITECTURE RULE:</strong>
+                The orchestrator coordinates the eight phases and enforces
+                dependencies. Agents 1–6 are AI reasoning components.
+                Static analysis, approval validation, reference validation,
+                test validation, execution, comparison, grading and PDF
+                generation are software subsystems—not additional AI agents.
+              </div>
+            </div>
+          </section>
+    </main>
+
+    <footer class="board-footer">
+      <span>/c/ — PROGRAMMING</span>
+      <span>AUTOGRADER / SYSTEM ARCHITECTURE</span>
+      <a href="/">RETURN TO BOARD ↑</a>
+    </footer>
+  </div>
+
+<script>
+(() => {
+
+function updateWiredStatuses() {
+  const sidebar = document.querySelector(".board-side");
+  if (!sidebar) return;
+
+  const positive = /\b(online|connected|successful|established|healthy|ready|operational|active)\b/i;
+  const negative = /\b(offline|disconnected|not connected|locked|unavailable|degraded|failed|failure|error|disabled|timeout)\b/i;
+  const neutral = /\b(pending|unknown|checking|loading)\b/i;
+
+  sidebar.querySelectorAll("*").forEach(el => {
+    if (el.children.length > 0) return;
+
+    const text = (el.textContent || "").trim();
+    if (!text || text.length > 100) return;
+
+    el.classList.remove("wired-positive", "wired-warning", "wired-neutral");
+
+    if (negative.test(text)) {
+      el.classList.add("wired-warning");
+    } else if (positive.test(text)) {
+      el.classList.add("wired-positive");
+    } else if (neutral.test(text)) {
+      el.classList.add("wired-neutral");
+    }
+  });
+}
+
+updateWiredStatuses();
+
+const sidebar = document.querySelector(".board-side");
+if (sidebar) {
+  new MutationObserver(updateWiredStatuses).observe(sidebar, {
+    subtree: true,
+    childList: true,
+    characterData: true
+  });
+}
+
+window.addEventListener("load", updateWiredStatuses);
+})();
+</script>
+
+</body>
+</html>
