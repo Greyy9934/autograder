@@ -51,6 +51,11 @@ class OrchestratorTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "reconstruction_ready")
         self.assertFalse(result["correctness_assessed"])
+        self.assertIsNone(result["assignment_spec"])
+        self.assertEqual(
+            result["assignment_spec_status"],
+            "draft_requires_format_confirmation",
+        )
 
     @patch("app.orchestrator.preflight")
     def test_multiple_candidates_require_clarification(self, mock_preflight):

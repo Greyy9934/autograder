@@ -230,6 +230,8 @@ def evaluate_submission(
         if reconstruction.get("status") == "ready" and len(candidates) == 1:
             selected_problem = dict(candidates[0])
             selected_problem["constraints"] = reconstruction.get("constraints", [])
+            result["assignment_spec"] = None
+            result["assignment_spec_status"] = "draft_requires_format_confirmation"
             result["edge_cases"] = analyze_edge_cases(selected_problem)
             if generate_edge_case_inputs:
                 if edge_case_input_bounds is None:
