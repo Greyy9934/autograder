@@ -78,21 +78,29 @@ def analyze_test_cases(
         actual = run.get("stdout", "")
         expected = case["expected_output"]
         exit_code = run.get("exit_code")
-        comparable = (
-            status == "completed"
+        execution_class = run.get("execution_class", "execution_unknown")
+
+        inconclusive = execution_class in {
+            "infrastructure_error",
+            "execution_unknown",
+        }
+
+        passed = (
+            execution_class == "program_success"
+            and status == "completed"
             and exit_code == 0
             and not run.get("stdout_truncated", False)
             and not run.get("stderr_truncated", False)
+            and normalize_output(actual) == normalize_output(expected)
         )
-        passed = comparable and (
-            normalize_output(actual) == normalize_output(expected)
-        )
+
+        failed = not passed and not inconclusive
 
         if passed:
             explanation = "Output matches the expected output and exit code is zero."
         elif status == "completed" and exit_code != 0:
             explanation = f"Program exited with nonzero exit code: {exit_code}."
-        elif not comparable:
+        elif inconclusive:
             explanation = (
                 f"Execution is inconclusive: {run.get('execution_class', status)}."
             )
@@ -102,6 +110,8 @@ def analyze_test_cases(
         results.append({
             "case": index,
             "passed": passed,
+            "failed": failed,
+            "inconclusive": inconclusive,
             "status": status,
             "execution_class": run.get("execution_class"),
             "input": case.get("input", ""),
@@ -115,19 +125,26 @@ def analyze_test_cases(
         })
 
     passed_count = sum(item["passed"] for item in results)
-    failed_count = len(results) - passed_count
+    failed_count = sum(item["failed"] for item in results)
+    inconclusive_count = sum(item["inconclusive"] for item in results)
 
     return {
-        "status": batch["status"],
+        "status": "completed",
+        "batch_status": batch["status"],
         "passed": passed_count,
         "failed": failed_count,
+        "inconclusive": inconclusive_count,
+        "determinate_total": passed_count + failed_count,
         "total": len(results),
         "compile_seconds": batch.get("compile_seconds"),
         "compiled_once": batch.get("compiled_once", False),
         "results": results,
         "message": (
             "All supplied test cases passed."
-            if failed_count == 0
-            else f"{failed_count} supplied test case(s) failed or were inconclusive."
+            if failed_count == 0 and inconclusive_count == 0
+            else (
+                f"{failed_count} confirmed failure(s), "
+                f"{inconclusive_count} inconclusive case(s)."
+            )
         ),
     }

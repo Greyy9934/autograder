@@ -20,20 +20,22 @@ def derive_metric_scores(evidence: dict[str, Any]) -> dict[str, float | None]:
         total = tests.get("total")
         passed = tests.get("passed")
         failed = tests.get("failed")
+        inconclusive = tests.get("inconclusive", 0)
 
+        counts = (total, passed, failed, inconclusive)
         if (
-            isinstance(total, int)
-            and not isinstance(total, bool)
+            all(isinstance(value, int) and not isinstance(value, bool)
+                for value in counts)
             and total > 0
-            and isinstance(passed, int)
-            and not isinstance(passed, bool)
-            and isinstance(failed, int)
-            and not isinstance(failed, bool)
             and passed >= 0
             and failed >= 0
-            and passed + failed == total
+            and inconclusive >= 0
+            and passed + failed + inconclusive == total
+            and passed + failed > 0
         ):
-            scores["correctness"] = 100.0 * passed / total
+            scores["correctness"] = (
+                100.0 * passed / (passed + failed)
+            )
 
     # A completed memory diagnostic alone is not proof of memory safety.
     # Keep this metric unavailable until its findings have a validated schema.

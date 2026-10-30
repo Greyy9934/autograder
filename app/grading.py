@@ -93,19 +93,19 @@ def _eligible_correctness(
         total = tests.get("total")
         passed = tests.get("passed")
         failed = tests.get("failed")
+        inconclusive = tests.get("inconclusive", 0)
+        counts = (total, passed, failed, inconclusive)
         if (
-            isinstance(total, bool)
-            or not isinstance(total, int)
+            any(isinstance(value, bool) or not isinstance(value, int)
+                for value in counts)
             or total <= 0
-            or isinstance(passed, bool)
-            or not isinstance(passed, int)
-            or isinstance(failed, bool)
-            or not isinstance(failed, int)
             or passed < 0
             or failed < 0
-            or passed + failed != total
+            or inconclusive < 0
+            or passed + failed + inconclusive != total
+            or passed + failed == 0
         ):
-            return False, "Test-case counts are invalid."
+            return False, "Test-case counts are invalid or contain no determinate cases."
 
     return True, "Required correctness evidence is available."
 
