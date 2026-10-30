@@ -29,9 +29,15 @@ def execute_adversarial_candidates(
         return {"status": "invalid_plan", "results": []}
 
     batch = run_c_batch(source, [case["input"] for case in cases])
-    if batch["status"] != "completed":
-        return {"status": batch["status"], "results": [],
-                "execution_details": batch}
+    if batch["status"] not in {
+        "completed",
+        "completed_with_execution_issues",
+    } or not isinstance(batch.get("results"), list):
+        return {
+            "status": batch["status"],
+            "results": [],
+            "execution_details": batch,
+        }
 
     results = []
     for case, run in zip(cases, batch["results"]):
@@ -50,7 +56,8 @@ def execute_adversarial_candidates(
         })
 
     return {
-        "status": "completed",
+        "status": batch["status"],
+        "summary": batch.get("summary", {}),
         "compile_seconds": batch["compile_seconds"],
         "compiled_once": True,
         "executed": len(results),

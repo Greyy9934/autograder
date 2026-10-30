@@ -17,12 +17,19 @@ def execute_random_test_inputs(source: str, inputs: list[str]) -> dict[str, Any]
         return {"status": "invalid_request", "results": []}
 
     batch = run_c_batch(source, inputs)
-    if batch["status"] != "completed":
-        return {"status": batch["status"], "results": [],
-                "execution_details": batch}
+    if batch["status"] not in {
+        "completed",
+        "completed_with_execution_issues",
+    } or not isinstance(batch.get("results"), list):
+        return {
+            "status": batch["status"],
+            "results": [],
+            "execution_details": batch,
+        }
 
     return {
-        "status": "completed",
+        "status": batch["status"],
+        "summary": batch.get("summary", {}),
         "compile_seconds": batch["compile_seconds"],
         "compiled_once": True,
         "executed": len(batch["results"]),
