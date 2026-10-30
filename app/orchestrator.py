@@ -4,7 +4,6 @@ import hashlib
 from typing import Any
 
 from analyzers.preflight import preflight
-from analyzers.reference_solutions import generate_reference_solutions
 from analyzers.reference_validation import validate_reference_pair
 from analyzers.mathematical_verification import verify_algorithm
 from analyzers.edge_cases import analyze_edge_cases
@@ -194,6 +193,39 @@ def evaluate_execution_evidence(
     result["execution_status"] = "completed"
     return _attach_grading(result)
 
+
+def generate_reference_solutions_for_confirmed_spec(
+    spec: Any,
+    provider: Any = None,
+) -> dict[str, Any]:
+    """Run Agent 2 only after explicit instructor approval."""
+    from analyzers.assignment_spec import AssignmentSpec
+    from analyzers.reference_solutions import generate_reference_solutions
+
+    if not isinstance(spec, AssignmentSpec) or not spec.confirmed:
+        return {
+            "status": "rejected",
+            "message": "An instructor-confirmed assignment specification is required.",
+            "references_trusted": False,
+        }
+
+    if provider is None:
+        try:
+            provider = create_ai_provider()
+        except AIProviderError as exc:
+            return {
+                "status": "provider_error",
+                "message": str(exc),
+                "references_trusted": False,
+            }
+
+    problem = spec.to_dict()
+    result = generate_reference_solutions(problem, provider)
+    result["spec_fingerprint"] = spec.fingerprint()
+    result["instructor_confirmed"] = True
+    return result
+
+
 def evaluate_submission(
     source: str,
     problem_statement: str | None = None,
@@ -335,11 +367,6 @@ def evaluate_submission(
                         "inputs": [],
                         "message": "Edge-case bounds must be a dictionary of supported options.",
                     }
-            if provider is not None:
-                references = generate_reference_solutions(selected_problem, provider)
-                result["reference_solutions"] = references
-
-
         result["status"] = "reconstruction_ready"
         result["message"] = (
             "Problem reconstruction completed. Correctness still requires "

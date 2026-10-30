@@ -17,13 +17,15 @@ RECONSTRUCTION_SCHEMA = {
                     "id": {"type": "string"},
                     "title": {"type": "string"},
                     "problem_statement": {"type": "string"},
+                    "input_format": {"type": "string"},
+                    "output_format": {"type": "string"},
                     "evidence": {"type": "array", "items": {"type": "string"}},
                     "assumptions": {"type": "array", "items": {"type": "string"}},
                     "confidence": {"type": "number", "minimum": 0, "maximum": 1},
                 },
                 "required": [
-                    "id", "title", "problem_statement", "evidence",
-                    "assumptions", "confidence",
+                    "id", "title", "problem_statement", "input_format",
+                    "output_format", "evidence", "assumptions", "confidence",
                 ],
             },
         },
@@ -51,7 +53,7 @@ def _validate_response(result: Any) -> dict[str, Any]:
     for item in candidates:
         if not isinstance(item, dict):
             raise AIProviderError("Each candidate must be an object.")
-        for field in ("id", "title", "problem_statement"):
+        for field in ("id", "title", "problem_statement", "input_format", "output_format"):
             if not isinstance(item.get(field), str) or not item[field].strip():
                 raise AIProviderError(f"Candidate field {field!r} is required.")
         if item["id"] in seen:

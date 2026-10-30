@@ -10,6 +10,8 @@ def candidate(identifier, title, statement, confidence):
         "id": identifier,
         "title": title,
         "problem_statement": statement,
+        "input_format": "A sequence of integers separated by whitespace.",
+        "output_format": "Print the calculated result followed by a newline.",
         "evidence": ["The source contains a loop over an integer array."],
         "assumptions": ["The input contains integers."],
         "confidence": confidence,
