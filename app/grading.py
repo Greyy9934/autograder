@@ -133,6 +133,15 @@ def grade_submission(
     maximum = rules.get("score_scale", {}).get("maximum", 100)
 
     eligible, eligibility_reason = _eligible_correctness(evidence, policy)
+
+    tests = evidence.get("test_evaluation")
+    test_coverage_complete = True
+    if policy.get("require_explicit_test_cases_for_correctness", True):
+        test_coverage_complete = (
+            isinstance(tests, dict)
+            and tests.get("inconclusive", 0) == 0
+        )
+
     breakdown = {}
     excluded = {}
 
@@ -205,7 +214,9 @@ def grade_submission(
         weighted_sum += contribution
 
     return {
-        "status": "graded" if eligible else "provisional",
+        "status": (
+            "graded" if eligible and test_coverage_complete else "provisional"
+        ),
         "score": round(weighted_sum, 2),
         "score_scale": {"minimum": minimum, "maximum": maximum},
         "included_weight": included_weight,
@@ -214,7 +225,12 @@ def grade_submission(
         "message": (
             "Score is based on eligible supplied metrics; excluded metrics "
             "were not treated as zero."
-            if eligible
-            else "Provisional score only: correctness grading requirements were not met."
+            if eligible and test_coverage_complete
+            else (
+                "Provisional score: one or more supplied test cases were "
+                "inconclusive. Correctness uses determinate cases only."
+                if eligible
+                else "Provisional score only: correctness grading requirements were not met."
+            )
         ),
     }
