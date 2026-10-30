@@ -54,6 +54,33 @@ def _create_approval_token(fingerprint: str) -> str:
     return f"{issued_at}.{signature}"
 
 
+def _create_draft_token(fingerprint: str) -> str:
+    issued_at = str(int(time.time()))
+    message = f"draft:{fingerprint}:{issued_at}".encode("utf-8")
+    signature = hmac.new(
+        _approval_signing_key(), message, hashlib.sha256
+    ).hexdigest()
+    return f"{issued_at}.{signature}"
+
+
+def _verify_draft_token(fingerprint: str, token: str) -> bool:
+    try:
+        issued_text, supplied_signature = token.split(".", 1)
+        issued_at = int(issued_text)
+    except (ValueError, AttributeError):
+        return False
+
+    now = int(time.time())
+    if issued_at > now or now - issued_at > 900:
+        return False
+
+    message = f"draft:{fingerprint}:{issued_text}".encode("utf-8")
+    expected = hmac.new(
+        _approval_signing_key(), message, hashlib.sha256
+    ).hexdigest()
+    return secrets.compare_digest(expected, supplied_signature)
+
+
 def _verify_approval_token(fingerprint: str, token: str) -> bool:
     try:
         issued_text, supplied_signature = token.split(".", 1)
@@ -117,6 +144,7 @@ class PreparationRequest(BaseModel):
 class ConfirmAssignmentRequest(BaseModel):
     assignment_spec: dict
     expected_fingerprint: str = Field(min_length=64, max_length=64)
+    draft_token: str = Field(min_length=1, max_length=256)
     instructor_approved: bool
 
 
@@ -152,10 +180,13 @@ def confirm_assignment(
         draft = AssignmentSpec(**values)
         if draft.confirmed:
             raise ValueError("The submitted specification must be an unconfirmed draft.")
+        fingerprint = draft.fingerprint()
         if not secrets.compare_digest(
-            draft.fingerprint(), request.expected_fingerprint
+            fingerprint, request.expected_fingerprint
         ):
             raise ValueError("Assignment specification fingerprint mismatch.")
+        if not _verify_draft_token(fingerprint, request.draft_token):
+            raise ValueError("Invalid or expired server-issued draft token.")
 
         confirmed = draft.confirm(instructor_approved=True)
     except (TypeError, ValueError) as exc:
@@ -233,10 +264,21 @@ def prepare_submission(
             detail="Problem statement must not be blank when supplied.",
         )
 
-    return evaluate_submission(
+    result = evaluate_submission(
         source=request.source,
         problem_statement=request.problem_statement,
     )
+    fingerprint = result.get("assignment_spec_fingerprint")
+    if (
+        result.get("assignment_spec_status")
+        == "draft_requires_instructor_confirmation"
+        and isinstance(result.get("assignment_spec"), dict)
+        and isinstance(fingerprint, str)
+    ):
+        result["assignment_spec_draft_token"] = _create_draft_token(
+            fingerprint
+        )
+    return result
 
 
 @app.post("/api/analyze")

@@ -265,6 +265,9 @@ def test_instructor_confirmation_endpoint_confirms_valid_draft(monkeypatch):
         json={
             "assignment_spec": draft.to_dict(),
             "expected_fingerprint": draft.fingerprint(),
+            "draft_token": __import__(
+                "app.web", fromlist=["_create_draft_token"]
+            )._create_draft_token(draft.fingerprint()),
             "instructor_approved": True,
         },
     )
@@ -282,6 +285,7 @@ def test_instructor_confirmation_requires_separate_key(monkeypatch):
         json={
             "assignment_spec": {},
             "expected_fingerprint": "0" * 64,
+            "draft_token": "invalid-test-token",
             "instructor_approved": True,
         },
     )
@@ -296,6 +300,7 @@ def test_instructor_confirmation_rejects_wrong_key(monkeypatch):
         json={
             "assignment_spec": {},
             "expected_fingerprint": "0" * 64,
+            "draft_token": "invalid-test-token",
             "instructor_approved": True,
         },
     )
@@ -310,6 +315,7 @@ def test_instructor_confirmation_rejects_missing_approval(monkeypatch):
         json={
             "assignment_spec": {},
             "expected_fingerprint": "0" * 64,
+            "draft_token": "invalid-test-token",
             "instructor_approved": False,
         },
     )
@@ -439,3 +445,46 @@ def test_reference_generation_endpoint_rejects_modified_spec(monkeypatch):
     )
 
     assert response.status_code == 422
+
+
+def test_instructor_confirmation_rejects_recomputed_modified_draft(monkeypatch):
+    from analyzers.assignment_spec import AssignmentSpec
+    from app.web import _create_draft_token
+
+    monkeypatch.setenv("INSTRUCTOR_CONFIRMATION_KEY", "instructor-secret")
+    monkeypatch.setenv(
+        "INSTRUCTOR_TOKEN_SIGNING_KEY",
+        "test-signing-key-12345678901234567890",
+    )
+
+    draft = AssignmentSpec.create_draft(
+        {
+            "id": "sum",
+            "title": "Sum two integers",
+            "problem_statement": "Read two integers and print their sum.",
+        },
+        input_format="Two integers.",
+        output_format="Print their sum.",
+    )
+    original_token = _create_draft_token(draft.fingerprint())
+
+    modified_values = draft.to_dict()
+    modified_values["output_format"] = "Print their product."
+    modified_values["constraints"] = tuple(
+        modified_values.get("constraints", ())
+    )
+    modified = AssignmentSpec(**modified_values)
+
+    response = client.post(
+        "/api/confirm-assignment",
+        headers={"X-Instructor-Key": "instructor-secret"},
+        json={
+            "assignment_spec": modified.to_dict(),
+            "expected_fingerprint": modified.fingerprint(),
+            "draft_token": original_token,
+            "instructor_approved": True,
+        },
+    )
+
+    assert response.status_code == 422
+    assert "draft token" in response.json()["detail"].lower()
