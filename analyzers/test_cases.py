@@ -56,7 +56,9 @@ def analyze_test_cases(
     batch = run_c_batch(source, [case.get("input", "") for case in test_cases])
 
     if batch["status"] not in {
-        "completed", "completed_with_inconclusive_cases"
+        "completed",
+        "completed_with_inconclusive_cases",
+        "completed_with_execution_issues",
     }:
         return {
             "status": batch["status"],

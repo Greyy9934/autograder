@@ -8,6 +8,48 @@ from typing import Any
 from app import runner
 
 
+
+def _classify_execution(run: dict[str, Any]) -> str:
+    """Classify execution outcomes without confusing infrastructure with student errors."""
+    status = run.get("status")
+
+    if status == "launch_error":
+        return "infrastructure_error"
+    if status == "timeout":
+        return "time_limit_exceeded"
+    if status == "output_limit":
+        return "output_limit_exceeded"
+    if status == "resource_limit_or_forced_kill":
+        return "resource_limit_exceeded"
+    if status == "terminated_by_signal":
+        return "runtime_crash"
+    if status == "completed":
+        if run.get("exit_code") == 0:
+            return "program_success"
+        if run.get("exit_code") is not None:
+            return "runtime_error"
+    return "execution_unknown"
+
+
+def _summarize_results(results: list[dict[str, Any]]) -> dict[str, int]:
+    """Count each execution category for deterministic downstream reporting."""
+    categories = (
+        "program_success",
+        "runtime_error",
+        "runtime_crash",
+        "time_limit_exceeded",
+        "output_limit_exceeded",
+        "resource_limit_exceeded",
+        "infrastructure_error",
+        "execution_unknown",
+    )
+    return {
+        category: sum(
+            item.get("execution_class") == category for item in results
+        )
+        for category in categories
+    }
+
 def run_c_batch(source: str, inputs: list[str]) -> dict[str, Any]:
     if not isinstance(source, str) or not source.strip():
         return {"status": "invalid_request", "results": []}
@@ -127,18 +169,7 @@ def run_c_batch(source: str, inputs: list[str]) -> dict[str, Any]:
                 "case": index,
                 "input": value,
                 "status": run["status"],
-                "execution_class": (
-                    "infrastructure_error"
-                    if run["status"] == "launch_error"
-                    else "execution_inconclusive"
-                    if run["status"] in {
-                        "timeout",
-                        "output_limit",
-                        "terminated_by_signal",
-                        "resource_limit_or_forced_kill",
-                    }
-                    else "program_exit"
-                ),
+                "execution_class": _classify_execution(run),
                 "exit_code": run.get("exit_code"),
                 "stdout": run.get("stdout", ""),
                 "stderr": run.get("stderr", ""),
@@ -147,14 +178,19 @@ def run_c_batch(source: str, inputs: list[str]) -> dict[str, Any]:
                 "run_seconds": run.get("seconds"),
             })
 
+    summary = _summarize_results(results)
+    has_issues = any(
+        item["execution_class"] != "program_success"
+        for item in results
+    )
+
     return {
         "status": (
-            "completed"
-            if all(item["status"] == "completed" for item in results)
-            else "completed_with_inconclusive_cases"
+            "completed_with_execution_issues" if has_issues else "completed"
         ),
         "compile_seconds": compile_result["seconds"],
         "compiled_once": True,
         "executed": len(results),
+        "summary": summary,
         "results": results,
     }
