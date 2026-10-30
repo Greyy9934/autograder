@@ -10,13 +10,15 @@ from typing import Any
 
 from app.runner import (
     COMPILE_TIMEOUT_SECONDS,
+    COMPILE_MEMORY_LIMIT_BYTES,
+    MAX_PROCESSES,
+    MAX_OPEN_FILES,
     MEMORY_LIMIT_BYTES,
     OUTPUT_LIMIT_BYTES,
     PROJECT_ROOT,
     RUN_TIMEOUT_SECONDS,
     _normalize_result,
     _run_bounded,
-    _set_compile_limits,
 )
 
 
@@ -45,22 +47,42 @@ def _compile_and_run(
         source_path.write_text(source, encoding="utf-8")
         input_path.write_text(stdin, encoding="utf-8")
 
+        compile_command = [
+            "/usr/bin/bwrap",
+            "--unshare-all",
+            "--die-with-parent",
+            "--ro-bind", "/usr", "/usr",
+            "--ro-bind", "/lib", "/lib",
+            "--ro-bind", "/lib64", "/lib64",
+            "--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache",
+            "--proc", "/proc",
+            "--dev", "/dev",
+            "--tmpfs", "/tmp",
+            "--bind", str(work), "/work",
+            "--chdir", "/work",
+            "/usr/bin/prlimit",
+            f"--cpu={COMPILE_TIMEOUT_SECONDS}:{COMPILE_TIMEOUT_SECONDS + 1}",
+            f"--as={COMPILE_MEMORY_LIMIT_BYTES}:{COMPILE_MEMORY_LIMIT_BYTES}",
+            f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
+            f"--nproc={MAX_PROCESSES}:{MAX_PROCESSES}",
+            f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
+            "--",
+            "/usr/bin/gcc",
+            "-std=c17",
+            "-Wall",
+            "-Wextra",
+            "-g",
+            *compiler_flags,
+            "/work/submission.c",
+            "-o",
+            "/work/submission",
+        ]
+
         compile_result = _run_bounded(
-            [
-                "/usr/bin/gcc",
-                "-std=c17",
-                "-Wall",
-                "-Wextra",
-                "-g",
-                *compiler_flags,
-                str(source_path),
-                "-o",
-                str(executable_path),
-            ],
+            compile_command,
             stdin_file=subprocess.DEVNULL,
             timeout_seconds=COMPILE_TIMEOUT_SECONDS,
-            cwd=work,
-            preexec_fn=_set_compile_limits,
+            cwd=PROJECT_ROOT,
         )
 
         if compile_result["status"] != "completed" or compile_result.get("exit_code") != 0:

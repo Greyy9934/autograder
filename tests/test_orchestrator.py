@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from app.orchestrator import evaluate_submission
+from app.orchestrator import evaluate_submission, evaluate_execution_evidence
 from app.ai.mock_provider import MockAIProvider
 
 
@@ -237,9 +237,15 @@ class OrchestratorTests(unittest.TestCase):
             provider=provider,
         )
 
-        self.assertEqual(result["test_evaluation"]["passed"], 1)
-        self.assertEqual(result["test_evaluation"]["failed"], 0)
+        self.assertIsNone(result["test_evaluation"])
         self.assertFalse(result["correctness_assessed"])
+        evaluated = evaluate_execution_evidence(
+            '#include <stdio.h>\nint main(void){int n;if(scanf("%d",&n)!=1)return 1;printf("%d\\n",n);}',
+            result,
+            [{"input": "7\n", "expected_output": "7\n"}],
+        )
+        self.assertEqual(evaluated["test_evaluation"]["passed"], 1)
+        self.assertEqual(evaluated["test_evaluation"]["failed"], 0)
 
     @patch("app.orchestrator.preflight")
     def test_failing_test_case_is_reported(self, mock_preflight):
@@ -255,9 +261,15 @@ class OrchestratorTests(unittest.TestCase):
             provider=provider,
         )
 
-        self.assertEqual(result["test_evaluation"]["failed"], 1)
-        self.assertFalse(result["test_evaluation"]["results"][0]["passed"])
-        self.assertFalse(result["correctness_assessed"])
+        self.assertIsNone(result["test_evaluation"])
+        evaluated = evaluate_execution_evidence(
+            '#include <stdio.h>\nint main(void){puts("wrong");}',
+            result,
+            [{"input": "", "expected_output": "right\n"}],
+        )
+        self.assertEqual(evaluated["test_evaluation"]["failed"], 1)
+        self.assertFalse(evaluated["test_evaluation"]["results"][0]["passed"])
+        self.assertFalse(evaluated["correctness_assessed"])
 
 
     @patch("app.orchestrator.generate_reference_solutions")
@@ -325,10 +337,15 @@ class OrchestratorTests(unittest.TestCase):
         }
         provider = MockAIProvider(reconstruction([candidate("A", "Print the sum.")]))
 
-        result = evaluate_submission(
+        prepared = evaluate_submission(
             "int main(void){return 0;}",
             test_cases=[{"input": "", "expected_output": "0\n"}],
             provider=provider,
+        )
+        result = evaluate_execution_evidence(
+            "int main(void){return 0;}",
+            prepared,
+            [{"input": "", "expected_output": "0\n"}],
         )
 
         self.assertFalse(
@@ -361,10 +378,15 @@ class OrchestratorTests(unittest.TestCase):
         }
         provider = MockAIProvider(reconstruction([candidate("A", "Print the sum.")]))
 
-        result = evaluate_submission(
+        prepared = evaluate_submission(
             "int main(void){return 0;}",
             test_cases=[{"input": "", "expected_output": "0\n"}],
             provider=provider,
+        )
+        result = evaluate_execution_evidence(
+            "int main(void){return 0;}",
+            prepared,
+            [{"input": "", "expected_output": "0\n"}],
         )
 
         self.assertTrue(
@@ -479,12 +501,19 @@ class OrchestratorTests(unittest.TestCase):
         provider = MockAIProvider(
             reconstruction([candidate("A", "Print the sum.")])
         )
-        result = evaluate_submission(
+        prepared = evaluate_submission(
             "int main(void) { return 0; }",
             provider=provider,
             run_memory_diagnostics=True,
         )
+        self.assertIsNone(prepared["memory_safety"])
+        mock_memory.assert_not_called()
 
+        result = evaluate_execution_evidence(
+            "int main(void) { return 0; }",
+            prepared,
+            run_memory_diagnostics=True,
+        )
         self.assertEqual(result["memory_safety"]["status"], "completed")
         mock_memory.assert_called_once_with("int main(void) { return 0; }")
 
@@ -505,6 +534,43 @@ class OrchestratorTests(unittest.TestCase):
 
         self.assertIsNone(result["memory_safety"])
         mock_memory.assert_not_called()
+
+    @patch("app.orchestrator.analyze_test_cases")
+    def test_execution_rejects_mismatched_source(self, mock_tests):
+        prepared = {
+            "status": "reconstruction_ready",
+            "source_sha256": "incorrect-hash",
+            "preflight": {"decision": "continue"},
+        }
+
+        result = evaluate_execution_evidence(
+            "int main(void) { return 0; }",
+            prepared,
+            [{"input": "", "expected_output": ""}],
+        )
+
+        self.assertEqual(result["execution_status"], "not_run")
+        self.assertIn("does not match", result["execution_reason"])
+        mock_tests.assert_not_called()
+
+    @patch("app.orchestrator.analyze_test_cases")
+    def test_execution_rejects_missing_source_hash(self, mock_tests):
+        prepared = {
+            "status": "reconstruction_ready",
+            "preflight": {"decision": "continue"},
+        }
+
+        result = evaluate_execution_evidence(
+            "int main(void) { return 0; }",
+            prepared,
+            [{"input": "", "expected_output": ""}],
+        )
+
+        self.assertEqual(result["execution_status"], "not_run")
+        self.assertIn("does not match", result["execution_reason"])
+        mock_tests.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -1,5 +1,6 @@
 """Application-level coordination for AutoGrader."""
 
+import hashlib
 from typing import Any
 
 from analyzers.preflight import preflight
@@ -35,6 +36,80 @@ def _attach_grading(result: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+
+
+def evaluate_execution_evidence(
+    source: str,
+    prepared_result: dict[str, Any],
+    test_cases: list[dict[str, Any]] | None = None,
+    *,
+    run_memory_diagnostics: bool = False,
+) -> dict[str, Any]:
+    """Run execution-dependent checks after preparation is complete."""
+    import copy
+
+    result = copy.deepcopy(prepared_result)
+
+    expected_hash = result.get("source_sha256")
+    actual_hash = hashlib.sha256(source.encode("utf-8")).hexdigest()
+
+    if not expected_hash or expected_hash != actual_hash:
+        result["execution_status"] = "not_run"
+        result["execution_reason"] = (
+            "Prepared result does not match the submitted source."
+        )
+        return _attach_grading(result)
+
+    result["test_evaluation"] = None
+    result["memory_safety"] = None
+    result["reference_validation"] = None
+
+    if result.get("status") != "reconstruction_ready":
+        result["execution_status"] = "not_run"
+        result["execution_reason"] = (
+            "Problem preparation is incomplete or requires clarification."
+        )
+        return _attach_grading(result)
+
+    if result.get("preflight", {}).get("decision") != "continue":
+        result["execution_status"] = "not_run"
+        result["execution_reason"] = "Source validation did not pass."
+        return _attach_grading(result)
+
+    if test_cases is not None:
+        result["test_evaluation"] = analyze_test_cases(source, test_cases)
+
+    if run_memory_diagnostics:
+        result["memory_safety"] = analyze_memory_safety(source)
+
+    references = result.get("reference_solutions") or {}
+    if (
+        references.get("status") == "generated_unverified"
+        and isinstance(test_cases, list)
+        and test_cases
+    ):
+        brute = references.get("brute_force", {})
+        efficient = references.get("efficient", {})
+        validation = validate_reference_pair(
+            brute.get("code", ""),
+            efficient.get("code", ""),
+            test_cases,
+        )
+        result["reference_validation"] = validation
+        references["validation"] = {
+            **references.get("validation", {}),
+            "supplied_cases_checked": True,
+            "compiled_and_passed_supplied_cases": (
+                validation["brute_force"]["passed"]
+                and validation["efficient"]["passed"]
+            ),
+            "differentially_tested": bool(validation["comparisons"])
+            and all(item["outputs_agree"] for item in validation["comparisons"]),
+        }
+
+    result["execution_status"] = "completed"
+    return _attach_grading(result)
+
 def evaluate_submission(
     source: str,
     problem_statement: str | None = None,
@@ -60,6 +135,7 @@ def evaluate_submission(
 
     result: dict[str, Any] = {
         "status": "preflight_blocked",
+        "source_sha256": hashlib.sha256(source.encode("utf-8")).hexdigest(),
         "grading": None,
         "metric_scores": {},
         "preflight": preflight_result,
@@ -77,18 +153,12 @@ def evaluate_submission(
         "message": None,
     }
 
-    if run_memory_diagnostics and preflight_result.get("decision") == "continue":
-        result["memory_safety"] = analyze_memory_safety(source)
-
     if preflight_result.get("decision") != "continue":
         result["message"] = (
             "Preflight did not allow further analysis. "
             "Correctness has not been assessed."
         )
         return _attach_grading(result)
-
-    if test_cases is not None:
-        result["test_evaluation"] = analyze_test_cases(source, test_cases)
 
     if provider is None:
         try:
@@ -176,33 +246,6 @@ def evaluate_submission(
                         provider,
                     )
 
-                if (
-                    references.get("status") == "generated_unverified"
-                    and isinstance(test_cases, list)
-                    and test_cases
-                ):
-                    brute = references.get("brute_force", {})
-                    efficient = references.get("efficient", {})
-                    result["reference_validation"] = validate_reference_pair(
-                        brute.get("code", ""),
-                        efficient.get("code", ""),
-                        test_cases,
-                    )
-                    references["validation"] = {
-                        **references.get("validation", {}),
-                        "supplied_cases_checked": True,
-                        "compiled_and_passed_supplied_cases": (
-                            result["reference_validation"]["brute_force"]["passed"]
-                            and result["reference_validation"]["efficient"]["passed"]
-                        ),
-                        "differentially_tested": bool(
-                            result["reference_validation"]["comparisons"]
-                        )
-                        and all(
-                            item["outputs_agree"]
-                            for item in result["reference_validation"]["comparisons"]
-                        ),
-                    }
         result["status"] = "reconstruction_ready"
         result["message"] = (
             "Problem reconstruction completed. Correctness still requires "

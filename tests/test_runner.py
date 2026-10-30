@@ -82,5 +82,59 @@ int main(void) {
         self.assertFalse(leftovers, f"Possible leftover processes: {leftovers}")
 
 
+    def test_tmp_directory_is_isolated(self):
+        from pathlib import Path
+
+        host_file = Path("/tmp/autograder_isolation_probe")
+        host_file.unlink(missing_ok=True)
+
+        source = r"""
+#include <stdio.h>
+int main(void) {
+    FILE *f = fopen("/tmp/autograder_isolation_probe", "w");
+    if (!f) return 2;
+    fputs("sandbox", f);
+    fclose(f);
+    return 0;
+}
+"""
+        try:
+            result = run_c_program(source)
+            self.assertEqual(result["status"], "completed")
+            self.assertEqual(result["exit_code"], 0)
+            self.assertFalse(host_file.exists())
+        finally:
+            host_file.unlink(missing_ok=True)
+
+
+    def test_network_namespace_has_no_default_route(self):
+        source = r"""
+#include <stdio.h>
+#include <string.h>
+int main(void) {
+    FILE *f = fopen("/proc/net/route", "r");
+    if (!f) return 2;
+
+    char line[256];
+    fgets(line, sizeof(line), f);
+
+    while (fgets(line, sizeof(line), f)) {
+        char destination[32];
+        if (sscanf(line, "%*s %31s", destination) == 1 &&
+            strcmp(destination, "00000000") == 0) {
+            fclose(f);
+            return 1;
+        }
+    }
+
+    fclose(f);
+    return 0;
+}
+"""
+        result = run_c_program(source)
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["exit_code"], 0, result.get("stderr", ""))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -53,3 +53,33 @@ def test_valgrind_unavailable_is_reported():
         result = run_valgrind("int main(void){return 0;}")
 
     assert result["status"] == "unavailable"
+
+
+def test_memory_diagnostic_compilation_uses_bubblewrap(tmp_path):
+    from analyzers.memory_safety import _compile_and_run
+
+    captured = {}
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        return {
+            "status": "completed",
+            "exit_code": 1,
+            "stderr": "intentional compile failure",
+            "stdout": "",
+        }
+
+    with patch("analyzers.memory_safety._run_bounded", side_effect=fake_run):
+        result = _compile_and_run(
+            "int main(void){return 0;}",
+            "",
+            ["-fsanitize=address"],
+            ["/work/submission"],
+        )
+
+    command = captured["command"]
+    assert command[0] == "/usr/bin/bwrap"
+    assert "/usr/bin/gcc" in command
+    assert "/work/submission.c" in command
+    assert "/work/submission" in command
+    assert result["status"] == "compile_error"
