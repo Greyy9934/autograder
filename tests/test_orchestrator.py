@@ -10,6 +10,8 @@ def candidate(identifier, statement):
         "id": identifier,
         "title": identifier,
         "problem_statement": statement,
+        "input_format": "Two integers separated by whitespace.",
+        "output_format": "Print the result followed by a newline.",
         "evidence": ["Source evidence"],
         "assumptions": [],
         "confidence": 0.7,
@@ -51,11 +53,13 @@ class OrchestratorTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "reconstruction_ready")
         self.assertFalse(result["correctness_assessed"])
-        self.assertIsNone(result["assignment_spec"])
+        self.assertIsNotNone(result["assignment_spec"])
+        self.assertFalse(result["assignment_spec"]["confirmed"])
         self.assertEqual(
             result["assignment_spec_status"],
-            "draft_requires_format_confirmation",
+            "draft_requires_instructor_confirmation",
         )
+        self.assertTrue(result["assignment_spec_fingerprint"])
 
     @patch("app.orchestrator.preflight")
     def test_multiple_candidates_require_clarification(self, mock_preflight):
@@ -277,33 +281,26 @@ class OrchestratorTests(unittest.TestCase):
         self.assertFalse(evaluated["correctness_assessed"])
 
 
-    @patch("app.orchestrator.generate_reference_solutions")
     @patch("app.orchestrator.preflight")
-    def test_single_candidate_generates_untrusted_references(
-        self, mock_preflight, mock_generate
+    def test_single_candidate_does_not_generate_references_before_approval(
+        self, mock_preflight
     ):
         mock_preflight.return_value = {"decision": "continue", "status": "completed"}
-        mock_generate.return_value = {
-            "status": "generated_unverified",
-            "references_trusted": False,
-        }
         provider = MockAIProvider(reconstruction([candidate("A", "Print the sum.")]))
 
         result = evaluate_submission(
             "int main(void) { return 0; }", provider=provider
         )
 
+        self.assertIsNone(result["reference_solutions"])
         self.assertEqual(
-            result["reference_solutions"]["status"], "generated_unverified"
+            result["assignment_spec_status"],
+            "draft_requires_instructor_confirmation",
         )
-        self.assertFalse(result["reference_solutions"]["references_trusted"])
-        mock_generate.assert_called_once()
-        self.assertIs(mock_generate.call_args.args[1], provider)
 
-    @patch("app.orchestrator.generate_reference_solutions")
     @patch("app.orchestrator.preflight")
     def test_multiple_candidates_skip_reference_generation(
-        self, mock_preflight, mock_generate
+        self, mock_preflight
     ):
         mock_preflight.return_value = {"decision": "continue", "status": "completed"}
         provider = MockAIProvider(reconstruction([
@@ -317,16 +314,14 @@ class OrchestratorTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "needs_clarification")
         self.assertIsNone(result["reference_solutions"])
-        mock_generate.assert_not_called()
 
     @patch("app.orchestrator.validate_reference_pair")
-    @patch("app.orchestrator.generate_reference_solutions")
     @patch("app.orchestrator.preflight")
     def test_reference_validation_failure_is_reported(
-        self, mock_preflight, mock_generate, mock_validate
+        self, mock_preflight, mock_validate
     ):
         mock_preflight.return_value = {"decision": "continue", "status": "completed"}
-        mock_generate.return_value = {
+        references = {
             "status": "generated_unverified",
             "references_trusted": False,
             "brute_force": {"code": "int main(void){return 0;}"},
@@ -347,6 +342,7 @@ class OrchestratorTests(unittest.TestCase):
             test_cases=[{"input": "", "expected_output": "0\n"}],
             provider=provider,
         )
+        prepared["reference_solutions"] = references
         result = evaluate_execution_evidence(
             "int main(void){return 0;}",
             prepared,
@@ -361,13 +357,12 @@ class OrchestratorTests(unittest.TestCase):
         self.assertFalse(result["reference_solutions"]["references_trusted"])
 
     @patch("app.orchestrator.validate_reference_pair")
-    @patch("app.orchestrator.generate_reference_solutions")
     @patch("app.orchestrator.preflight")
     def test_reference_validation_does_not_claim_trust(
-        self, mock_preflight, mock_generate, mock_validate
+        self, mock_preflight, mock_validate
     ):
         mock_preflight.return_value = {"decision": "continue", "status": "completed"}
-        mock_generate.return_value = {
+        references = {
             "status": "generated_unverified",
             "references_trusted": False,
             "brute_force": {"code": "int main(void){return 0;}"},
@@ -388,6 +383,7 @@ class OrchestratorTests(unittest.TestCase):
             test_cases=[{"input": "", "expected_output": "0\n"}],
             provider=provider,
         )
+        prepared["reference_solutions"] = references
         result = evaluate_execution_evidence(
             "int main(void){return 0;}",
             prepared,
@@ -406,13 +402,12 @@ class OrchestratorTests(unittest.TestCase):
         self.assertFalse(result["correctness_assessed"])
 
     @patch("app.orchestrator.verify_algorithm")
-    @patch("app.orchestrator.generate_reference_solutions")
     @patch("app.orchestrator.preflight")
     def test_mathematical_verification_runs_after_execution_on_student_source(
-        self, mock_preflight, mock_generate, mock_verify
+        self, mock_preflight, mock_verify
     ):
         mock_preflight.return_value = {"decision": "continue", "status": "completed"}
-        mock_generate.return_value = {
+        references = {
             "status": "generated_unverified",
             "references_trusted": False,
             "brute_force": {"code": "int main(void){return 0;}"},
@@ -443,13 +438,12 @@ class OrchestratorTests(unittest.TestCase):
         mock_verify.assert_called_once()
 
     @patch("app.orchestrator.verify_algorithm")
-    @patch("app.orchestrator.generate_reference_solutions")
     @patch("app.orchestrator.preflight")
     def test_mathematical_verification_skips_without_provider(
-        self, mock_preflight, mock_generate, mock_verify
+        self, mock_preflight, mock_verify
     ):
         mock_preflight.return_value = {"decision": "continue", "status": "completed"}
-        mock_generate.return_value = {
+        references = {
             "status": "generated_unverified",
             "references_trusted": False,
         }
@@ -462,26 +456,6 @@ class OrchestratorTests(unittest.TestCase):
         self.assertIsNone(result["mathematical_verification"])
         mock_verify.assert_not_called()
 
-
-    @patch("app.orchestrator.verify_algorithm")
-    @patch("app.orchestrator.generate_reference_solutions")
-    @patch("app.orchestrator.preflight")
-    def test_provider_reference_failure_skips_mathematical_verification(
-        self, mock_preflight, mock_generate, mock_verify
-    ):
-        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
-        mock_generate.return_value = {
-            "status": "provider_error",
-            "references_trusted": False,
-        }
-        provider = MockAIProvider(reconstruction([candidate("A", "Print the sum.")]))
-
-        result = evaluate_submission(
-            "int main(void){return 0;}", provider=provider
-        )
-
-        self.assertIsNone(result["mathematical_verification"])
-        mock_verify.assert_not_called()
 
     @patch("app.orchestrator.preflight")
     def test_complexity_estimate_is_returned_when_preflight_passes(
