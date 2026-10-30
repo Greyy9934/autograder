@@ -45,6 +45,7 @@ def evaluate_execution_evidence(
     *,
     run_memory_diagnostics: bool = False,
     provider: Any = None,
+    adversarial_plan: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run execution-dependent checks after preparation is complete."""
     import copy
@@ -64,6 +65,7 @@ def evaluate_execution_evidence(
     result["test_evaluation"] = None
     result["memory_safety"] = None
     result["reference_validation"] = None
+    result["adversarial_execution"] = None
 
     if result.get("status") != "reconstruction_ready":
         result["execution_status"] = "not_run"
@@ -79,6 +81,13 @@ def evaluate_execution_evidence(
 
     if test_cases is not None:
         result["test_evaluation"] = analyze_test_cases(source, test_cases)
+
+    if adversarial_plan is not None:
+        from analyzers.adversarial_execution import execute_adversarial_candidates
+
+        result["adversarial_execution"] = execute_adversarial_candidates(
+            source, adversarial_plan
+        )
 
     if run_memory_diagnostics:
         result["memory_safety"] = analyze_memory_safety(source)
