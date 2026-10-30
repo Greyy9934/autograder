@@ -44,6 +44,7 @@ def evaluate_execution_evidence(
     test_cases: list[dict[str, Any]] | None = None,
     *,
     run_memory_diagnostics: bool = False,
+    provider: Any = None,
 ) -> dict[str, Any]:
     """Run execution-dependent checks after preparation is complete."""
     import copy
@@ -106,6 +107,26 @@ def evaluate_execution_evidence(
             "differentially_tested": bool(validation["comparisons"])
             and all(item["outputs_agree"] for item in validation["comparisons"]),
         }
+
+    # Agent 5: review the student's algorithm only after execution evidence.
+    reconstruction = result.get("reconstruction") or {}
+    candidates = reconstruction.get("candidates", [])
+
+    if provider is not None and len(candidates) == 1:
+        selected_problem = dict(candidates[0])
+        selected_problem["constraints"] = reconstruction.get("constraints", [])
+
+        result["mathematical_verification"] = verify_algorithm(
+            selected_problem,
+            {
+                "code": source,
+                "algorithm": (
+                    "Infer the algorithm directly from the student's C source. "
+                    "Do not assume an externally supplied algorithm description."
+                ),
+            },
+            provider,
+        )
 
     result["execution_status"] = "completed"
     return _attach_grading(result)
@@ -239,12 +260,6 @@ def evaluate_submission(
                 references = generate_reference_solutions(selected_problem, provider)
                 result["reference_solutions"] = references
 
-                if references.get("status") == "generated_unverified":
-                    result["mathematical_verification"] = verify_algorithm(
-                        selected_problem,
-                        references.get("efficient", {}),
-                        provider,
-                    )
 
         result["status"] = "reconstruction_ready"
         result["message"] = (

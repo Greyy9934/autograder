@@ -403,7 +403,7 @@ class OrchestratorTests(unittest.TestCase):
     @patch("app.orchestrator.verify_algorithm")
     @patch("app.orchestrator.generate_reference_solutions")
     @patch("app.orchestrator.preflight")
-    def test_generated_references_trigger_mathematical_verification(
+    def test_mathematical_verification_runs_after_execution_on_student_source(
         self, mock_preflight, mock_generate, mock_verify
     ):
         mock_preflight.return_value = {"decision": "continue", "status": "completed"}
@@ -421,19 +421,42 @@ class OrchestratorTests(unittest.TestCase):
             "status": "proof_sketch",
             "formally_verified": False,
         }
+        source = "int main(void) { return 42; }"
         provider = MockAIProvider(reconstruction([candidate("A", "Print the sum.")]))
 
-        result = evaluate_submission(
-            "int main(void){return 0;}", provider=provider
+        prepared = evaluate_submission(source, provider=provider)
+        self.assertIsNone(prepared["mathematical_verification"])
+        mock_verify.assert_not_called()
+
+        result = evaluate_execution_evidence(
+            source, prepared, provider=provider
         )
 
-        self.assertEqual(
-            result["mathematical_verification"]["status"], "proof_sketch"
-        )
-        self.assertFalse(
-            result["mathematical_verification"]["formally_verified"]
-        )
+        self.assertEqual(result["mathematical_verification"]["status"], "proof_sketch")
+        self.assertFalse(result["mathematical_verification"]["formally_verified"])
+        self.assertEqual(mock_verify.call_args.args[1]["code"], source)
         mock_verify.assert_called_once()
+
+    @patch("app.orchestrator.verify_algorithm")
+    @patch("app.orchestrator.generate_reference_solutions")
+    @patch("app.orchestrator.preflight")
+    def test_mathematical_verification_skips_without_provider(
+        self, mock_preflight, mock_generate, mock_verify
+    ):
+        mock_preflight.return_value = {"decision": "continue", "status": "completed"}
+        mock_generate.return_value = {
+            "status": "generated_unverified",
+            "references_trusted": False,
+        }
+        provider = MockAIProvider(reconstruction([candidate("A", "Print the sum.")]))
+        source = "int main(void) { return 0; }"
+
+        prepared = evaluate_submission(source, provider=provider)
+        result = evaluate_execution_evidence(source, prepared)
+
+        self.assertIsNone(result["mathematical_verification"])
+        mock_verify.assert_not_called()
+
 
     @patch("app.orchestrator.verify_algorithm")
     @patch("app.orchestrator.generate_reference_solutions")
