@@ -6,6 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from app.ai.base import AIProviderError
+from app.ai.budget import BudgetedProvider, create_request_budget
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -28,7 +29,12 @@ def create_ai_provider():
 
     from app.ai.gemini_provider import GeminiProvider
 
-    return GeminiProvider(
+    provider = GeminiProvider(
         api_key=api_key,
         model=os.getenv("GEMINI_MODEL") or None,
+    )
+    return BudgetedProvider(
+        provider,
+        create_request_budget(),
+        credits_per_call=3,
     )

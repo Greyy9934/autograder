@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 from app.ai.config import create_ai_provider
+from app.ai.budget import BudgetedProvider
 
 
 class AIConfigTests(unittest.TestCase):
@@ -38,9 +39,11 @@ class AIConfigTests(unittest.TestCase):
             ),
         ):
             provider = create_ai_provider()
-            self.assertEqual(type(provider).__name__, "GeminiProvider")
-            self.assertEqual(provider.model, "test-model")
-            self.assertEqual(provider.api_key, "test-key")
+            self.assertIsInstance(provider, BudgetedProvider)
+            self.assertEqual(type(provider.provider).__name__, "GeminiProvider")
+            self.assertEqual(provider.provider.model, "test-model")
+            self.assertEqual(provider.provider.api_key, "test-key")
+            self.assertEqual(provider.credits_per_call, 3)
 
 
 if __name__ == "__main__":
