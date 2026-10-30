@@ -18,8 +18,8 @@ class FakeResponse:
     def __exit__(self, *args):
         return False
 
-    def read(self):
-        return self.data
+    def read(self, size=-1):
+        return self.data if size < 0 else self.data[:size]
 
 
 class FakeOpener:
@@ -158,3 +158,52 @@ def test_rejects_insecure_endpoint():
 def test_rejects_more_than_two_retries():
     with pytest.raises(ValueError, match="max_retries"):
         DeepSeekProvider("test-key", max_retries=3)
+
+
+def test_rejects_response_that_does_not_match_schema():
+    provider = DeepSeekProvider(
+        "test-key",
+        opener=FakeOpener([response('{"status":123}')]),
+    )
+
+    with pytest.raises(AIProviderError) as caught:
+        provider.generate_json(
+            "task",
+            {},
+            {
+                "type": "object",
+                "properties": {"status": {"type": "string"}},
+                "required": ["status"],
+            },
+        )
+
+    assert caught.value.category == "schema_validation_error"
+
+
+def test_rejects_oversized_response():
+    provider = DeepSeekProvider(
+        "test-key",
+        max_response_bytes=20,
+        opener=FakeOpener([FakeResponse(b"x" * 21)]),
+    )
+
+    with pytest.raises(AIProviderError) as caught:
+        provider.generate_json("task", {}, {"type": "object"})
+
+    assert caught.value.category == "response_too_large"
+
+
+def test_rejects_invalid_schema_before_network_call():
+    opener = FakeOpener([])
+    provider = DeepSeekProvider("test-key", opener=opener)
+
+    with pytest.raises(AIProviderError) as caught:
+        provider.generate_json("task", {}, {"type": "not-a-json-schema-type"})
+
+    assert caught.value.category == "invalid_request"
+    assert opener.calls == []
+
+
+def test_rejects_non_positive_response_limit():
+    with pytest.raises(ValueError, match="max_response_bytes"):
+        DeepSeekProvider("test-key", max_response_bytes=0)

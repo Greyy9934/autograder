@@ -8,6 +8,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from app.ai.base import AIProviderError
+from jsonschema import Draft202012Validator, SchemaError, ValidationError
 
 
 class DeepSeekProvider:
@@ -21,6 +22,7 @@ class DeepSeekProvider:
         max_retries: int = 2,
         opener=urlopen,
         sleep=time.sleep,
+        max_response_bytes: int = 1048576,
     ):
         if not api_key.strip():
             raise ValueError("DeepSeek API key must not be empty.")
@@ -31,6 +33,12 @@ class DeepSeekProvider:
         if not 0 <= max_retries <= 2:
             raise ValueError("max_retries must be between 0 and 2.")
 
+        if isinstance(max_response_bytes, bool) or not isinstance(max_response_bytes, int) or max_response_bytes < 1:
+            raise ValueError("max_response_bytes must be a positive integer.")
+        if timeout <= 0:
+            raise ValueError("timeout must be positive.")
+
+        self.max_response_bytes = max_response_bytes
         self.api_key = api_key
         self.model = model
         self.endpoint = endpoint
@@ -52,6 +60,14 @@ class DeepSeekProvider:
                 "Payload and schema must be JSON objects.",
                 category="invalid_request",
             )
+
+        try:
+            Draft202012Validator.check_schema(schema)
+        except SchemaError as exc:
+            raise AIProviderError(
+                "The supplied JSON Schema is invalid.",
+                category="invalid_request",
+            ) from exc
 
         system_message = (
             "You are a component of an automated C programming evaluator. "
@@ -89,8 +105,21 @@ class DeepSeekProvider:
         for attempt in range(self.max_retries + 1):
             try:
                 with self.opener(request, timeout=self.timeout) as response:
-                    raw = response.read()
-                return self._parse_response(raw)
+                    raw = response.read(self.max_response_bytes + 1)
+                if len(raw) > self.max_response_bytes:
+                    raise AIProviderError(
+                        "DeepSeek response exceeded the configured size limit.",
+                        category="response_too_large",
+                    )
+                result = self._parse_response(raw)
+                errors = list(Draft202012Validator(schema).iter_errors(result))
+                if errors:
+                    first_error = errors[0]
+                    raise AIProviderError(
+                        f"DeepSeek response does not match the requested schema: {first_error.message}",
+                        category="schema_validation_error",
+                    )
+                return result
 
             except HTTPError as exc:
                 status = exc.code
