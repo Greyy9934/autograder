@@ -2,7 +2,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from analyzers.batch_execution import run_c_batch
+from analyzers.batch_execution import (
+    run_c_batch,
+    _classify_execution,
+    _summarize_results,
+)
 
 
 class BatchExecutionTests(unittest.TestCase):
@@ -67,6 +71,58 @@ class BatchExecutionTests(unittest.TestCase):
         self.assertEqual(
             run_c_batch("int main(void){return 0;}", [None])["status"],
             "invalid_request",
+        )
+
+
+    def test_execution_categories(self):
+        cases = [
+            ({"status": "completed", "exit_code": 0}, "program_success"),
+            ({"status": "completed", "exit_code": 1}, "runtime_error"),
+            ({"status": "terminated_by_signal"}, "runtime_crash"),
+            ({"status": "timeout"}, "time_limit_exceeded"),
+            ({"status": "output_limit"}, "output_limit_exceeded"),
+            (
+                {"status": "resource_limit_or_forced_kill"},
+                "resource_limit_exceeded",
+            ),
+            ({"status": "launch_error"}, "infrastructure_error"),
+            ({"status": "unexpected"}, "execution_unknown"),
+        ]
+
+        for run, expected in cases:
+            with self.subTest(run=run):
+                self.assertEqual(_classify_execution(run), expected)
+
+    def test_batch_summary_counts_each_category(self):
+        results = [
+            {"execution_class": "program_success"},
+            {"execution_class": "program_success"},
+            {"execution_class": "runtime_error"},
+            {"execution_class": "time_limit_exceeded"},
+            {"execution_class": "infrastructure_error"},
+        ]
+
+        summary = _summarize_results(results)
+
+        self.assertEqual(summary["program_success"], 2)
+        self.assertEqual(summary["runtime_error"], 1)
+        self.assertEqual(summary["time_limit_exceeded"], 1)
+        self.assertEqual(summary["infrastructure_error"], 1)
+        self.assertEqual(summary["runtime_crash"], 0)
+
+    def test_infrastructure_failure_is_not_program_success(self):
+        self.assertNotEqual(
+            _classify_execution({"status": "launch_error"}),
+            "program_success",
+        )
+
+    def test_nonzero_exit_is_runtime_error(self):
+        self.assertEqual(
+            _classify_execution({
+                "status": "completed",
+                "exit_code": 7,
+            }),
+            "runtime_error",
         )
 
 
