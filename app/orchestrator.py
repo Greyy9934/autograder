@@ -47,6 +47,7 @@ def evaluate_execution_evidence(
     provider: Any = None,
     adversarial_plan: dict[str, Any] | None = None,
     random_test_inputs: list[str] | None = None,
+    generated_test_plans: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run execution-dependent checks after preparation is complete."""
     import copy
@@ -68,6 +69,47 @@ def evaluate_execution_evidence(
     result["reference_validation"] = None
     result["adversarial_execution"] = None
     result["random_test_execution"] = None
+
+    if generated_test_plans is not None:
+        if not isinstance(generated_test_plans, dict):
+            result["execution_status"] = "not_run"
+            result["execution_reason"] = "Generated test plans must be an object."
+            return _attach_grading(result)
+
+        generated_source_hash = generated_test_plans.get("source_sha256")
+        if generated_source_hash != actual_hash:
+            result["execution_status"] = "not_run"
+            result["execution_reason"] = "Generated test plans do not match submitted source."
+            return _attach_grading(result)
+
+        random_plan = generated_test_plans.get("random_tests")
+        adversarial_plan = generated_test_plans.get("adversarial_tests")
+
+        if (
+            not isinstance(random_plan, dict)
+            or random_plan.get("status") != "generated"
+            or not isinstance(adversarial_plan, dict)
+            or adversarial_plan.get("status") != "planned"
+        ):
+            result["execution_status"] = "not_run"
+            result["execution_reason"] = "Both generated test plans must be valid."
+            return _attach_grading(result)
+
+        fingerprint = generated_test_plans.get("spec_fingerprint")
+        if (
+            not fingerprint
+            or random_plan.get("spec_fingerprint") != fingerprint
+            or adversarial_plan.get("spec_fingerprint") != fingerprint
+        ):
+            result["execution_status"] = "not_run"
+            result["execution_reason"] = "Generated plans have inconsistent specification fingerprints."
+            return _attach_grading(result)
+
+        random_test_inputs = random_plan.get("inputs")
+        if not isinstance(random_test_inputs, list) or not random_test_inputs:
+            result["execution_status"] = "not_run"
+            result["execution_reason"] = "Random test plan contains no valid inputs."
+            return _attach_grading(result)
 
     if result.get("status") != "reconstruction_ready":
         result["execution_status"] = "not_run"
@@ -92,7 +134,7 @@ def evaluate_execution_evidence(
         )
 
     if random_test_inputs is not None:
-        from analyzers.adversarial_execution import execute_random_test_inputs
+        from analyzers.random_test_execution import execute_random_test_inputs
 
         result["random_test_execution"] = execute_random_test_inputs(
             source, random_test_inputs
@@ -251,8 +293,22 @@ def evaluate_submission(
         if reconstruction.get("status") == "ready" and len(candidates) == 1:
             selected_problem = dict(candidates[0])
             selected_problem["constraints"] = reconstruction.get("constraints", [])
-            result["assignment_spec"] = None
-            result["assignment_spec_status"] = "draft_requires_format_confirmation"
+            from analyzers.assignment_spec import AssignmentSpec
+
+            try:
+                draft = AssignmentSpec.create_draft(
+                    candidates[0],
+                    constraints=tuple(reconstruction.get("constraints", [])),
+                    input_format=candidates[0]["input_format"],
+                    output_format=candidates[0]["output_format"],
+                )
+                result["assignment_spec"] = draft.to_dict()
+                result["assignment_spec_fingerprint"] = draft.fingerprint()
+                result["assignment_spec_status"] = "draft_requires_instructor_confirmation"
+            except (KeyError, TypeError, ValueError) as exc:
+                result["assignment_spec"] = None
+                result["assignment_spec_status"] = "incomplete_draft"
+                result["assignment_spec_error"] = str(exc)
             result["edge_cases"] = analyze_edge_cases(selected_problem)
             if generate_edge_case_inputs:
                 if edge_case_input_bounds is None:
