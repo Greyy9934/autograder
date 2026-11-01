@@ -5,6 +5,8 @@ import hashlib
 import json
 from typing import Any
 
+from analyzers.structured_input_schema import StructuredIntegerInputSchema
+
 
 @dataclass(frozen=True)
 class AssignmentSpec:
@@ -14,6 +16,7 @@ class AssignmentSpec:
     constraints: tuple[str, ...]
     input_format: str
     output_format: str
+    input_schema: Any = None
     time_limit_seconds: float | None = None
     memory_limit_mb: int | None = None
     version: int = 1
@@ -36,6 +39,21 @@ class AssignmentSpec:
             for item in self.constraints
         ):
             raise ValueError("constraints must be a tuple of non-empty strings.")
+
+        if self.input_schema is not None:
+            try:
+                raw_schema = (
+                    json.loads(self.input_schema)
+                    if isinstance(self.input_schema, str)
+                    else self.input_schema
+                )
+                parsed_schema = StructuredIntegerInputSchema.from_dict(raw_schema)
+                canonical_schema = json.dumps(
+                    parsed_schema.to_dict(), sort_keys=True, separators=(",", ":")
+                )
+            except (TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise ValueError(f"input_schema is invalid: {exc}") from exc
+            object.__setattr__(self, "input_schema", canonical_schema)
 
         if self.time_limit_seconds is not None and (
             isinstance(self.time_limit_seconds, bool)
@@ -69,6 +87,7 @@ class AssignmentSpec:
             constraints=tuple(formats.pop("constraints", ())),
             input_format=formats.pop("input_format", ""),
             output_format=formats.pop("output_format", ""),
+            input_schema=formats.pop("input_schema", candidate.get("input_schema")),
             **formats,
             confirmed=False,
         )
@@ -77,13 +96,13 @@ class AssignmentSpec:
         if instructor_approved is not True:
             raise ValueError("Explicit instructor approval is required.")
 
-        values = asdict(self)
+        values = self.to_dict()
         values["confirmed"] = True
         return AssignmentSpec(**values)
 
     def canonical_json(self) -> str:
         return json.dumps(
-            asdict(self),
+            self.to_dict(),
             sort_keys=True,
             separators=(",", ":"),
         )
@@ -92,4 +111,7 @@ class AssignmentSpec:
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        values = asdict(self)
+        if values["input_schema"] is not None:
+            values["input_schema"] = json.loads(values["input_schema"])
+        return values

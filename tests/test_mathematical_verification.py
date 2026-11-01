@@ -19,10 +19,19 @@ ALGORITHM = {
 def response(outcome="proof_sketch", counterexample=None):
     return {
         "outcome": outcome,
-        "reasoning": "Inspect the initialization and every later comparison.",
-        "assumptions": ["The input is non-empty."],
+        "theorem": "The algorithm returns the maximum input value.",
+        "preconditions": ["The input contains at least one integer."],
+        "postconditions": ["The returned value is at least every input value."],
+        "assumptions": ["Input integers are represented without overflow."],
+        "proof_strategy": "Induction over the scanned prefix.",
+        "proof_steps": [{
+            "claim": "After processing index i, answer is the maximum of the prefix.",
+            "justification": "Initialization establishes the base case; each comparison preserves the maximum.",
+            "equation": "ans_i = max(ans_(i-1), a_i)",
+        }],
+        "conclusion": "The final answer is the maximum of the complete input.",
         "counterexample": counterexample,
-        "limitations": ["No execution or formal proof was performed."],
+        "limitations": ["The AI-generated argument is not mechanically checked."],
     }
 
 

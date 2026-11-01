@@ -106,3 +106,45 @@ def test_budget_storage_failure_blocks_provider_call(tmp_path):
         BudgetedProvider(provider, budget).generate_json("task", {}, {})
 
     assert provider.calls == 0
+
+
+def test_neon_budget_uses_shared_storage_without_local_sqlite(
+    monkeypatch, tmp_path
+):
+    import app.ui_storage as storage
+
+    calls = []
+    monkeypatch.setenv("NEON_DATABASE_URL", "postgresql://example/test")
+    monkeypatch.setenv("AI_DAILY_REQUEST_CREDITS", "7")
+    monkeypatch.setattr(
+        storage,
+        "reserve_ai_request_credits",
+        lambda credits, daily_limit: (calls.append((credits, daily_limit)) or 1),
+    )
+    token_totals = []
+    monkeypatch.setattr(
+        storage,
+        "record_ai_token_usage",
+        lambda *values: token_totals.append(values),
+    )
+
+    budget = RequestBudget(tmp_path / "local-budget.sqlite3", daily_limit=7)
+    assert budget.reserve() == 1
+    budget.record_usage({
+        "prompt_tokens": 12,
+        "completion_tokens": 8,
+        "total_tokens": 20,
+    })
+
+    assert calls == [(1, 7)]
+    assert token_totals == [(12, 8, 20)]
+    assert not (tmp_path / "local-budget.sqlite3").exists()
+
+
+def test_default_daily_budget_is_seven_provider_requests(monkeypatch, tmp_path):
+    from app.ai.budget import create_request_budget
+
+    monkeypatch.delenv("AI_DAILY_REQUEST_CREDITS", raising=False)
+    monkeypatch.setenv("AI_BUDGET_DB", str(tmp_path / "budget.sqlite3"))
+    budget = create_request_budget()
+    assert budget.daily_limit == 7

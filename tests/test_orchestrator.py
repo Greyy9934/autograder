@@ -3,6 +3,8 @@ from unittest.mock import patch
 
 from app.orchestrator import evaluate_submission, evaluate_execution_evidence
 from app.ai.mock_provider import MockAIProvider
+from app.ai.scenario_provider import ScenarioAIProvider
+from app.ai.mock_scenarios import get_scenario
 
 
 def candidate(identifier, statement):
@@ -29,6 +31,14 @@ def reconstruction(candidates, status="ready", questions=None):
 
 
 class OrchestratorTests(unittest.TestCase):
+    def setUp(self):
+        patcher = patch(
+            "app.orchestrator.compile_c_source",
+            return_value={"status": "compiled", "compile_exit_code": 0},
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     @patch("app.orchestrator.preflight")
     def test_blocked_preflight_does_not_call_provider(self, mock_preflight):
         mock_preflight.return_value = {"decision": "block", "status": "timeout"}
@@ -117,7 +127,7 @@ class OrchestratorTests(unittest.TestCase):
         )
 
         result = evaluate_submission(
-            "int main(void) { int x = a[2]; return 0; }",
+            "int main(void) { char b[8]; gets(b); return 0; }",
             provider=provider,
         )
 
@@ -133,7 +143,7 @@ class OrchestratorTests(unittest.TestCase):
         mock_preflight.return_value = {"decision": "block", "status": "timeout"}
 
         result = evaluate_submission(
-            "int main(void) { int a[2]; return a[3]; }"
+            "int main(void) { char b[8]; gets(b); return 0; }"
         )
 
         self.assertEqual(result["status"], "preflight_blocked")
@@ -515,9 +525,12 @@ class OrchestratorTests(unittest.TestCase):
             "int main(void) { return 0; }",
             prepared,
             run_memory_diagnostics=True,
+            memory_diagnostic_stdin="sample input\n",
         )
         self.assertEqual(result["memory_safety"]["status"], "completed")
-        mock_memory.assert_called_once_with("int main(void) { return 0; }")
+        mock_memory.assert_called_once_with(
+            "int main(void) { return 0; }", stdin="sample input\n"
+        )
 
     @patch("app.orchestrator.analyze_memory_safety")
     @patch("app.orchestrator.preflight")
@@ -576,3 +589,89 @@ class OrchestratorTests(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 
+
+
+class Agent4OrchestratorTests(unittest.TestCase):
+    def setUp(self):
+        import hashlib
+        self.source = (
+            "int main(void) {\n"
+            "    int n = 10;\n"
+            "    for (int i = 0; i < n; i++) {\n"
+            "        puts(\"x\");\n"
+            "    }\n"
+            "}\n"
+        )
+        self.prepared = {
+            "status": "reconstruction_ready",
+            "source_sha256": hashlib.sha256(self.source.encode("utf-8")).hexdigest(),
+            "preflight": {"decision": "continue"},
+            "reconstruction": {"candidates": [], "constraints": []},
+            "complexity_estimate": {
+                "status": "completed",
+                "loop_count": 1,
+                "max_loop_depth_estimate": 1,
+                "recursive_functions": [],
+                "dynamic_allocation_count": 0,
+            },
+        }
+
+    def test_agent4_runs_when_explicitly_enabled(self):
+        provider = ScenarioAIProvider([get_scenario("agent4", "linear_scan")])
+        result = evaluate_execution_evidence(
+            self.source, self.prepared, provider=provider,
+            run_complexity_analysis=True,
+        )
+        self.assertEqual(result["execution_status"], "completed")
+        self.assertEqual(result["complexity_analysis"]["analysis_type"], "ai_primary")
+        self.assertEqual(
+            result["complexity_reconciliation"]["analysis_type"],
+            "ai_primary_with_evidence_reconciliation",
+        )
+        self.assertEqual(
+            provider.calls[0]["payload"]["static_analysis_supporting_evidence"],
+            self.prepared["complexity_estimate"],
+        )
+
+    def test_agent4_does_not_run_by_default(self):
+        provider = ScenarioAIProvider([])
+        result = evaluate_execution_evidence(
+            self.source, self.prepared, provider=provider
+        )
+        self.assertIsNone(result["complexity_analysis"])
+        self.assertIsNone(result["complexity_reconciliation"])
+        self.assertEqual(provider.calls, [])
+
+    def test_agent4_does_not_create_provider_or_make_paid_call(self):
+        result = evaluate_execution_evidence(
+            self.source, self.prepared, run_complexity_analysis=True
+        )
+        self.assertEqual(result["complexity_analysis"]["status"], "skipped")
+        self.assertIsNone(result["complexity_reconciliation"])
+
+    def test_agent4_is_skipped_when_source_hash_mismatches(self):
+        prepared = dict(self.prepared)
+        prepared["source_sha256"] = "wrong"
+        provider = ScenarioAIProvider([get_scenario("agent4", "linear_scan")])
+        result = evaluate_execution_evidence(
+            self.source, prepared, provider=provider,
+            run_complexity_analysis=True,
+        )
+        self.assertEqual(result["execution_status"], "not_run")
+        self.assertIsNone(result.get("complexity_analysis"))
+        self.assertEqual(provider.calls, [])
+
+    def test_agent4_does_not_change_grading_or_static_estimate(self):
+        provider = ScenarioAIProvider([get_scenario("agent4", "linear_scan")])
+        without_agent4 = evaluate_execution_evidence(self.source, self.prepared)
+        with_agent4 = evaluate_execution_evidence(
+            self.source, self.prepared, provider=provider,
+            run_complexity_analysis=True,
+        )
+        self.assertEqual(with_agent4["grading"]["status"], "provisional")
+        self.assertEqual(with_agent4["metric_scores"]["complexity"], 50.0)
+        self.assertEqual(without_agent4["grading"]["status"], "not_gradeable")
+        self.assertEqual(
+            with_agent4["complexity_estimate"],
+            without_agent4["complexity_estimate"],
+        )

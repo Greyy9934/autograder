@@ -6,7 +6,50 @@ from analyzers.batch_execution import (
     run_c_batch,
     _classify_execution,
     _summarize_results,
+    _adaptive_benchmark_case_order,
+    _classify_benchmark_run,
 )
+
+
+
+
+class AdaptiveBenchmarkOrderTests(unittest.TestCase):
+    def test_geometric_ladder_spans_sizes_and_preserves_every_case(self):
+        cases = [
+            {"input_size": size, "input": str(size)}
+            for size in range(1, 41)
+            for _ in range(3)
+        ]
+
+        order, ladder = _adaptive_benchmark_case_order(cases)
+
+        self.assertEqual(len(order), len(cases))
+        self.assertEqual(set(order), set(range(len(cases))))
+        self.assertEqual(order[:len(ladder)], [
+            next(index for index, case in enumerate(cases)
+                 if case["input_size"] == size)
+            for size in ladder
+        ])
+        self.assertEqual(ladder[0], 1)
+        self.assertEqual(ladder[-1], 40)
+        self.assertLessEqual(len(ladder), 16)
+        self.assertGreater(ladder[-2] / ladder[1], 5)
+
+    def test_zero_workload_size_is_supported_in_ladder(self):
+        cases = [{"input_size": 0, "input": "0"}, {"input_size": 10, "input": "10"}]
+
+        order, ladder = _adaptive_benchmark_case_order(cases)
+
+        self.assertEqual(set(order), {0, 1})
+        self.assertEqual(ladder, [0, 10])
+
+    def test_one_size_keeps_all_cases_in_original_order(self):
+        cases = [{"input_size": 7, "input": str(i)} for i in range(4)]
+
+        order, ladder = _adaptive_benchmark_case_order(cases)
+
+        self.assertEqual(order, [0, 1, 2, 3])
+        self.assertEqual(ladder, [7])
 
 
 class BatchExecutionTests(unittest.TestCase):
@@ -92,6 +135,17 @@ class BatchExecutionTests(unittest.TestCase):
         for run, expected in cases:
             with self.subTest(run=run):
                 self.assertEqual(_classify_execution(run), expected)
+
+    def test_shared_benchmark_deadline_is_not_reported_as_program_timeout(self):
+        run = {"status": "timeout"}
+        self.assertEqual(
+            _classify_benchmark_run(run, shared_budget_limited=True),
+            "benchmark_time_budget_exhausted",
+        )
+        self.assertEqual(
+            _classify_benchmark_run(run, shared_budget_limited=False),
+            "time_limit_exceeded",
+        )
 
     def test_batch_summary_counts_each_category(self):
         results = [

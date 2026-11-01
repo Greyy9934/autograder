@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200" role="img" aria-label="Frieren walking">
+  <style>
+    .body { transform-box: view-box; animation: body-bob .48s ease-in-out infinite alternate; transform-origin: 82px 112px; }
+    .leg-a { transform-box: view-box; animation: leg-a .48s ease-in-out infinite alternate; transform-origin: 75px 130px; }
+    .leg-b { transform-box: view-box; animation: leg-b .48s ease-in-out infinite alternate; transform-origin: 91px 130px; }
+    .arm-a { transform-box: view-box; animation: arm-a .48s ease-in-out infinite alternate; transform-origin: 65px 78px; }
+    .tail-a { transform-box: view-box; animation: tail-sway .8s ease-in-out infinite alternate; transform-origin: 52px 44px; }
+    .tail-b { transform-box: view-box; animation: tail-sway .8s ease-in-out infinite alternate-reverse; transform-origin: 108px 44px; }
+    @keyframes body-bob { from { transform: translateY(1px) rotate(-1deg); } to { transform: translateY(-2px) rotate(1deg); } }
+    @keyframes leg-a { from { transform: rotate(16deg); } to { transform: rotate(-16deg); } }
+    @keyframes leg-b { from { transform: rotate(-16deg); } to { transform: rotate(16deg); } }
+    @keyframes arm-a { from { transform: rotate(-10deg); } to { transform: rotate(12deg); } }
+    @keyframes tail-sway { from { transform: rotate(-3deg); } to { transform: rotate(5deg); } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }
+  </style>
+  <defs>
+    <linearGradient id="cloak" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#fffdf5"/><stop offset="1" stop-color="#e8ddc9"/></linearGradient>
+    <linearGradient id="hair" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#fffefa"/><stop offset="1" stop-color="#c9c8c7"/></linearGradient>
+  </defs>
+  <g class="tail-a" fill="url(#hair)" stroke="#77777e" stroke-width="1.5" stroke-linejoin="round">
+    <path d="M56 35 C42 42 36 63 32 87 C29 105 26 118 19 126 C33 126 44 115 48 96 L61 51Z"/>
+    <path d="M47 88 C39 103 36 112 28 119" fill="none" stroke="#aaa9aa" stroke-width="2"/>
+    <circle cx="55" cy="45" r="3" fill="#b9444e" stroke="#c69b5b" stroke-width="1"/>
+  </g>
+  <g class="tail-b" fill="url(#hair)" stroke="#77777e" stroke-width="1.5" stroke-linejoin="round">
+    <path d="M104 35 C119 42 126 63 129 87 C132 105 135 118 142 126 C128 126 117 115 113 96 L99 51Z"/>
+    <path d="M116 88 C124 103 127 112 135 119" fill="none" stroke="#aaa9aa" stroke-width="2"/>
+    <circle cx="105" cy="45" r="3" fill="#b9444e" stroke="#c69b5b" stroke-width="1"/>
+  </g>
+  <g class="leg-a">
+    <path d="M69 124 L81 127 L76 158 L66 164 L65 157Z" fill="#33323c" stroke="#25232b" stroke-width="1.5"/>
+    <path d="M65 155 L77 158 L73 168 L57 170 L55 166Z" fill="#765039" stroke="#442c25" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M57 166 L73 167" fill="none" stroke="#c69b5b" stroke-width="2"/>
+  </g>
+  <g class="leg-b">
+    <path d="M86 125 L98 124 L100 155 L93 164 L86 157Z" fill="#33323c" stroke="#25232b" stroke-width="1.5"/>
+    <path d="M91 155 L101 156 L106 165 L102 170 L86 168 L84 164Z" fill="#765039" stroke="#442c25" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M87 166 L103 167" fill="none" stroke="#c69b5b" stroke-width="2"/>
+  </g>
+  <g class="body">
+    <!-- wind-swept mantle -->
+    <path d="M65 66 C55 73 52 89 52 106 L40 119 C48 124 56 123 63 118 L67 130 L100 130 L106 117 C113 123 123 122 129 117 L113 102 C112 84 107 72 97 66Z" fill="url(#cloak)" stroke="#77777e" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M65 69 C60 86 62 108 68 128 M98 69 C104 86 102 108 98 128" fill="none" stroke="#c69b5b" stroke-width="2.4"/>
+    <path d="M69 79 L95 79 L100 126 L66 126Z" fill="#f8f0dc" stroke="#c69b5b" stroke-width="1.5"/>
+    <path d="M76 84 L88 84 L88 104 L76 104Z" fill="#f2eee7" stroke="#b8a58a" stroke-width="1"/>
+    <path d="M73 130 L97 130" fill="none" stroke="#b89055" stroke-width="3"/>
+    <circle cx="82" cy="73" r="5" fill="#b9444e" stroke="#d7ae69" stroke-width="2"/>
+    <!-- walking arm and sleeve -->
+    <g class="arm-a">
+      <path d="M61 75 C54 83 54 96 60 103 L68 99 L69 83Z" fill="url(#cloak)" stroke="#77777e" stroke-width="1.7"/>
+      <path d="M60 99 L66 103" stroke="#c69b5b" stroke-width="2"/>
+    </g>
+    <!-- face, ears and hair -->
+    <path d="M63 39 L47 33 L58 49Z" fill="#f3c9ba" stroke="#77777e" stroke-width="1.5"/>
+    <path d="M101 39 L117 33 L106 49Z" fill="#f3c9ba" stroke="#77777e" stroke-width="1.5"/>
+    <path d="M61 29 C64 15 99 14 104 31 L101 53 C98 65 69 66 63 52Z" fill="#f3c9ba" stroke="#77777e" stroke-width="1.7"/>
+    <path d="M60 40 C53 31 56 19 67 16 C76 8 98 13 104 23 C111 29 108 42 104 47 L99 32 C89 35 81 29 75 26 C72 34 66 36 60 40Z" fill="url(#hair)" stroke="#77777e" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M68 35 L78 37 M91 37 L100 35" stroke="#716b70" stroke-width="2" stroke-linecap="round"/>
+    <ellipse cx="74" cy="39" rx="2" ry="3" fill="#72915c"/><ellipse cx="95" cy="39" rx="2" ry="3" fill="#72915c"/>
+    <path d="M81 47 Q84 49 87 47" fill="none" stroke="#a56d69" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M72 61 L80 68 L88 61" fill="#f8f0dc" stroke="#c69b5b" stroke-width="1.5"/>
+    <circle cx="61" cy="53" r="2" fill="#bd4554"/><circle cx="103" cy="53" r="2" fill="#bd4554"/>
+  </g>
+</svg>

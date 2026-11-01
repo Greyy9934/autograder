@@ -7,14 +7,43 @@ from dotenv import load_dotenv
 
 from app.ai.base import AIProviderError
 from app.ai.budget import BudgetedProvider, create_request_budget
+from app.ai.guardrails import GuardedProvider
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
+def mock_mode_enabled() -> bool:
+    """Return whether explicit offline mock mode is enabled."""
+    return os.getenv("AUTOGRADER_MOCK_MODE", "").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+
+
+def _int_setting(name: str, default: int) -> int:
+    raw = os.getenv(name, str(default)).strip()
+    try:
+        return int(raw)
+    except (TypeError, ValueError) as exc:
+        raise AIProviderError(
+            f"{name} must be an integer.",
+            category="configuration_error",
+        ) from exc
+
+
 def create_ai_provider():
-    """Create the configured AI provider, or return None if disabled."""
+    """Create the explicitly selected offline mock or configured AI provider."""
     load_dotenv(PROJECT_ROOT / ".env", override=False)
+
+    mock_enabled = mock_mode_enabled()
+    if mock_enabled:
+        if os.getenv("APP_ENV", "development").strip().lower() in {"production", "prod"}:
+            raise AIProviderError(
+                "Offline mock mode is disabled in production.",
+                category="configuration_error",
+            )
+        from app.ai.mock_workflow_provider import MockWorkflowProvider
+        return MockWorkflowProvider()
 
     provider_name = os.getenv("AI_PROVIDER", "gemini").strip().lower()
 
@@ -28,6 +57,8 @@ def create_ai_provider():
         provider = GeminiProvider(
             api_key=api_key,
             model=os.getenv("GEMINI_MODEL") or None,
+            # One budget credit must correspond to at most one HTTP request.
+            max_retries=0,
         )
 
     elif provider_name == "deepseek":
@@ -39,11 +70,9 @@ def create_ai_provider():
 
         provider = DeepSeekProvider(
             api_key=api_key,
-            model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat").strip(),
-            endpoint=os.getenv(
-                "DEEPSEEK_API_ENDPOINT",
-                "https://api.deepseek.com/chat/completions",
-            ).strip(),
+            model=os.getenv("DEEPSEEK_MODEL", "deepseek-flash").strip(),
+            max_tokens=_int_setting("DEEPSEEK_MAX_TOKENS", 4096),
+            max_retries=0,
         )
 
     else:
@@ -55,5 +84,5 @@ def create_ai_provider():
     return BudgetedProvider(
         provider,
         create_request_budget(),
-        credits_per_call=3,
+        credits_per_call=1,
     )

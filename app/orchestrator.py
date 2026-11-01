@@ -17,6 +17,7 @@ from app.ai.base import AIProviderError
 from app.ai.config import create_ai_provider
 from app.grading import grade_submission
 from app.metric_scoring import derive_metric_scores
+from app.runner import compile_c_source
 
 
 def _attach_grading(result: dict[str, Any]) -> dict[str, Any]:
@@ -43,15 +44,21 @@ def evaluate_execution_evidence(
     test_cases: list[dict[str, Any]] | None = None,
     *,
     run_memory_diagnostics: bool = False,
+    memory_diagnostic_stdin: str = "",
     provider: Any = None,
     adversarial_plan: dict[str, Any] | None = None,
     random_test_inputs: list[str] | None = None,
     generated_test_plans: dict[str, Any] | None = None,
+    run_complexity_analysis: bool = False,
+    agent3b_execution: dict[str, Any] | None = None,
+    complexity_benchmark: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run execution-dependent checks after preparation is complete."""
     import copy
 
     result = copy.deepcopy(prepared_result)
+    if complexity_benchmark is not None:
+        result['complexity_benchmark'] = copy.deepcopy(complexity_benchmark)
 
     expected_hash = result.get("source_sha256")
     actual_hash = hashlib.sha256(source.encode("utf-8")).hexdigest()
@@ -68,6 +75,8 @@ def evaluate_execution_evidence(
     result["reference_validation"] = None
     result["adversarial_execution"] = None
     result["random_test_execution"] = None
+    result["complexity_analysis"] = None
+    result["complexity_reconciliation"] = None
 
     if generated_test_plans is not None:
         if not isinstance(generated_test_plans, dict):
@@ -140,7 +149,9 @@ def evaluate_execution_evidence(
         )
 
     if run_memory_diagnostics:
-        result["memory_safety"] = analyze_memory_safety(source)
+        result["memory_safety"] = analyze_memory_safety(
+            source, stdin=memory_diagnostic_stdin
+        )
 
     references = result.get("reference_solutions") or {}
     if (
@@ -167,6 +178,35 @@ def evaluate_execution_evidence(
             and all(item["outputs_agree"] for item in validation["comparisons"]),
         }
 
+    # Agent 4: AI-primary complexity analysis, explicitly opt-in so existing
+    # provider call sequences and paid-usage behaviour remain unchanged.
+    if run_complexity_analysis:
+        if provider is None:
+            result["complexity_analysis"] = {
+                "status": "skipped",
+                "reason": "No AI provider was supplied; no provider was created automatically.",
+            }
+        else:
+            from analyzers.complexity_analysis import analyze_complexity
+            from analyzers.complexity_reconciliation import (
+                reconcile_complexity_evidence,
+            )
+
+            complexity_result = analyze_complexity(
+                source,
+                provider,
+                static_analysis=result.get("complexity_estimate"),
+                benchmark=result.get("complexity_benchmark"),
+            )
+            result["complexity_analysis"] = complexity_result
+            result["complexity_reconciliation"] = (
+                reconcile_complexity_evidence(
+                    complexity_result,
+                    static_analysis=result.get("complexity_estimate"),
+                    benchmark=result.get("complexity_benchmark"),
+                )
+            )
+
     # Agent 5: review the student's algorithm only after execution evidence.
     reconstruction = result.get("reconstruction") or {}
     candidates = reconstruction.get("candidates", [])
@@ -183,6 +223,15 @@ def evaluate_execution_evidence(
                     "Infer the algorithm directly from the student's C source. "
                     "Do not assume an externally supplied algorithm description."
                 ),
+                "supporting_evidence": {
+                    "complexity_analysis": result.get("complexity_analysis"),
+                    "complexity_reconciliation": result.get("complexity_reconciliation"),
+                    "complexity_benchmark": result.get("complexity_benchmark"),
+                    "execution_evidence_summary": result.get("execution_evidence_summary"),
+                    "adversarial_execution": result.get("adversarial_execution"),
+                    "random_test_execution": result.get("random_test_execution"),
+                    "agent3b_execution": agent3b_execution,
+                },
             },
             provider,
         )
@@ -255,6 +304,7 @@ def evaluate_submission(
         "grading": None,
         "metric_scores": {},
         "preflight": preflight_result,
+        "compilation": None,
         "source_risks": source_risks,
         "complexity_estimate": estimate_complexity(source),
         "memory_safety": None,
@@ -273,6 +323,19 @@ def evaluate_submission(
         result["message"] = (
             "Preflight did not allow further analysis. "
             "Correctness has not been assessed."
+        )
+        return _attach_grading(result)
+
+    try:
+        compilation = compile_c_source(source)
+    except Exception as exc:
+        compilation = {"status": "compiler_error", "message": str(exc)}
+    result["compilation"] = compilation
+    if compilation.get("status") != "compiled":
+        result["status"] = "compile_blocked"
+        result["message"] = (
+            "Compilation did not succeed in the sandbox. "
+            "Agent 1 was not started; correctness has not been assessed."
         )
         return _attach_grading(result)
 
@@ -333,6 +396,7 @@ def evaluate_submission(
                     constraints=tuple(reconstruction.get("constraints", [])),
                     input_format=candidates[0]["input_format"],
                     output_format=candidates[0]["output_format"],
+                    input_schema=candidates[0].get("input_schema"),
                 )
                 result["assignment_spec"] = draft.to_dict()
                 result["assignment_spec_fingerprint"] = draft.fingerprint()

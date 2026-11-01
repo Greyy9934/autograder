@@ -44,7 +44,8 @@ class AIConfigTests(unittest.TestCase):
             self.assertEqual(type(provider.provider).__name__, "GeminiProvider")
             self.assertEqual(provider.provider.model, "test-model")
             self.assertEqual(provider.provider.api_key, "test-key")
-            self.assertEqual(provider.credits_per_call, 3)
+            self.assertEqual(provider.provider.max_retries, 0)
+            self.assertEqual(provider.credits_per_call, 1)
 
 
 if __name__ == "__main__":
@@ -65,7 +66,6 @@ def test_configured_deepseek_provider_is_created():
             {
                 "AI_PROVIDER": "deepseek",
                 "DEEPSEEK_API_KEY": "deepseek-test-key",
-                "DEEPSEEK_MODEL": "deepseek-chat",
             },
             clear=True,
         ),
@@ -78,8 +78,10 @@ def test_configured_deepseek_provider_is_created():
     assert isinstance(provider, BudgetedProvider)
     assert isinstance(provider.provider, DeepSeekProvider)
     assert provider.provider.api_key == "deepseek-test-key"
-    assert provider.provider.model == "deepseek-chat"
-    assert provider.credits_per_call == 3
+    assert provider.provider.model == "deepseek-flash"
+    assert provider.provider.max_tokens == 4096
+    assert provider.provider.max_retries == 0
+    assert provider.credits_per_call == 1
 
 
 def test_missing_deepseek_key_disables_ai():
@@ -105,6 +107,55 @@ def test_unknown_provider_is_rejected_even_without_key():
     ):
         from app.ai.base import AIProviderError
 
+        with pytest.raises(AIProviderError) as caught:
+            create_ai_provider()
+
+    assert caught.value.category == "configuration_error"
+
+
+def test_explicit_mock_mode_returns_offline_provider_without_api_key():
+    with (
+        patch("app.ai.config.load_dotenv"),
+        patch.dict(os.environ, {"AUTOGRADER_MOCK_MODE": "1"}, clear=True),
+    ):
+        provider = create_ai_provider()
+
+    from app.ai.mock_workflow_provider import MockWorkflowProvider
+    assert isinstance(provider, MockWorkflowProvider)
+    assert provider.mock_mode is True
+
+
+def test_mock_mode_is_rejected_in_production():
+    from app.ai.base import AIProviderError
+
+    with (
+        patch("app.ai.config.load_dotenv"),
+        patch.dict(
+            os.environ,
+            {"AUTOGRADER_MOCK_MODE": "true", "APP_ENV": "production"},
+            clear=True,
+        ),
+    ):
+        with pytest.raises(AIProviderError, match="disabled in production"):
+            create_ai_provider()
+
+
+def test_invalid_deepseek_token_cap_fails_as_configuration_error():
+    from app.ai.base import AIProviderError
+
+    with (
+        patch("app.ai.config.load_dotenv"),
+        patch("app.ai.config.create_request_budget", return_value=object()),
+        patch.dict(
+            os.environ,
+            {
+                "AI_PROVIDER": "deepseek",
+                "DEEPSEEK_API_KEY": "test-key",
+                "DEEPSEEK_MAX_TOKENS": "not-an-integer",
+            },
+            clear=True,
+        ),
+    ):
         with pytest.raises(AIProviderError) as caught:
             create_ai_provider()
 

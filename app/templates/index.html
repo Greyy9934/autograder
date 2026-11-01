@@ -12,7 +12,7 @@
   <div class="frieren-loader-title">AutoGrader</div>
   <div class="frieren-loader-subtitle">/ C PROGRAMMING BOARD</div>
   <div class="frieren-walk-scene">
-    <img src="/static/frieren-loading.png" alt="Frieren on her journey">
+    <img src="/static/frieren-loading.svg" alt="Frieren on her journey">
   </div>
   <div class="frieren-loading-label">Loading the Wired...</div>
   <div class="frieren-progress"><span></span></div>
@@ -22,9 +22,17 @@
 (() => {
   const loader = document.getElementById("frieren-loader");
   if (!loader) return;
+  const startedAt = performance.now();
+  let hideScheduled = false;
   const hide = () => {
-    loader.classList.add("frieren-loader-hidden");
-    setTimeout(() => loader.remove(), 450);
+    if (hideScheduled) return;
+    hideScheduled = true;
+    const minVisibleMs = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 4500;
+    const delay = Math.max(0, minVisibleMs - (performance.now() - startedAt));
+    setTimeout(() => {
+      loader.classList.add("frieren-loader-hidden");
+      setTimeout(() => loader.remove(), 450);
+    }, delay);
   };
   if (document.readyState === "complete") {
     requestAnimationFrame(hide);
@@ -139,9 +147,147 @@
               </div>
 
               <div class="submit-row">
-                <button id="evaluate-btn" type="button">ANALYZE SOURCE</button>
-                <span class="safe-note">STATIC ANALYSIS ONLY · NO CODE EXECUTION</span>
+                <button id="evaluate-btn" type="button">SUBMIT</button>
+                <label class="demo-checkbox" for="demo-mode">
+                  <input id="demo-mode" type="checkbox">
+                  Demo mode
+                </label>
+                <label class="demo-checkbox" id="demo-scenario-control" for="demo-scenario" hidden>
+                  Scenario
+                  <select id="demo-scenario" aria-label="Demo scenario">
+                    <option value="binary_search">Binary Search</option>
+                    <option value="subset_sum">Subset Sum</option>
+                    <option value="fibonacci">Fibonacci (recursive vs iterative)</option>
+                    <option value="traveling_salesman">Traveling Salesman (brute force vs Held–Karp)</option>
+                  </select>
+                </label>
+                <span class="safe-note">STATIC ANALYSIS ALWAYS RUNS · INSTRUCTOR WORKFLOW / DEMO RUNS AFTER</span>
               </div>
+            </div>
+          </section>
+
+
+          <section class="thread" id="instructor-workflow">
+            <div class="thread-header">
+              <span>INSTRUCTOR CONSOLE / AGENT 1 → AGENT 2</span>
+            </div>
+            <div class="post">
+              <h2>Problem understanding and reference generation</h2>
+              <p>Log in once, then use the main SUBMIT button. With Demo unchecked, SUBMIT automatically starts Agent 1 and the instructor workflow. Credentials are sent only to the server and are not saved in this page.</p>
+              <p class="board-notice"><strong>AI DATA NOTICE:</strong> Live analysis sends the problem statement and submitted C source to the configured external AI provider. Demo mode uses simulated responses and makes no AI requests. Public C execution is disabled on this deployment.</p>
+
+              <div id="instructor-login-panel">
+                <div class="field-block">
+                  <label for="instructor-username">INSTRUCTOR USERNAME</label>
+                  <input id="instructor-username" type="text"
+                    autocomplete="username" maxlength="128">
+                </div>
+                <div class="field-block">
+                  <label for="instructor-password">INSTRUCTOR PASSWORD</label>
+                  <input id="instructor-password" type="password"
+                    autocomplete="current-password" maxlength="256">
+                </div>
+                <button id="instructor-login" type="button">[ instructor login ]</button>
+              </div>
+
+              <div id="instructor-controls" hidden>
+                <p id="instructor-session-status">Instructor session active.</p>
+
+                <button id="instructor-logout" type="button">[ logout ]</button>
+              </div>
+
+              <div id="agent1-result" class="agent-stage-card" hidden>
+                <h3>AGENT 1 / PROBLEM RECONSTRUCTION</h3>
+                <p id="agent1-summary"></p>
+                <div id="assignment-draft" class="structured-results" aria-live="polite"></div>
+                <div id="clarifying-questions"></div>
+                <button id="approve-assignment" type="button" disabled>[ confirm specification as instructor ]</button>
+              </div>
+
+              <div id="agent2-result" class="agent-stage-card" hidden>
+                <h3>AGENT 2 / REFERENCE SOLUTIONS</h3>
+                <div id="reference-output" class="structured-results" aria-live="polite"></div>
+              </div>
+
+              <div id="agent3-panel" hidden>
+                <section class="agent-stage-card" id="agent3a-card">
+                <h3>AGENT 3A / RANDOM INPUTS & EMPIRICAL COMPARISON</h3>
+                <p>Agent 3A receives the approved problem, constraints, schema, and three implementations. It generates bounded test inputs; the student, brute-force, and efficient programs run against the same inputs under a shared time limit.</p>
+                <pre id="agent3-schema-summary" class="structured-results" hidden></pre>
+                <div class="form-grid">
+                  <label id="agent3-token-count-control">Integer tokens per input
+                    <input id="agent3-token-count" type="number" min="1" max="1000" value="1">
+                  </label>
+                  <label id="agent3-minimum-control">Minimum integer
+                    <input id="agent3-minimum" type="number" value="0">
+                  </label>
+                  <label id="agent3-maximum-control">Maximum integer
+                    <input id="agent3-maximum" type="number" value="100">
+                  </label>
+                  <label>Random test count
+                    <input id="agent3-random-count" type="number" min="1" max="1000" value="100">
+                  </label>
+                  <label>Adversarial test count
+                    <input id="agent3-adversarial-count" type="number" min="1" max="100" value="30">
+                  </label>
+                  <label>Random distribution
+                    <select id="agent3-distribution">
+                      <option value="uniform">Uniform</option>
+                      <option value="boundary_biased">Boundary biased</option>
+                      <option value="duplicate_heavy">Duplicate heavy</option>
+                      <option value="sorted">Sorted</option>
+                      <option value="reverse_sorted">Reverse sorted</option>
+                    </select>
+                  </label>
+                </div>
+                <button id="agent3-generate" type="button">[ generate random + adversarial tests ]</button>
+                <div id="agent3-output" class="structured-results" aria-live="polite"></div>
+                <div id="agent3a-execution-output" class="agent-stage-output" aria-live="polite"></div>
+                </section>
+
+                <section class="agent-stage-card" id="agent3b-card">
+                  <h3>AGENT 3B / TARGETED EDGE CASES</h3>
+                  <p>Agent 3B proposes cases that target likely implementation failures. The cases are schema-validated, executed locally, and compared with both references. Only failing or inconclusive examples appear here, capped at five; download the full input set from Agent 3A.</p>
+                  <div id="agent3b-output" class="structured-results" aria-live="polite"></div>
+                  <div id="agent3b-execution-output" class="agent-stage-output" aria-live="polite"></div>
+                </section>
+
+                <div class="agent-stage-card execution-controls">
+                  <p class="safe-note">LOCAL EXECUTION ONLY · DISABLED ON PUBLIC DEPLOYMENT</p>
+                  <button id="agent3-execute" type="button">[ execute generated tests locally ]</button>
+                  <div id="execution-output" class="agent-stage-output" aria-live="polite"></div>
+                </div>
+
+                <section class="agent-stage-card" id="agent4-card" hidden>
+                  <h3>AGENT 4 / COMPLEXITY ANALYSIS</h3>
+                  <div id="agent4-output" class="agent-stage-output" aria-live="polite"></div>
+                </section>
+                <section class="agent-stage-card" id="agent5-card" hidden>
+                  <h3>AGENT 5 / MATHEMATICAL VERIFICATION</h3>
+                  <div id="agent5-output" class="agent-stage-output" aria-live="polite"></div>
+                </section>
+                <section class="agent-stage-card" id="agent6-card" hidden>
+                  <h3>AGENT 6 / CODE QUALITY REVIEW</h3>
+                  <div id="agent6-output" class="agent-stage-output" aria-live="polite"></div>
+                </section>
+                <section class="agent-stage-card grade-card" id="grading-card" hidden>
+                  <h3>FINAL GRADE / REPRODUCIBLE SCORECARD</h3>
+                  <div id="grading-output" class="agent-stage-output" aria-live="polite"></div>
+                </section>
+                <button id="download-test-cases" type="button" hidden>[ download all generated test cases ]</button>
+                <button id="download-report" type="button" disabled hidden>[ download full PDF report ]</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="thread demo-results-panel" id="demo-results" hidden>
+            <div class="thread-header">
+              <span>DEMO CONSOLE / REAL LOCAL EXECUTION</span>
+            </div>
+            <div class="post">
+              <h2>Predefined problem — real execution results</h2>
+              <p id="demo-notice" class="demo-notice" role="status"></p>
+              <div id="demo-agent-results" aria-live="polite"></div>
             </div>
           </section>
 
@@ -252,8 +398,9 @@
     <div class="dialog-content">
       <p>Paste a C source file or upload a .c file.</p>
       <p>Add the problem statement if available.</p>
-      <p>Press ANALYZE SOURCE to request static inspection.</p>
-      <p>This public instance does not compile or execute submitted code.</p>
+      <p>Static analysis runs on every submission.</p>
+      <p>When logged in as instructor, SUBMIT also starts the full evaluation workflow unless Demo mode is selected.</p>
+      <p>Demo mode runs the isolated demonstration workflow.</p>
     </div>
   </dialog>
 
@@ -276,7 +423,7 @@ function updateWiredStatuses() {
   if (!sidebar) return;
 
   const positive = /\b(online|connected|successful|established|healthy|ready|operational|active)\b/i;
-  const negative = /\b(offline|disconnected|not connected|locked|unavailable|degraded|failed|failure|error|disabled|timeout)\b/i;
+  const negative = /\b(offline|disconnected|not connected|locked|unavailable|degraded|failed|failure|error|disabled|timeout|issue|unhealthy|unreachable|check)\b|could not reach/i;
   const neutral = /\b(pending|unknown|checking|loading)\b/i;
 
   sidebar.querySelectorAll("*").forEach(el => {

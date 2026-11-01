@@ -4,6 +4,7 @@ from typing import Any
 
 from analyzers.assignment_spec import AssignmentSpec
 from analyzers.input_schema import IntegerInputSchema
+from analyzers.structured_input_schema import StructuredIntegerInputSchema
 from analyzers.random_test_generator import generate_schema_test_batch
 from analyzers.adversarial_test_planner import plan_adversarial_tests
 
@@ -31,7 +32,7 @@ def generate_test_plans(
             "adversarial_tests": None,
         }
 
-    if not isinstance(schema, IntegerInputSchema):
+    if not isinstance(schema, (IntegerInputSchema, StructuredIntegerInputSchema)):
         return {
             "status": "invalid_request",
             "reason": "An explicit integer input schema is required.",

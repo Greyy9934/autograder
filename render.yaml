@@ -6,3 +6,12 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.web:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: NEON_DATABASE_URL
+        sync: false
+      - key: AI_DAILY_REQUEST_CREDITS
+        value: "7"
+      - key: DEEPSEEK_MAX_TOKENS
+        value: "4096"

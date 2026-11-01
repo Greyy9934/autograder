@@ -6,3 +6,19 @@ __pycache__/
 .coverage
 reports/*
 !reports/.gitkeep
+.neon
+node_modules/
+
+# Local secrets, editor/workflow backups, and generated scratch output.
+.env.*
+!.env.example
+*.bak*
+*.before-*
+.workflow-backup-*/
+backups/
+tmp/
+/Source
+/Source-risk
+/Static
+*.backup*
+*-backup-*

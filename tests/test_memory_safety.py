@@ -36,9 +36,9 @@ def test_asan_reports_sanitizer_finding():
         "analyzers.memory_safety._compile_and_run",
         return_value={
             "status": "completed",
-            "exit_code": 1,
+            "exit_code": 0,
             "stdout": "",
-            "stderr": "ERROR: AddressSanitizer: heap-buffer-overflow",
+            "stderr": "runtime error: store to address with insufficient space",
         },
     ):
         result = run_asan("int main(void){return 0;}")

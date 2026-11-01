@@ -83,6 +83,9 @@ def analyze_test_cases(
         inconclusive = execution_class in {
             "infrastructure_error",
             "execution_unknown",
+            "time_limit_exceeded",
+            "timeout",
+            "not_executed_before_deadline",
         }
 
         passed = (

@@ -7,6 +7,7 @@ from typing import Any
 
 from analyzers.assignment_spec import AssignmentSpec
 from analyzers.input_schema import IntegerInputSchema
+from analyzers.structured_input_schema import StructuredIntegerInputSchema
 
 
 def plan_adversarial_tests(
@@ -23,7 +24,7 @@ def plan_adversarial_tests(
         return {"status": "invalid_request", "cases": []}
     if not isinstance(spec, AssignmentSpec) or not spec.confirmed:
         return {"status": "rejected", "reason": "Confirmed assignment specification required.", "cases": []}
-    if not isinstance(schema, IntegerInputSchema):
+    if not isinstance(schema, (IntegerInputSchema, StructuredIntegerInputSchema)):
         return {"status": "invalid_request", "cases": []}
     if isinstance(seed, bool) or not isinstance(seed, int):
         return {"status": "invalid_request", "cases": []}
@@ -53,28 +54,29 @@ def plan_adversarial_tests(
             "execution_status": "not_executed",
         })
 
-    low, high = schema.minimum, schema.maximum
-    boundary_values = list(dict.fromkeys((
-        low, min(low + 1, high), 0 if low <= 0 <= high else low,
-        max(high - 1, low), high,
-    )))
-
-    # Always include constraint boundaries and zero where valid.
-    for value in boundary_values:
-        add(" ".join([str(value)] * schema.token_count) + "\n",
-            "Boundary value repeated across all input positions.",
-            "high", "input_constraints")
-
-    if schema.token_count >= 2:
-        add(f"{low} {high}" + (" " + str(low) * (schema.token_count - 2) if schema.token_count > 2 else "") + "\n",
-            "Mixed minimum and maximum values can expose ordering and overflow assumptions.",
-            "high", "input_constraints")
-        add(" ".join(map(str, range(schema.token_count))) + "\n",
-            "Distinct increasing values can expose accidental order assumptions.",
-            "medium", "input_structure")
-        add(" ".join(map(str, range(schema.token_count - 1, -1, -1))) + "\n",
-            "Decreasing values can expose accidental sorted-input assumptions.",
-            "medium", "input_structure")
+    if isinstance(schema, IntegerInputSchema):
+        low, high = schema.minimum, schema.maximum
+        boundary_values = list(dict.fromkeys((
+            low, min(low + 1, high), 0 if low <= 0 <= high else low,
+            max(high - 1, low), high,
+        )))
+        for value in boundary_values:
+            add(" ".join([str(value)] * schema.token_count) + "\n",
+                "Boundary value repeated across all input positions.",
+                "high", "input_constraints")
+        if schema.token_count >= 2:
+            add(
+                f"{low} {high}" +
+                (" " + str(low) * (schema.token_count - 2)
+                 if schema.token_count > 2 else "") + "\n",
+                "Mixed minimum and maximum values can expose ordering and overflow assumptions.",
+                "high", "input_constraints")
+            add(" ".join(map(str, range(schema.token_count))) + "\n",
+                "Distinct increasing values can expose accidental order assumptions.",
+                "medium", "input_structure")
+            add(" ".join(map(str, range(schema.token_count - 1, -1, -1))) + "\n",
+                "Decreasing values can expose accidental sorted-input assumptions.",
+                "medium", "input_structure")
 
     patterns = [
         (r"\bfor\s*\(", "Loop boundary and off-by-one behavior.", "loop"),

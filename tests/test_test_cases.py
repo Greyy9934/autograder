@@ -51,12 +51,14 @@ class TestCaseAnalyzerTests(unittest.TestCase):
         self.assertFalse(case["passed"])
         self.assertIn("exit code", case["explanation"].lower())
 
-    def test_runtime_timeout_fails_case(self):
+    def test_runtime_timeout_is_inconclusive_for_correctness(self):
         result = analyze_test_cases(
             "int main(void){for(;;){} return 0;}",
             [{"input": "", "expected_output": ""}],
         )
-        self.assertEqual(result["failed"], 1)
+        self.assertEqual(result["failed"], 0)
+        self.assertEqual(result["inconclusive"], 1)
+        self.assertTrue(result["results"][0]["inconclusive"])
         self.assertEqual(result["results"][0]["status"], "timeout")
 
     def test_empty_test_list_rejected(self):

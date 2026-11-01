@@ -6,6 +6,7 @@ import time
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+from urllib.parse import urlparse
 
 from app.ai.base import AIProviderError
 from jsonschema import Draft202012Validator, SchemaError, ValidationError
@@ -15,11 +16,12 @@ class DeepSeekProvider:
     def __init__(
         self,
         api_key: str,
-        model: str = "deepseek-chat",
+        model: str = "deepseek-flash",
         *,
         endpoint: str = "https://api.deepseek.com/chat/completions",
         timeout: float = 45,
-        max_retries: int = 2,
+        max_retries: int = 0,
+        max_tokens: int = 4096,
         opener=urlopen,
         sleep=time.sleep,
         max_response_bytes: int = 1048576,
@@ -28,8 +30,16 @@ class DeepSeekProvider:
             raise ValueError("DeepSeek API key must not be empty.")
         if not model.strip():
             raise ValueError("DeepSeek model must not be empty.")
-        if not endpoint.startswith("https://"):
-            raise ValueError("DeepSeek endpoint must use HTTPS.")
+        parsed_endpoint = urlparse(endpoint)
+        if (
+            parsed_endpoint.scheme != "https"
+            or parsed_endpoint.hostname != "api.deepseek.com"
+            or parsed_endpoint.path != "/chat/completions"
+            or parsed_endpoint.username
+            or parsed_endpoint.password
+            or parsed_endpoint.port not in (None, 443)
+        ):
+            raise ValueError("DeepSeek endpoint must be the official HTTPS chat-completions endpoint.")
         if not 0 <= max_retries <= 2:
             raise ValueError("max_retries must be between 0 and 2.")
 
@@ -37,8 +47,12 @@ class DeepSeekProvider:
             raise ValueError("max_response_bytes must be a positive integer.")
         if timeout <= 0:
             raise ValueError("timeout must be positive.")
+        if isinstance(max_tokens, bool) or not isinstance(max_tokens, int) or not 1 <= max_tokens <= 8192:
+            raise ValueError("max_tokens must be an integer between 1 and 8192.")
 
         self.max_response_bytes = max_response_bytes
+        self.max_tokens = max_tokens
+        self.last_usage: dict[str, int] | None = None
         self.api_key = api_key
         self.model = model
         self.endpoint = endpoint
@@ -78,8 +92,13 @@ class DeepSeekProvider:
             + json.dumps(schema, ensure_ascii=False)
         )
 
+        self.last_usage = None
         body = {
             "model": self.model,
+            "max_tokens": self.max_tokens,
+            # Keep the paid Flash path in bounded low-effort reasoning mode.
+            "reasoning_effort": "low",
+            "temperature": 0,
             "messages": [
                 {"role": "system", "content": system_message},
                 {
@@ -111,7 +130,9 @@ class DeepSeekProvider:
                         "DeepSeek response exceeded the configured size limit.",
                         category="response_too_large",
                     )
-                result = self._parse_response(raw)
+                self.last_usage = self._extract_usage(raw)
+                result, usage = self._parse_response(raw)
+                self.last_usage = usage
                 errors = list(Draft202012Validator(schema).iter_errors(result))
                 if errors:
                     first_error = errors[0]
@@ -157,16 +178,47 @@ class DeepSeekProvider:
         )
 
     @staticmethod
-    def _parse_response(raw: bytes) -> dict[str, Any]:
+    def _extract_usage(raw: bytes) -> dict[str, int] | None:
         try:
             envelope = json.loads(raw.decode("utf-8"))
-            content = envelope["choices"][0]["message"]["content"]
+            raw_usage = envelope.get("usage")
+        except (UnicodeDecodeError, json.JSONDecodeError, AttributeError):
+            return None
+        if not isinstance(raw_usage, dict):
+            return None
+        fields = ("prompt_tokens", "completion_tokens", "total_tokens")
+        if not all(
+            isinstance(raw_usage.get(field), int)
+            and not isinstance(raw_usage.get(field), bool)
+            and raw_usage[field] >= 0
+            for field in fields
+        ):
+            return None
+        return {field: raw_usage[field] for field in fields}
+
+    @staticmethod
+    def _parse_response(raw: bytes) -> tuple[dict[str, Any], dict[str, int] | None]:
+        try:
+            envelope = json.loads(raw.decode("utf-8"))
+            choice = envelope["choices"][0]
+            content = choice["message"]["content"]
+            finish_reason = choice.get("finish_reason")
         except (UnicodeDecodeError, json.JSONDecodeError, KeyError, IndexError, TypeError) as exc:
             raise AIProviderError(
                 "DeepSeek returned an invalid response envelope.",
                 category="invalid_response",
             ) from exc
 
+        if finish_reason == "length":
+            raise AIProviderError(
+                "DeepSeek output was truncated at the configured token limit.",
+                category="output_truncated",
+            )
+        if finish_reason not in (None, "stop"):
+            raise AIProviderError(
+                f"DeepSeek ended the response with finish reason {finish_reason!r}.",
+                category="incomplete_response",
+            )
         if not isinstance(content, str) or not content.strip():
             raise AIProviderError(
                 "DeepSeek returned an empty response.",
@@ -187,4 +239,15 @@ class DeepSeekProvider:
                 category="invalid_json",
             )
 
-        return result
+        raw_usage = envelope.get("usage")
+        usage = None
+        if isinstance(raw_usage, dict):
+            fields = ("prompt_tokens", "completion_tokens", "total_tokens")
+            if all(
+                isinstance(raw_usage.get(field), int)
+                and not isinstance(raw_usage.get(field), bool)
+                and raw_usage[field] >= 0
+                for field in fields
+            ):
+                usage = {field: raw_usage[field] for field in fields}
+        return result, usage

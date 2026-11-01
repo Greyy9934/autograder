@@ -1,6 +1,8 @@
 """Deterministic, rule-driven grading with explicit evidence eligibility."""
 
 import json
+import hashlib
+import math
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +35,7 @@ def load_grading_rules(path: str | Path = DEFAULT_GRADING_RULES) -> dict[str, An
             or not name
             or isinstance(weight, bool)
             or not isinstance(weight, (int, float))
+            or not math.isfinite(weight)
             or weight < 0
         ):
             raise GradingRulesError(f"Invalid weight for metric {name!r}.")
@@ -51,6 +54,8 @@ def load_grading_rules(path: str | Path = DEFAULT_GRADING_RULES) -> dict[str, An
         or isinstance(maximum, bool)
         or not isinstance(minimum, (int, float))
         or not isinstance(maximum, (int, float))
+        or not math.isfinite(minimum)
+        or not math.isfinite(maximum)
         or minimum >= maximum
     ):
         raise GradingRulesError("Invalid score scale.")
@@ -110,6 +115,92 @@ def _eligible_correctness(
     return True, "Required correctness evidence is available."
 
 
+def _reproducibility_metadata(
+    evidence: dict[str, Any],
+    metric_scores: dict[str, Any],
+    rules_path: str | Path,
+    rules: dict[str, Any],
+) -> dict[str, Any]:
+    """Fingerprint the stable inputs that determine a grade, excluding timings."""
+    try:
+        rules_digest = hashlib.sha256(Path(rules_path).read_bytes()).hexdigest()
+    except OSError:
+        rules_digest = hashlib.sha256(
+            json.dumps(rules, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+
+    tests = evidence.get("test_evaluation")
+    test_cases = []
+    if isinstance(tests, dict):
+        for item in tests.get("results", []):
+            if not isinstance(item, dict):
+                continue
+            test_cases.append({
+                key: item.get(key)
+                for key in (
+                    "case", "input", "expected_output", "actual_output",
+                    "passed", "failed", "inconclusive", "execution_class",
+                )
+            })
+    differential_suites = {}
+    for suite_name in ("agent3a_benchmark", "agent3b_execution"):
+        suite = evidence.get(suite_name)
+        comparisons = suite.get("differential_comparisons", []) if isinstance(suite, dict) else []
+        if suite_name == "agent3a_benchmark":
+            generated = evidence.get("agent3a")
+            suite_inputs = ((generated.get("generation") or {}).get("inputs", []) if isinstance(generated, dict) else [])
+        else:
+            generated = evidence.get("agent3b")
+            suite_inputs = generated.get("cases", []) if isinstance(generated, dict) else []
+        differential_suites[suite_name] = [
+            {
+                "case": item.get("case"),
+                "input": (
+                    item.get("input")
+                    or ((suite_inputs[item.get("case") - 1] or {}).get("input")
+                        if isinstance(suite_inputs, list)
+                        and isinstance(item.get("case"), int)
+                        and 1 <= item.get("case") <= len(suite_inputs)
+                        and isinstance(suite_inputs[item.get("case") - 1], dict)
+                        else None)
+                ),
+                "input_size": item.get("input_size"),
+                "outcomes": {
+                    program: {
+                        key: (outcome or {}).get(key)
+                        for key in ("execution_class", "exit_code", "stdout")
+                    }
+                    for program, outcome in (item.get("outcomes") or {}).items()
+                    if program in {"student", "brute_force", "efficient"}
+                },
+            }
+            for item in comparisons if isinstance(item, dict)
+        ] if isinstance(comparisons, list) else []
+    suite_payload = {
+        "status": tests.get("status") if isinstance(tests, dict) else None,
+        "cases": test_cases,
+        "differential_suites": differential_suites,
+    }
+    suite_digest = hashlib.sha256(json.dumps(
+        suite_payload, sort_keys=True, separators=(",", ":"),
+        ensure_ascii=False, allow_nan=False,
+    ).encode("utf-8")).hexdigest()
+    stable_inputs = {
+        "grading_version": str(rules.get("version", "unversioned")),
+        "rules_version": str(rules.get("version", "unversioned")),
+        "rules_sha256": rules_digest,
+        "source_sha256": evidence.get("source_sha256"),
+        "assignment_spec_fingerprint": evidence.get("assignment_spec_fingerprint"),
+        "test_suite_fingerprint": suite_digest,
+        "metric_scores": metric_scores,
+    }
+    fingerprint = hashlib.sha256(json.dumps(
+        stable_inputs, sort_keys=True, separators=(",", ":"),
+        ensure_ascii=False, allow_nan=False,
+    ).encode("utf-8")).hexdigest()
+    return {"fingerprint": fingerprint, **stable_inputs}
+
+
 def grade_submission(
     evidence: dict[str, Any],
     metric_scores: dict[str, float | int | None],
@@ -128,9 +219,15 @@ def grade_submission(
 
     rules = load_grading_rules(rules_path)
     weights = rules["weights"]
+    unknown_metrics = set(metric_scores) - set(weights)
+    if unknown_metrics:
+        raise ValueError(f"Unknown metric score(s): {', '.join(sorted(unknown_metrics))}.")
     policy = rules.get("policy", {})
     minimum = rules.get("score_scale", {}).get("minimum", 0)
     maximum = rules.get("score_scale", {}).get("maximum", 100)
+    reproducibility = _reproducibility_metadata(
+        evidence, metric_scores, rules_path, rules
+    )
 
     eligible, eligibility_reason = _eligible_correctness(evidence, policy)
 
@@ -174,6 +271,8 @@ def grade_submission(
             isinstance(score, bool)
             or not isinstance(score, (int, float))
             or score < minimum
+            or not math.isfinite(score)
+            or score < minimum
             or score > maximum
         ):
             raise ValueError(
@@ -198,10 +297,12 @@ def grade_submission(
         return {
             "status": "not_gradeable",
             "score": None,
+            "grade_band": None,
             "score_scale": {"minimum": minimum, "maximum": maximum},
             "included_weight": 0,
             "excluded_metrics": excluded,
             "breakdown": breakdown,
+            "reproducibility": reproducibility,
             "message": "No eligible metric scores are available.",
         }
 
@@ -213,15 +314,22 @@ def grade_submission(
         item["weighted_contribution"] = round(contribution, 4)
         weighted_sum += contribution
 
+    final_score = round(weighted_sum, 2)
+    grade_band = (
+        "A" if final_score >= 90 else "B" if final_score >= 80
+        else "C" if final_score >= 70 else "D" if final_score >= 60 else "F"
+    )
     return {
         "status": (
             "graded" if eligible and test_coverage_complete else "provisional"
         ),
-        "score": round(weighted_sum, 2),
+        "score": final_score,
+        "grade_band": grade_band,
         "score_scale": {"minimum": minimum, "maximum": maximum},
         "included_weight": included_weight,
         "excluded_metrics": excluded,
         "breakdown": breakdown,
+        "reproducibility": reproducibility,
         "message": (
             "Score is based on eligible supplied metrics; excluded metrics "
             "were not treated as zero."

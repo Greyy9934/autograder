@@ -169,9 +169,7 @@ def run_asan(source: str, stdin: str = "") -> dict[str, Any]:
     )
 
     stderr = result.get("stderr", "")
-    if result.get("status") == "completed" and result.get("exit_code") == 0:
-        result["status"] = "no_issue_detected_on_this_input"
-    elif "AddressSanitizer" in stderr or "runtime error:" in stderr:
+    if "AddressSanitizer" in stderr or "runtime error:" in stderr:
         result["status"] = "diagnostic_finding"
         result["findings"] = [
             {
@@ -183,6 +181,8 @@ def run_asan(source: str, stdin: str = "") -> dict[str, Any]:
             for line in stderr.splitlines()
             if "AddressSanitizer" in line or "runtime error:" in line
         ]
+    elif result.get("status") == "completed" and result.get("exit_code") == 0:
+        result["status"] = "no_issue_detected_on_this_input"
     result["note"] = (
         "A clean sanitizer run on one input does not prove memory safety. "
         "Findings depend on the tested path and sanitizer coverage."

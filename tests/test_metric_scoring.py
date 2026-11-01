@@ -26,6 +26,18 @@ class MetricScoringTests(unittest.TestCase):
         })
         self.assertEqual(result["correctness"], 100.0)
 
+    def test_inconclusive_cases_are_excluded_from_correctness_denominator(self):
+        result = derive_metric_scores({
+            "test_evaluation": {
+                "status": "completed",
+                "total": 10,
+                "passed": 1,
+                "failed": 0,
+                "inconclusive": 9,
+            }
+        })
+        self.assertEqual(result["correctness"], 100.0)
+
     def test_invalid_test_counts_produce_no_score(self):
         result = derive_metric_scores({
             "test_evaluation": {
@@ -106,13 +118,58 @@ class MetricScoringTests(unittest.TestCase):
         })
         for name in (
             "edge_cases",
-            "code_quality",
+            "mathematical_correctness",
             "complexity",
-            "memory_safety",
             "readability",
-            "originality_review",
+            "modularity",
+            "design_originality",
         ):
             self.assertIsNone(result[name])
+
+
+    def test_composite_metrics_follow_fixed_evidence_mappings(self):
+        scores = derive_metric_scores({
+            "test_evaluation": {"status": "completed", "total": 4, "passed": 2, "failed": 1, "inconclusive": 1},
+            "agent3a_benchmark": {"differential_comparisons": [
+                {"outcomes": {"student": {"execution_class": "program_success", "stdout": "ok\n"}, "brute_force": {"execution_class": "program_success", "stdout": "ok\n"}}},
+                {"outcomes": {"student": {"execution_class": "time_limit_exceeded"}, "brute_force": {"execution_class": "program_success", "stdout": "ok\n"}}},
+            ]},
+            "agent3b_execution": {"differential_comparisons": [
+                {"outcomes": {"student": {"execution_class": "program_success", "stdout": "same"}, "brute_force": {"execution_class": "program_success", "stdout": "same"}}},
+                {"outcomes": {"student": {"execution_class": "program_success", "stdout": "wrong"}, "brute_force": {"execution_class": "program_success", "stdout": "right"}}},
+            ]},
+            "mathematical_verification": {"outcome": "proof_sketch"},
+            "complexity_analysis": {"status": "analyzed", "ai_analysis": {"grading_assessment": {"rating": 2, "evidence": [{"line": 1}]}}},
+            "code_quality": {"status": "completed", "rubric_ratings": {
+                "readability": {"rating": 3, "evidence": [{"line": 1}]},
+                "modularity": {"rating": 2, "evidence": [{"line": 2}]},
+                "design_originality": {"rating": 4, "evidence": [{"line": 3}]},
+            }},
+        })
+        self.assertEqual(scores["correctness"], 75.0)
+        self.assertEqual(scores["edge_cases"], 50.0)
+        self.assertEqual(scores["mathematical_correctness"], 75.0)
+        self.assertEqual(scores["complexity"], 50.0)
+        self.assertEqual(scores["readability"], 75.0)
+        self.assertEqual(scores["modularity"], 50.0)
+        self.assertEqual(scores["design_originality"], 100.0)
+
+
+    def test_same_input_is_counted_once_across_explicit_and_random_evidence(self):
+        result = derive_metric_scores({
+            "test_evaluation": {
+                "status": "completed", "total": 1, "passed": 1, "failed": 0, "inconclusive": 0,
+                "results": [{"case": 1, "input": "1\n", "passed": True, "failed": False, "inconclusive": False}],
+            },
+            "agent3a": {"generation": {"inputs": [
+                {"input": "1\n"}, {"input": "2\n"},
+            ]}},
+            "agent3a_benchmark": {"differential_comparisons": [
+                {"case": 1, "outcomes": {"student": {"execution_class": "program_success", "stdout": "ok"}, "brute_force": {"execution_class": "program_success", "stdout": "ok"}}},
+                {"case": 2, "outcomes": {"student": {"execution_class": "program_success", "stdout": "bad"}, "brute_force": {"execution_class": "program_success", "stdout": "ok"}}},
+            ]},
+        })
+        self.assertEqual(result["correctness"], 50.0)
 
 
 if __name__ == "__main__":

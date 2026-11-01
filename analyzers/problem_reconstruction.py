@@ -3,6 +3,7 @@
 from typing import Any
 
 from app.ai.base import AIProvider, AIProviderError
+from analyzers.structured_input_schema import StructuredIntegerInputSchema
 
 
 RECONSTRUCTION_SCHEMA = {
@@ -19,6 +20,31 @@ RECONSTRUCTION_SCHEMA = {
                     "problem_statement": {"type": "string"},
                     "input_format": {"type": "string"},
                     "output_format": {"type": "string"},
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {
+                            "version": {"type": "integer", "minimum": 1},
+                            "size_field": {"type": "string"},
+                            "fields": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {"type": "string"},
+                                        "type": {
+                                            "type": "string",
+                                            "enum": ["int", "int_array"],
+                                        },
+                                        "min": {"type": "integer"},
+                                        "max": {"type": "integer"},
+                                        "length_from": {"type": "string"},
+                                    },
+                                    "required": ["name", "type", "min", "max"],
+                                },
+                            },
+                        },
+                        "required": ["fields"],
+                    },
                     "evidence": {"type": "array", "items": {"type": "string"}},
                     "assumptions": {"type": "array", "items": {"type": "string"}},
                     "confidence": {"type": "number", "minimum": 0, "maximum": 1},
@@ -59,6 +85,16 @@ def _validate_response(result: Any) -> dict[str, Any]:
         if item["id"] in seen:
             raise AIProviderError("Candidate IDs must be unique.")
         seen.add(item["id"])
+
+        if item.get("input_schema") is not None:
+            try:
+                item["input_schema"] = StructuredIntegerInputSchema.from_dict(
+                    item["input_schema"]
+                ).to_dict()
+            except (TypeError, ValueError) as exc:
+                raise AIProviderError(
+                    f"Candidate input_schema is invalid: {exc}"
+                ) from exc
 
         for field in ("evidence", "assumptions"):
             value = item.get(field)
@@ -136,7 +172,17 @@ def reconstruct_problem(
             "Infer the likely programming task from source and optional evidence. "
             "Return multiple candidates when materially different interpretations "
             "fit. Separate observed evidence from assumptions. Do not invent "
-            "constraints. Missing tests or statement alone must not block analysis."
+            "constraints. Missing tests or statement alone must not block analysis. "
+            "When the input grammar is clear, include input_schema using version 1: "
+            "{'version':1,'fields':[{'name':'n','type':'int','min':1,'max':100000}, "
+            "{'name':'values','type':'int_array','length_from':'n','min':-1000000000,"
+            "'max':1000000000}], 'size_field':'values'}. Set size_field to an int "
+            "whose value is the workload scale (for example n in a recurrence problem), "
+            "or an int_array whose length is the workload scale. "
+            "Fields are whitespace-separated integer tokens in order. Each int_array "
+            "must refer to an earlier int field via length_from. Include exact bounds "
+            "supported by the statement; do not guess missing bounds. If the grammar "
+            "or bounds are uncertain, omit input_schema and explain the limitation."
         ),
     }
 

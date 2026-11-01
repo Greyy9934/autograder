@@ -19,12 +19,20 @@ class RequestBudget:
 
         self.database_path = str(database_path).strip()
         self.daily_limit = daily_limit
+        self.shared_storage = bool(
+            os.getenv("NEON_DATABASE_URL", "").strip()
+            or os.getenv("DATABASE_URL", "").strip()
+            or os.getenv("APP_ENV", "").strip().lower() in {"production", "prod"}
+        )
 
-        if not self.database_path:
+        if not self.database_path and not self.shared_storage:
             raise AIProviderError(
                 "AI budget database path is empty; request blocked.",
                 category="budget_configuration_error",
             )
+
+        if self.shared_storage:
+            return
 
         try:
             Path(self.database_path).parent.mkdir(parents=True, exist_ok=True)
@@ -33,6 +41,14 @@ class RequestBudget:
                     CREATE TABLE IF NOT EXISTS ai_usage (
                         usage_date TEXT PRIMARY KEY,
                         reserved_credits INTEGER NOT NULL
+                    )
+                """)
+                connection.execute("""
+                    CREATE TABLE IF NOT EXISTS ai_usage_tokens (
+                        usage_date TEXT PRIMARY KEY,
+                        prompt_tokens INTEGER NOT NULL DEFAULT 0,
+                        completion_tokens INTEGER NOT NULL DEFAULT 0,
+                        total_tokens INTEGER NOT NULL DEFAULT 0
                     )
                 """)
         except (sqlite3.Error, OSError) as exc:
@@ -58,6 +74,23 @@ class RequestBudget:
             raise ValueError("credits must be a positive integer.")
 
         today = datetime.now(timezone.utc).date().isoformat()
+
+        if self.shared_storage:
+            try:
+                from app.ui_storage import reserve_ai_request_credits
+
+                reserved = reserve_ai_request_credits(credits, self.daily_limit)
+            except Exception as exc:
+                raise AIProviderError(
+                    "Shared AI budget storage is unavailable; request blocked.",
+                    category="budget_storage_error",
+                ) from exc
+            if reserved is None:
+                raise AIProviderError(
+                    "Daily AI request budget exhausted.",
+                    category="budget_exhausted",
+                )
+            return reserved
 
         try:
             with closing(self._connect()) as connection:
@@ -102,6 +135,54 @@ class RequestBudget:
                 category="budget_storage_error",
             ) from exc
 
+    def record_usage(self, usage: dict) -> None:
+        """Persist provider-reported token counts without storing prompts or code."""
+        values = (
+            usage.get("prompt_tokens"),
+            usage.get("completion_tokens"),
+            usage.get("total_tokens"),
+        )
+        if any(
+            isinstance(value, bool) or not isinstance(value, int) or value < 0
+            for value in values
+        ):
+            return
+        if self.shared_storage:
+            from app.ui_storage import record_ai_token_usage
+
+            record_ai_token_usage(*values)
+            return
+
+        from datetime import datetime, timezone
+
+        today = datetime.now(timezone.utc).date().isoformat()
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute(
+                    """
+                    INSERT OR IGNORE INTO ai_usage_tokens
+                        (usage_date, prompt_tokens, completion_tokens, total_tokens)
+                    VALUES (?, 0, 0, 0)
+                    """,
+                    (today,),
+                )
+                connection.execute(
+                    """
+                    UPDATE ai_usage_tokens
+                    SET prompt_tokens = prompt_tokens + ?,
+                        completion_tokens = completion_tokens + ?,
+                        total_tokens = total_tokens + ?
+                    WHERE usage_date = ?
+                    """,
+                    (*values, today),
+                )
+                connection.commit()
+        except (sqlite3.Error, OSError) as exc:
+            raise AIProviderError(
+                "Could not record provider token usage.",
+                category="budget_usage_storage_error",
+            ) from exc
+
 
 class BudgetedProvider:
     """Reserve budget credits before delegating to an AI provider."""
@@ -119,14 +200,41 @@ class BudgetedProvider:
         self.credits_per_call = credits_per_call
 
     def generate_json(self, task, payload, schema):
+        # Keep the concrete provider object intact for existing integrations.
+        # Enforce the same request/response contract at the shared call boundary.
+        from app.ai.guardrails import GuardedProvider
+
         self.budget.reserve(self.credits_per_call)
-        return self.provider.generate_json(task, payload, schema)
+        try:
+            result = GuardedProvider(self.provider).generate_json(
+                task, payload, schema
+            )
+        except Exception:
+            self._record_provider_usage()
+            raise
+        self._record_provider_usage()
+        return result
+
+    def _record_provider_usage(self) -> None:
+        usage = getattr(self.provider, "last_usage", None)
+        if not isinstance(usage, dict):
+            return
+        try:
+            self.budget.record_usage(usage)
+        except Exception as exc:
+            # A successful paid response must not be discarded and repeated
+            # just because post-response token telemetry could not be written.
+            import logging
+
+            logging.getLogger(__name__).error(
+                "Could not persist provider token usage (%s).", type(exc).__name__
+            )
 
 
 def create_request_budget() -> RequestBudget:
     default_path = Path.home() / ".local" / "share" / "autograder" / "ai-budget.sqlite3"
     path = os.getenv("AI_BUDGET_DB", str(default_path)).strip()
-    raw_limit = os.getenv("AI_DAILY_REQUEST_CREDITS", "60").strip()
+    raw_limit = os.getenv("AI_DAILY_REQUEST_CREDITS", "7").strip()
 
     try:
         limit = int(raw_limit)

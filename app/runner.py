@@ -195,6 +195,68 @@ def _normalize_result(result: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def compile_c_source(source: str) -> dict[str, Any]:
+    """Compile C in the restricted sandbox without executing the submission."""
+    if not isinstance(source, str) or not source.strip():
+        return {"status": "invalid_request", "message": "C source must be a non-empty string."}
+    if len(source.encode("utf-8")) > 256 * 1024:
+        return {"status": "invalid_request", "message": "Source exceeds 256 KiB."}
+
+    with tempfile.TemporaryDirectory(prefix="autograder-compile-") as temp:
+        work = Path(temp)
+        (work / "submission.c").write_text(source, encoding="utf-8")
+        command = [
+            "/usr/bin/bwrap", "--unshare-all", "--die-with-parent",
+            "--ro-bind", "/usr", "/usr",
+            "--ro-bind", "/lib", "/lib",
+            "--ro-bind", "/lib64", "/lib64",
+            "--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache",
+            "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp",
+            "--bind", str(work), "/work", "--chdir", "/work",
+            "/usr/bin/prlimit",
+            f"--cpu={COMPILE_TIMEOUT_SECONDS}:{COMPILE_TIMEOUT_SECONDS + 1}",
+            f"--as={COMPILE_MEMORY_LIMIT_BYTES}:{COMPILE_MEMORY_LIMIT_BYTES}",
+            f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
+            f"--nproc={MAX_PROCESSES}:{MAX_PROCESSES}",
+            f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
+            "--", "/usr/bin/gcc", "-std=gnu17", "-Wall", "-Wextra",
+            "-Wformat=2", "-Warray-bounds=2", "-Wnull-dereference", "-fanalyzer",
+            "-O2", "-lm",
+            "/work/submission.c", "-o", "/work/submission",
+        ]
+        result = _run_bounded(
+            command, stdin_file=subprocess.DEVNULL,
+            timeout_seconds=COMPILE_TIMEOUT_SECONDS, cwd=PROJECT_ROOT,
+        )
+
+    if result["status"] == "launch_error":
+        return {"status": "sandbox_error", "message": result.get("message", "Compiler sandbox could not be launched.")}
+    if result["status"] == "timeout":
+        return {"status": "compile_timeout", "compiler_stderr": result.get("stderr", "")}
+    if result["status"] != "completed":
+        return {
+            "status": "compiler_error",
+            "compiler_status": result["status"],
+            "compiler_stderr": result.get("stderr", ""),
+            "compiler_stdout": result.get("stdout", ""),
+        }
+    if result["exit_code"] != 0:
+        return {
+            "status": "compile_error",
+            "compile_exit_code": result["exit_code"],
+            "compiler_stderr": result["stderr"],
+            "compiler_stdout": result["stdout"],
+            "compile_seconds": result["seconds"],
+        }
+    return {
+        "status": "compiled",
+        "compile_exit_code": 0,
+        "compile_seconds": result["seconds"],
+        "compiler_stderr": result["stderr"],
+        "compiler_stdout": result["stdout"],
+    }
+
+
 def _run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
     """
     Compile and execute C code using a restricted Bubblewrap workspace.
@@ -251,10 +313,10 @@ def _run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
             f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
             "--",
             "/usr/bin/gcc",
-            "-std=c17",
+            "-std=gnu17",
             "-Wall",
             "-Wextra",
-            "-O2",
+            "-O2", "-lm",
             "/work/submission.c",
             "-o",
             "/work/submission",

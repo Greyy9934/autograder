@@ -35,10 +35,16 @@ class FakeOpener:
         return outcome
 
 
-def response(content):
-    return FakeResponse(json.dumps({
-        "choices": [{"message": {"content": content}}]
-    }).encode())
+def response(content, *, finish_reason="stop", usage=None):
+    envelope = {
+        "choices": [{
+            "message": {"content": content},
+            "finish_reason": finish_reason,
+        }]
+    }
+    if usage is not None:
+        envelope["usage"] = usage
+    return FakeResponse(json.dumps(envelope).encode())
 
 
 def test_sends_json_mode_request_and_parses_object():
@@ -60,7 +66,10 @@ def test_sends_json_mode_request_and_parses_object():
     body = json.loads(request.data)
     assert request.full_url == "https://api.deepseek.com/chat/completions"
     assert request.get_header("Authorization") == "Bearer test-key"
-    assert body["model"] == "deepseek-chat"
+    assert body["model"] == "deepseek-flash"
+    assert body["max_tokens"] == 4096
+    assert body["reasoning_effort"] == "low"
+    assert body["temperature"] == 0
     assert body["response_format"] == {"type": "json_object"}
     assert "JSON Schema" in body["messages"][0]["content"]
     assert timeout == 45
@@ -74,6 +83,7 @@ def test_retries_temporary_http_error_then_succeeds():
         "test-key",
         opener=opener,
         sleep=sleeps.append,
+        max_retries=2,
     )
 
     assert provider.generate_json("task", {}, {}) == {"ok": True}
@@ -116,6 +126,7 @@ def test_retries_network_failure():
         "test-key",
         opener=opener,
         sleep=sleeps.append,
+        max_retries=2,
     )
 
     assert provider.generate_json("task", {}, {}) == {"ok": True}
@@ -207,3 +218,50 @@ def test_rejects_invalid_schema_before_network_call():
 def test_rejects_non_positive_response_limit():
     with pytest.raises(ValueError, match="max_response_bytes"):
         DeepSeekProvider("test-key", max_response_bytes=0)
+
+
+def test_default_provider_does_not_retry_paid_requests():
+    error = HTTPError("https://api.deepseek.com", 503, "unavailable", {}, BytesIO())
+    opener = FakeOpener([error, response('{"ok":true}')])
+    provider = DeepSeekProvider("test-key", opener=opener, sleep=lambda _: None)
+
+    with pytest.raises(AIProviderError) as caught:
+        provider.generate_json("task", {}, {})
+
+    assert caught.value.category == "provider_unavailable"
+    assert len(opener.calls) == 1
+
+
+def test_rejects_truncated_output_without_retry():
+    opener = FakeOpener([response('{"ok":true}', finish_reason="length")])
+    provider = DeepSeekProvider("test-key", opener=opener)
+
+    with pytest.raises(AIProviderError) as caught:
+        provider.generate_json("task", {}, {})
+
+    assert caught.value.category == "output_truncated"
+    assert len(opener.calls) == 1
+
+
+def test_records_provider_reported_token_usage():
+    usage = {"prompt_tokens": 30, "completion_tokens": 12, "total_tokens": 42}
+    provider = DeepSeekProvider(
+        "test-key",
+        opener=FakeOpener([response('{"ok":true}', usage=usage)]),
+    )
+
+    assert provider.generate_json("task", {}, {}) == {"ok": True}
+    assert provider.last_usage == usage
+
+
+def test_rejects_non_official_https_endpoint():
+    with pytest.raises(ValueError, match="official"):
+        DeepSeekProvider(
+            "test-key",
+            endpoint="https://attacker.example/chat/completions",
+        )
+
+
+def test_rejects_out_of_bounds_max_tokens():
+    with pytest.raises(ValueError, match="max_tokens"):
+        DeepSeekProvider("test-key", max_tokens=8193)

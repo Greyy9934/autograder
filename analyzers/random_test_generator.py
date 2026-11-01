@@ -110,8 +110,9 @@ def generate_schema_test_batch(
         }
 
     from analyzers.input_schema import IntegerInputSchema
+    from analyzers.structured_input_schema import StructuredIntegerInputSchema
 
-    if not isinstance(schema, IntegerInputSchema):
+    if not isinstance(schema, (IntegerInputSchema, StructuredIntegerInputSchema)):
         return {"status": "invalid_request", "inputs": []}
 
     return generate_random_test_batch(

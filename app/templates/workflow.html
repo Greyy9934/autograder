@@ -12,7 +12,7 @@
   <div class="frieren-loader-title">AutoGrader</div>
   <div class="frieren-loader-subtitle">/ C PROGRAMMING BOARD</div>
   <div class="frieren-walk-scene">
-    <img src="/static/frieren-loading.png" alt="Frieren on her journey">
+    <img src="/static/frieren-loading.svg" alt="Frieren on her journey">
   </div>
   <div class="frieren-loading-label">Loading the Wired...</div>
   <div class="frieren-progress"><span></span></div>
@@ -22,9 +22,17 @@
 (() => {
   const loader = document.getElementById("frieren-loader");
   if (!loader) return;
+  const startedAt = performance.now();
+  let hideScheduled = false;
   const hide = () => {
-    loader.classList.add("frieren-loader-hidden");
-    setTimeout(() => loader.remove(), 450);
+    if (hideScheduled) return;
+    hideScheduled = true;
+    const minVisibleMs = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 4500;
+    const delay = Math.max(0, minVisibleMs - (performance.now() - startedAt));
+    setTimeout(() => {
+      loader.classList.add("frieren-loader-hidden");
+      setTimeout(() => loader.remove(), 450);
+    }, delay);
   };
   if (document.readyState === "complete") {
     requestAnimationFrame(hide);
@@ -268,7 +276,7 @@ function updateWiredStatuses() {
   if (!sidebar) return;
 
   const positive = /\b(online|connected|successful|established|healthy|ready|operational|active)\b/i;
-  const negative = /\b(offline|disconnected|not connected|locked|unavailable|degraded|failed|failure|error|disabled|timeout)\b/i;
+  const negative = /\b(offline|disconnected|not connected|locked|unavailable|degraded|failed|failure|error|disabled|timeout|issue|unhealthy|unreachable|check)\b|could not reach/i;
   const neutral = /\b(pending|unknown|checking|loading)\b/i;
 
   sidebar.querySelectorAll("*").forEach(el => {
