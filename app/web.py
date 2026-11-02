@@ -32,7 +32,10 @@ from analyzers.agent3_ai import (
     validate_agent3b_edges,
 )
 from analyzers.batch_execution import run_c_batch
-from analyzers.batch_execution import benchmark_three_programs_parallel
+from analyzers.batch_execution import (
+    benchmark_three_programs_parallel,
+    benchmark_time_budget_for_case_count,
+)
 from app.ai.config import create_ai_provider, mock_mode_enabled
 from app.ai.diagnostics import request_id_var
 from app.ai.base import AIProviderError
@@ -1193,6 +1196,7 @@ def instructor_ui_generate_tests(
                     provider, problem=agent_problem, schema=schema_data,
                     references=references, student_source=record["source"],
                     max_cases=min(random_count, 100),
+                    requested_distribution=request.random_distribution,
                 )
                 if agent3a.get("status") == "program_generated_unexecuted":
                     generated = execute_agent3a_program(
@@ -1286,7 +1290,9 @@ def instructor_ui_generate_tests(
                     brute["code"],
                     efficient["code"],
                     generated_cases,
-                    time_budget_seconds=2.0,
+                    time_budget_seconds=benchmark_time_budget_for_case_count(
+                        len(generated_cases)
+                    ),
                 )
             else:
                 agent3a_benchmark = {

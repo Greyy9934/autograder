@@ -9,12 +9,21 @@ from analyzers.batch_execution import (
     _adaptive_benchmark_case_order,
     _classify_benchmark_run,
     benchmark_three_programs_parallel,
+    benchmark_time_budget_for_case_count,
 )
 
 
 
 
 class AdaptiveBenchmarkOrderTests(unittest.TestCase):
+    def test_benchmark_window_scales_with_case_count_and_stays_bounded(self):
+        self.assertEqual(benchmark_time_budget_for_case_count(1), 2.0)
+        self.assertEqual(benchmark_time_budget_for_case_count(67), 6.7)
+        self.assertEqual(benchmark_time_budget_for_case_count(100), 10.0)
+        self.assertEqual(benchmark_time_budget_for_case_count(1000), 10.0)
+        with self.assertRaises(ValueError):
+            benchmark_time_budget_for_case_count(0)
+
     def test_geometric_ladder_spans_sizes_and_preserves_every_case(self):
         cases = [
             {"input_size": size, "input": str(size)}

@@ -63,6 +63,7 @@ class Agent3ContractTests(unittest.TestCase):
             },
             student_source="int main(void){return 0;}",
             max_cases=4,
+            requested_distribution="sorted",
         )
         self.assertEqual(result["status"], "program_generated_unexecuted")
         payload = provider.calls[0]["payload"]
@@ -74,6 +75,10 @@ class Agent3ContractTests(unittest.TestCase):
         self.assertEqual(payload["agent2_brute_force"]["code"], "int main(void){}")
         self.assertEqual(payload["agent2_efficient"]["code"], "int main(void){return 0;}")
         self.assertEqual(payload["student_c_source"], "int main(void){return 0;}")
+        self.assertEqual(payload["generator_contract"]["count"], "Generate exactly 4 distinct cases; do not stop early or emit extras.")
+        self.assertEqual(payload["generator_contract"]["requested_distribution"], "sorted")
+        self.assertIn("O(n^2) -> 256, 1024, 4096", payload["generator_contract"]["runtime_sampling"])
+        self.assertIn("exactly the requested number", payload["instructions"])
 
     def test_agent3a_fails_closed_if_approved_schema_is_missing(self):
         provider = CapturingProvider({})

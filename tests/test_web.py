@@ -951,11 +951,13 @@ def test_ui_agent3_uses_approved_structured_schema_end_to_end(monkeypatch):
         return provider
 
     def fake_generate_agent3a_program(
-        actual_provider, *, problem, schema, references, student_source, max_cases
+        actual_provider, *, problem, schema, references, student_source, max_cases,
+        requested_distribution,
     ):
         assert actual_provider is provider
         captured["agent_calls"] += 1
         captured["agent3a_schema_data"] = schema
+        captured["agent3a_distribution"] = requested_distribution
         return {"status": "program_generated_unexecuted"}
 
     def fake_execute_agent3a_program(
@@ -1030,6 +1032,7 @@ def test_ui_agent3_uses_approved_structured_schema_end_to_end(monkeypatch):
 
     # Both AI agents receive the same approved schema data.
     assert captured["agent3a_schema_data"] == approved_schema
+    assert captured["agent3a_distribution"] == "uniform"
     assert captured["agent3b_schema_data"] == approved_schema
     assert (
         captured["agent3a_schema_data"]

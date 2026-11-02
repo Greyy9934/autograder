@@ -13,6 +13,24 @@ from analyzers.output_contract import normalize_stdout
 
 BRUTE_FORCE_BENCHMARK_CASE_TIMEOUT_SECONDS = 0.75
 MAX_BENCHMARK_SIZE_LADDER_POINTS = 16
+MIN_BENCHMARK_WINDOW_SECONDS = 2.0
+MAX_BENCHMARK_WINDOW_SECONDS = 10.0
+BENCHMARK_SECONDS_PER_CASE = 0.1
+
+
+def benchmark_time_budget_for_case_count(case_count: int) -> float:
+    """Scale the shared benchmark window with process-per-case overhead.
+
+    Three separate C processes run for each input. A fixed two-second deadline
+    leaves most of a 100-case batch unverified even when the inputs are small.
+    Keep the window bounded so the request remains predictable on hosted servers.
+    """
+    if isinstance(case_count, bool) or not isinstance(case_count, int) or case_count < 1:
+        raise ValueError("case_count must be a positive integer.")
+    return round(min(
+        MAX_BENCHMARK_WINDOW_SECONDS,
+        max(MIN_BENCHMARK_WINDOW_SECONDS, case_count * BENCHMARK_SECONDS_PER_CASE),
+    ), 1)
 
 
 def _classify_execution(run: dict[str, Any]) -> str:

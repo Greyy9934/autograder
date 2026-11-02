@@ -803,6 +803,7 @@ int main(void) {
     let referenceDisagreements = 0;
     let inconclusive = 0;
     let studentMismatches = 0;
+    let possibleFormatOnlyMismatches = 0;
 
     for (const item of cases) {
       const outcomes = item?.outcomes || {};
@@ -826,6 +827,11 @@ int main(void) {
         } else if (studentOut !== bruteOut) {
           kind = "student_mismatch";
           studentMismatches += 1;
+          const finalToken = value => value.split(/\s+/).filter(Boolean).at(-1) || "";
+          if (finalToken(studentOut) && finalToken(studentOut) === finalToken(bruteOut)) {
+            possibleFormatOnlyMismatches += 1;
+            kind = "possible_output_format_mismatch";
+          }
         }
       }
       if (kind !== "passed") issues.push({ item, kind, outcomes });
@@ -833,6 +839,9 @@ int main(void) {
 
     stageText(parent, `${label} cases compared`, cases.length);
     stageText(parent, "Student differs from agreeing references", studentMismatches);
+    if (possibleFormatOnlyMismatches) {
+      stageText(parent, "Possible format-only differences (same final token)", possibleFormatOnlyMismatches);
+    }
     stageText(parent, "Brute-force / efficient reference disagreements", referenceDisagreements);
     stageText(parent, "Inconclusive executions", inconclusive);
     if (!issues.length) {
@@ -881,6 +890,12 @@ int main(void) {
         results.append(block);
       }
       card.append(results);
+      if (kind === "possible_output_format_mismatch") {
+        const formatNote = document.createElement("p");
+        formatNote.className = "result-muted";
+        formatNote.textContent = "The final output token matches the brute-force output, but the complete stdout differs. Extra prompts or labels still violate the approved output contract and remain a mismatch.";
+        card.append(formatNote);
+      }
       parent.append(card);
     }
     if (issues.length > shown) {
@@ -1539,15 +1554,18 @@ int main(void) {
       const generation = agent3a.generation || {};
       const generatedCount = Array.isArray(generation.inputs)
         ? generation.inputs.length : 0;
-      if (generation.rejected_count > 0) {
-        stageText(agent3Output, "Agent 3A validation",
-          `${generation.rejected_count} invalid or duplicate case(s) were excluded; only schema-valid cases will run.`);
+      if (generation.requested_count) {
+        const emitted = generation.returned_count ?? generatedCount;
+        const rejected = Number(generation.rejected_count || 0);
+        stageText(agent3Output, "Agent 3A coverage",
+          `${generatedCount} valid unique cases of ${generation.requested_count} requested (${emitted} emitted${rejected ? `, ${rejected} rejected` : ""}).`);
+        const firstReason = generation.rejected_cases?.[0]?.reason;
+        if (firstReason) stageText(agent3Output, "First rejected case reason", firstReason);
       }
-      if (generation.shortfall_count > 0) {
-        stageText(agent3Output, "Agent 3A count",
-          `The generator returned ${generation.returned_count ?? generatedCount} of ${generation.requested_count} requested cases.`);
-      }
-      stageText(agent3Output, "Agent 3A status", agent3a.status || generation.status || "not_run");
+      stageText(agent3Output, "Agent 3A status",
+        generation.coverage_status === "partial"
+          ? `generated · partial coverage (${generatedCount}/${generation.requested_count})`
+          : agent3a.status || generation.status || "not_run");
       if (agent3a.message || agent3a.reason || generation.message || generation.reason) {
         stageText(agent3Output, "Agent 3A note",
           agent3a.message || agent3a.reason || generation.message || generation.reason);
@@ -1603,11 +1621,16 @@ int main(void) {
       const randomInconclusive = randomComparisons.filter(
         item => item.outputs_agree === null
       );
+      const budgetSeconds = Number(benchmark.time_budget_seconds);
+      if (Number.isFinite(budgetSeconds)) {
+        stageText(agent3Output, "Benchmark time cap",
+          `${budgetSeconds.toFixed(1)} seconds shared across the three programs (adaptive, capped at 10 seconds).`);
+      }
       if (!randomDifferences.length) {
         renderBenchmarkChart(agent3Output, benchmark);
         if (randomInconclusive.length) {
           stageText(agent3Output, "Benchmark coverage",
-            randomInconclusive.length + " case(s) were inconclusive or timed out. The graph shows successful measured runs only, within the shared time cap.");
+            randomInconclusive.length + " case(s) were inconclusive or timed out. The graph shows successful measured runs only.");
         }
       } else {
         stageText(agent3Output, "Runtime graph",

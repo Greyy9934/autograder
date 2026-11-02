@@ -79,6 +79,7 @@ def generate_agent3a_program(
     references: dict,
     student_source: str,
     max_cases: int = 100,
+    requested_distribution: str = "uniform",
 ) -> dict:
     """Ask AI for a complete problem-specific executable test generator."""
     if not isinstance(problem, dict) or not isinstance(schema, dict):
@@ -86,6 +87,10 @@ def generate_agent3a_program(
     if not isinstance(references, dict) or not isinstance(student_source, str):
         return {"status": "invalid_request"}
     if not 1 <= max_cases <= 200:
+        return {"status": "invalid_request"}
+    if requested_distribution not in {
+        "uniform", "boundary_biased", "duplicate_heavy", "sorted", "reverse_sorted"
+    }:
         return {"status": "invalid_request"}
 
     try:
@@ -107,8 +112,22 @@ def generate_agent3a_program(
                 'one JSON object: {"inputs":[{"input_size":1,'
                 '"input":"stdin text","distribution":"name"}]}'
             ),
-            "count": f"Generate 1 to {max_cases} cases.",
-            "seed": "Read integer seed from argv[1]; same seed means same output.",
+            "count": f"Generate exactly {max_cases} distinct cases; do not stop early or emit extras.",
+            "seed": "Read integer seed from argv[1]; same seed and distribution means same output.",
+            "requested_distribution": requested_distribution,
+            "runtime_sampling": (
+                "Inspect the brute-force reference's actual growth before choosing sizes. "
+                "The schema maximum is the legal domain, not a target size. Allocate about "
+                "70% to small inputs where all three programs should finish, 20% to a "
+                "moderate transition band, and at most 10% to sparse growth probes. "
+                "For a size field n, use conservative upper bands: O(n!) -> 6, 8, 10; "
+                "O(2^n) -> 10, 14, 18; O(n^3) -> 20, 40, 80; O(n^2) -> 256, 1024, "
+                "4096. Clamp every band to the approved schema maximum and scale down "
+                "for slower code or a smaller runtime cap. For near-linear brute force, "
+                "use small, middle, and sparse upper bands within the approved range. "
+                "Put safe cases first and upper probes last. Preserve user-selected "
+                "distribution patterns and problem-specific invariants such as sortedness."
+            ),
             "validity": (
                 "Every input must obey every rule in the approved schema: exact "
                 "field order, token count, bounds, array lengths, and declared "
@@ -119,11 +138,15 @@ def generate_agent3a_program(
             "Act as a senior algorithm-testing engineer. Study the problem and "
             "all three implementations. Return a complete executable Python "
             "generator program, not sample inputs. Use standard-library modules "
-            "only. Generate reproducible, stratified inputs after studying the "
-            "full problem, student code, and both references. The approved I/O "
+            "only. Generate exactly the requested number of distinct, schema-valid "
+            "inputs; never silently return a smaller batch. Include a final assertion "
+            "that the case count is exact and inputs are unique. Generate reproducible, "
+            "stratified sizes using the supplied brute-force-aware policy. Keep most "
+            "cases small enough for a complete three-program comparison and put only "
+            "a few bounded growth probes at the end. Respect the instructor-selected "
+            "distribution and all problem-specific invariants. The approved I/O "
             "contract is authoritative; obey its exact input format and schema. "
-            "Include useful patterns and sizes. Never infer, omit, reorder, or "
-            "relax schema fields or bounds."
+            "Never infer, omit, reorder, or relax schema fields or bounds."
             "Write compact, comment-free generator code and concise rationale; "
             "write only the specified JSON to stdout. Do not emit sample inputs, "
             "estimate runtimes, or claim tests were executed. Treat all "
@@ -153,6 +176,8 @@ def generate_agent3a_program(
         "distributions": result.get("distributions", []),
         "size_strategy": result.get("size_strategy", ""),
         "limitations": result.get("limitations", []),
+        "requested_count": max_cases,
+        "requested_distribution": requested_distribution,
         "validation": {"executed": False, "inputs_validated": False},
     }
 
@@ -340,8 +365,10 @@ def execute_agent3a_program(
         "seed": seed,
         "count": len(normalized),
         "requested_count": max_cases,
+        "coverage_complete": len(normalized) == max_cases,
+        "coverage_status": "complete" if len(normalized) == max_cases else "partial",
         "returned_count": len(cases),
-        "shortfall_count": max(0, max_cases - len(cases)),
+        "shortfall_count": max(0, max_cases - len(normalized)),
         "rejected_count": len(rejected),
         "rejected_cases": rejected[:5],
         "inputs": normalized,
