@@ -8,6 +8,7 @@ from analyzers.batch_execution import (
     _summarize_results,
     _adaptive_benchmark_case_order,
     _classify_benchmark_run,
+    benchmark_three_programs_parallel,
 )
 
 
@@ -25,11 +26,17 @@ class AdaptiveBenchmarkOrderTests(unittest.TestCase):
 
         self.assertEqual(len(order), len(cases))
         self.assertEqual(set(order), set(range(len(cases))))
-        self.assertEqual(order[:len(ladder)], [
+        representatives = [
             next(index for index, case in enumerate(cases)
                  if case["input_size"] == size)
             for size in ladder
-        ])
+        ]
+        self.assertTrue(all(index in order for index in representatives))
+        positions = {index: order.index(index) for index in representatives}
+        self.assertEqual(
+            [positions[index] for index in representatives],
+            sorted(positions[index] for index in representatives),
+        )
         self.assertEqual(ladder[0], 1)
         self.assertEqual(ladder[-1], 40)
         self.assertLessEqual(len(ladder), 16)
@@ -50,6 +57,25 @@ class AdaptiveBenchmarkOrderTests(unittest.TestCase):
 
         self.assertEqual(order, [0, 1, 2, 3])
         self.assertEqual(ladder, [7])
+
+    def test_cases_after_growth_ladder_are_ordered_smallest_first(self):
+        cases = [
+            {"input_size": size, "input": f"{size}:{sample}"}
+            for size in (10, 1, 5, 1, 8, 2, 5, 3)
+            for sample in (0, 1)
+        ]
+
+        order, ladder = _adaptive_benchmark_case_order(cases, max_ladder_points=2)
+
+        self.assertEqual(len(order), len(cases))
+        self.assertEqual(len(set(order)), len(cases))
+        largest_ladder_index = max(
+            order.index(next(i for i, case in enumerate(cases)
+                             if case["input_size"] == size))
+            for size in ladder
+        )
+        tail_sizes = [cases[index]["input_size"] for index in order[largest_ladder_index + 1:]]
+        self.assertEqual(tail_sizes, sorted(tail_sizes))
 
 
 class BatchExecutionTests(unittest.TestCase):
@@ -103,6 +129,73 @@ class BatchExecutionTests(unittest.TestCase):
         result = run_c_batch("invalid C", ["1\n"])
         self.assertEqual(result["status"], "compile_failed")
         self.assertEqual(mock_run.call_count, 1)
+
+    @patch("analyzers.batch_execution.runner._run_bounded")
+    def test_brute_force_can_stop_after_an_actual_timeout(self, mock_run):
+        run_count = 0
+
+        def fake_run(command, **kwargs):
+            nonlocal run_count
+            run_count += 1
+            if "/usr/bin/gcc" in command:
+                work = Path(command[command.index("--bind") + 1])
+                (work / "submission").write_text("mock executable")
+                return {"status": "completed", "exit_code": 0, "seconds": 0.01}
+            return {"status": "timeout", "seconds": 0.75, "stdout": "", "stderr": ""}
+
+        mock_run.side_effect = fake_run
+        result = run_c_batch(
+            "int main(void){return 0;}",
+            ["small\n", "large\n"],
+            stop_after_timeout=True,
+            per_case_timeout_seconds=0.75,
+        )
+
+        self.assertEqual(result["executed"], 1)
+        self.assertTrue(result["timeout_stopped_early"])
+        self.assertEqual(result["summary"]["time_limit_exceeded"], 1)
+        self.assertEqual(mock_run.call_count, 2)
+
+    @patch("analyzers.batch_execution.run_c_batch")
+    def test_cases_after_brute_timeout_are_unverified_not_failed(self, mock_batch):
+        def fake_batch(source, inputs, **kwargs):
+            if source == "brute":
+                return {
+                    "status": "completed_with_execution_issues",
+                    "compiled_once": True,
+                    "timeout_stopped_early": True,
+                    "results": [{
+                        "execution_class": "time_limit_exceeded",
+                        "status": "timeout", "run_seconds": 0.75,
+                        "stdout": "", "stderr": "", "exit_code": None,
+                    }],
+                }
+            return {
+                "status": "completed",
+                "compiled_once": True,
+                "timeout_stopped_early": False,
+                "results": [{
+                    "execution_class": "program_success",
+                    "status": "completed", "run_seconds": 0.01,
+                    "stdout": "1", "stderr": "", "exit_code": 0,
+                } for _ in inputs],
+            }
+
+        mock_batch.side_effect = fake_batch
+        result = benchmark_three_programs_parallel(
+            "student", "brute", "efficient",
+            [{"input_size": 1, "input": "one"},
+             {"input_size": 2, "input": "two"}],
+            time_budget_seconds=1.0,
+        )
+
+        self.assertEqual(len(result["differential_comparisons"]), 2)
+        second = result["differential_comparisons"][1]
+        self.assertIsNone(second["outputs_agree"])
+        self.assertEqual(
+            second["outcomes"]["brute_force"]["execution_class"],
+            "not_run_after_brute_force_timeout",
+        )
 
     def test_rejects_empty_batch(self):
         self.assertEqual(

@@ -40,6 +40,13 @@ def generate_test_plans(
             "adversarial_tests": None,
         }
 
+    declared_schema = spec.to_dict().get("input_schema")
+    if isinstance(schema, StructuredIntegerInputSchema):
+        if declared_schema != schema.to_dict():
+            return {"status": "schema_contract_mismatch", "reason": "The execution schema differs from the confirmed assignment schema.", "random_tests": None, "adversarial_tests": None}
+    elif declared_schema is not None:
+        return {"status": "schema_contract_mismatch", "reason": "A structured assignment schema cannot be replaced by legacy integer bounds.", "random_tests": None, "adversarial_tests": None}
+
     if not isinstance(source, str) or not source.strip():
         return {
             "status": "invalid_request",

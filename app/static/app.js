@@ -921,7 +921,7 @@ int main(void) {
     };
     addSection("Problem", spec.problem_statement || data?.candidates?.[0]?.problem_statement);
     addSection("Input", spec.input_format || data?.candidates?.[0]?.input_format);
-    addSection("Output", spec.output_format || data?.candidates?.[0]?.output_format);
+    addSection("Output contract", spec.output_format || data?.candidates?.[0]?.output_format);
     const constraints = spec.constraints || data?.constraints;
     if (Array.isArray(constraints) && constraints.length) {
       const section = document.createElement("section");
@@ -935,10 +935,27 @@ int main(void) {
     if (Array.isArray(fields) && fields.length) {
       const section = document.createElement("section");
       section.className = "result-section user-summary-section";
-      const heading = document.createElement("h4"); heading.textContent = "Input fields";
+      const heading = document.createElement("h4"); heading.textContent = "Generated input schema";
       const list = document.createElement("ul"); list.className = "result-list";
-      fields.slice(0, 10).forEach(field => { const item = document.createElement("li"); item.textContent = `${displayLabel(field.name)}${field.type ? ` · ${displayLabel(field.type)}` : ""}`; list.append(item); });
-      section.append(heading, list); parent.append(section);
+      fields.slice(0, 10).forEach(field => {
+        const details = [];
+        if (field.type) details.push(displayLabel(field.type));
+        if (field.min !== undefined || field.max !== undefined) {
+          details.push(`range ${field.min ?? "?"} to ${field.max ?? "?"}`);
+        }
+        if (field.length_from) details.push(`length from ${displayLabel(field.length_from)}`);
+        const item = document.createElement("li");
+        item.textContent = `${displayLabel(field.name)}${details.length ? ` · ${details.join(" · ")}` : ""}`;
+        list.append(item);
+      });
+      if (spec.input_schema.size_field) {
+        const scale = document.createElement("p");
+        scale.textContent = `Workload size: ${displayLabel(spec.input_schema.size_field)}`;
+        section.append(heading, list, scale);
+      } else {
+        section.append(heading, list);
+      }
+      parent.append(section);
     }
     if (!parent.childElementCount) stageText(parent, "Problem", "Review the problem statement and confirm the intended input and output before continuing.");
   }
@@ -946,6 +963,8 @@ int main(void) {
   function renderReferenceSolutions(parent, references) {
     if (!parent) return;
     parent.replaceChildren();
+    stageText(parent, "Agent 2 status", references?.status || "no_response");
+    if (references?.message) stageText(parent, "Why it stopped", references.message);
     for (const [label, item] of [["Brute-force reference", references?.brute_force], ["Efficient reference", references?.efficient]]) {
       if (!item || typeof item !== "object") continue;
       const card = document.createElement("article"); card.className = "reference-solution-card";
@@ -1271,21 +1290,32 @@ int main(void) {
         }
       }
 
+      const schemaReady = Boolean(
+        Array.isArray(data.assignment_spec?.input_schema?.fields) &&
+        data.assignment_spec.input_schema.fields.length > 0
+      );
       const ready =
         data.assignment_spec_status === "draft_requires_instructor_confirmation" &&
         data.assignment_spec &&
+        schemaReady &&
         typeof data.assignment_spec_fingerprint === "string" &&
-        typeof data.assignment_spec_draft_token === "string" &&
-        questions.length === 0;
+        typeof data.assignment_spec_draft_token === "string";
+      const provisional = data.reconstruction?.status === "needs_clarification";
 
       approveButton.disabled = !ready;
-      if (agent1Summary && !ready) {
-        agent1Summary.textContent +=
-          " — Instructor approval is unavailable until a complete, unambiguous draft is returned.";
+      if (agent1Summary && ready && provisional) {
+        agent1Summary.textContent =
+          "One provisional interpretation is ready. Review the open question(s), assumptions, and draft carefully before approval.";
+      } else if (agent1Summary && !ready) {
+        agent1Summary.textContent += schemaReady
+          ? " — No single complete problem draft is available, so approval is unavailable."
+          : " — Agent 1 did not produce a usable input schema; clarify the input grammar and bounds before continuing.";
       }
       showToast(ready
-        ? "Agent 1 completed. Review the specification before approval."
-        : "Agent 1 returned results requiring clarification or review.");
+        ? (provisional
+          ? "A provisional draft is ready. Review its open questions before approval."
+          : "Agent 1 completed. Review the specification before approval.")
+        : "Agent 1 could not produce one reviewable problem draft.");
     } catch (error) {
       currentDraft = null;
       if (agent1Summary) agent1Summary.textContent = !agent1Started ? `Preflight did not complete: ${error.message}` : `Agent 1 failed: ${error.message}`;
@@ -1299,9 +1329,11 @@ int main(void) {
       return;
     }
 
-    const confirmed = window.confirm(
-      "You are approving this reconstructed problem specification. Agent 2 will then generate reference solutions. Continue?"
-    );
+    const hasOpenQuestions = Boolean(currentDraft.reconstruction?.status === "needs_clarification");
+    const confirmMessage = hasOpenQuestions
+      ? "This is a provisional problem specification with open clarification(s) shown above. Approving it accepts those assumptions for reference generation. Correctness testing still requires a valid input format/schema. Continue?"
+      : "You are approving this reconstructed problem specification. Agent 2 will then generate reference solutions. Continue?";
+    const confirmed = window.confirm(confirmMessage);
     if (!confirmed) return;
 
     approveButton.disabled = true;
@@ -1309,7 +1341,8 @@ int main(void) {
     try {
       const confirmation = await apiRequest("/api/ui/confirm-assignment", {
         submission_id: currentDraft.submission_id,
-        instructor_approved: true
+        instructor_approved: true,
+        accept_provisional_spec: hasOpenQuestions
       });
 
       if (agent1Summary) {
@@ -1326,11 +1359,23 @@ int main(void) {
         submission_id: currentDraft.submission_id
       });
 
+      currentDraft.references = references;
       renderReferenceSolutions(referenceOutput, references);
+      const referencesReady = Boolean(
+        references?.brute_force?.code?.trim() &&
+        references?.efficient?.code?.trim()
+      );
+      agent2Panel.hidden = false;
+      if (!referencesReady) {
+        if (agent3Panel) agent3Panel.hidden = true;
+        showToast(references?.message || "Agent 2 did not return both reference programs. Agent 3 is paused.");
+        return;
+      }
       configureAgent3SchemaMode();
-      agent2Panel.hidden = true;
       if (agent3Panel) agent3Panel.hidden = false;
-      showToast("Agent 2 finished. Agent 3 is ready using the approved input schema.");
+      showToast(confirmation.assignment_spec?.input_schema
+        ? "Agent 2 finished. Its references remain visible while Agent 3 is open."
+        : "Agent 2 finished. Set Agent 3's input bounds; the references stay visible.");
     } catch (error) {
       if (referenceOutput) referenceOutput.textContent = `Reference generation failed: ${error.message}`;
       agent1Panel.hidden = false;
@@ -1369,7 +1414,7 @@ int main(void) {
     );
 
     agent3LegacyControls.forEach(control => {
-      if (control) control.hidden = structured;
+      if (control) control.hidden = true;
     });
 
     if (agent3SchemaSummary) {
@@ -1409,9 +1454,8 @@ int main(void) {
     };
 
     if (!structuredMode) {
-      payload.token_count = readNumber("#agent3-token-count");
-      payload.minimum = readNumber("#agent3-minimum");
-      payload.maximum = readNumber("#agent3-maximum");
+      showToast("Agent 1 must produce an approved input schema before tests can be generated.");
+      return;
     }
 
     if (Object.values(payload).some(
@@ -1428,7 +1472,6 @@ int main(void) {
       return;
     }
 
-    agent2Panel.hidden = true;
     agent3aCard.hidden = false;
     agent3bCard.hidden = false;
     executionControls.hidden = false;
@@ -1473,13 +1516,28 @@ int main(void) {
         return null;
       };
 
-      const generation = result.agent3a?.generation || {};
+      const agent3a = result.agent3a || {};
+      const generation = agent3a.generation || {};
       const generatedCount = Array.isArray(generation.inputs)
         ? generation.inputs.length : 0;
+      if (generation.rejected_count > 0) {
+        stageText(agent3Output, "Agent 3A validation",
+          `${generation.rejected_count} invalid or duplicate case(s) were excluded; only schema-valid cases will run.`);
+      }
+      if (generation.shortfall_count > 0) {
+        stageText(agent3Output, "Agent 3A count",
+          `The generator returned ${generation.returned_count ?? generatedCount} of ${generation.requested_count} requested cases.`);
+      }
+      stageText(agent3Output, "Agent 3A status", agent3a.status || generation.status || "not_run");
+      if (agent3a.message || agent3a.reason || generation.message || generation.reason) {
+        stageText(agent3Output, "Agent 3A note",
+          agent3a.message || agent3a.reason || generation.message || generation.reason);
+      }
       const edgeCases = Array.isArray(result.agent3b?.cases) ? result.agent3b.cases.length : 0;
       if (agent3bOutput) {
         agent3bOutput.replaceChildren();
         const edge = result.agent3b || {};
+        stageText(agent3bOutput, "Agent 3B status", edge.status || "not_run");
         stageText(agent3bOutput, "Targeted edge cases", (edge.cases || []).length);
         stageText(agent3bOutput, "Agent 3B summary", edge.summary);
         if (edge.reason || edge.message) {
@@ -1994,6 +2052,7 @@ int main(void) {
       "Execute the generated C test inputs in the local development sandbox? Public execution remains disabled."
     )) return;
 
+    if (agent2Panel) agent2Panel.hidden = true;
     executeTestsButton.disabled = true;
     executeTestsButton.textContent = "[ executing… ]";
     if (executionOutput) executionOutput.textContent = "Running local evaluation…";

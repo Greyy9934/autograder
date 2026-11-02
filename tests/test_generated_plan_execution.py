@@ -8,6 +8,7 @@ def prepared(source):
     return {
         "status": "reconstruction_ready",
         "source_sha256": hashlib.sha256(source.encode()).hexdigest(),
+        "assignment_spec_fingerprint": "a" * 64,
         "preflight": {"decision": "continue"},
         "reconstruction": {
             "status": "ready",

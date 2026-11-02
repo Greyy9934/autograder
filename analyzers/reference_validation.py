@@ -3,6 +3,7 @@
 from typing import Any
 
 from analyzers.batch_execution import run_c_batch
+from analyzers.output_contract import normalize_stdout
 
 
 def validate_reference_program(
@@ -92,7 +93,7 @@ def validate_reference_program(
             and not actual.get("stderr_truncated", False)
         )
         passed = comparable and (
-            actual.get("stdout") == case["expected_output"]
+            normalize_stdout(actual.get("stdout", "")) == normalize_stdout(case["expected_output"])
         )
         results.append({
             "case_index": index,
@@ -153,7 +154,8 @@ def validate_reference_pair(
                     comparisons.append({
                         "case_index": index,
                         "outputs_agree": (
-                            left["actual_output"] == right["actual_output"]
+                            normalize_stdout(left["actual_output"])
+                            == normalize_stdout(right["actual_output"])
                         ),
                     })
 

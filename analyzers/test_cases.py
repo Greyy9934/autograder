@@ -5,11 +5,7 @@ from typing import Any
 from analyzers.batch_execution import run_c_batch
 
 
-def normalize_output(value: str) -> str:
-    """Normalize CRLF and trailing whitespace on each output line."""
-    return "\n".join(
-        line.rstrip() for line in value.replace("\r\n", "\n").split("\n")
-    ).rstrip("\n")
+from analyzers.output_contract import normalize_stdout as normalize_output
 
 
 def analyze_test_cases(

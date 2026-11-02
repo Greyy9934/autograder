@@ -131,3 +131,26 @@ def test_invalid_supporting_evidence_type_is_rejected():
     result = analyze_complexity(SOURCE, provider, static_analysis="not-an-object")
     assert result["status"] == "invalid_request"
     assert provider.calls == []
+
+
+def test_agent4_receives_approved_io_contract():
+    context = {
+        "problem_statement": "Sum the n values.",
+        "constraints": ["1 <= n <= 10"],
+        "input_format": "n followed by n integers",
+        "output_format": "One integer: the sum",
+        "input_schema": {
+            "version": 1,
+            "fields": [
+                {"name": "n", "type": "int", "min": 1, "max": 10},
+                {"name": "values", "type": "int_array", "length_from": "n", "min": -9, "max": 9},
+            ],
+            "size_field": "values",
+        },
+    }
+    provider = ScenarioAIProvider([get_scenario("agent4", "linear_scan")])
+    result = analyze_complexity(SOURCE, provider, problem_context=context)
+    assert result["status"] == "analyzed"
+    contract = provider.calls[0]["payload"]["approved_io_contract"]
+    assert {key: contract[key] for key in context} == context
+    assert contract["output_contract"]["format"] == context["output_format"]

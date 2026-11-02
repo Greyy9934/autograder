@@ -785,8 +785,10 @@ def generate_pdf_report(evaluation: dict[str, Any], output_path: str | Path) -> 
         story.append(Paragraph(
             "All three programs are compiled before concurrent execution begins. "
             "The shared deadline applies to the benchmark as a whole; per-input "
-            "execution limits are separate safety caps. These are single-run "
-            "observations, not medians or complexity proofs.",
+            "execution limits are separate safety caps. Brute force stops after "
+            "its first per-input timeout; later cases stay unverified instead of "
+            "being treated as failures. These are single-run observations, not "
+            "medians or complexity proofs.",
             styles["body_custom"],
         ))
         summary_rows = [["Program", "Status", "Cases run", "Successful", "Timed out / failed"]]
@@ -853,8 +855,32 @@ def generate_pdf_report(evaluation: dict[str, Any], output_path: str | Path) -> 
             for comparison, student, brute, generated_input in mismatches[:5]:
                 failure_rows.append([comparison.get("input_size", "-"), str(generated_input or "Unavailable")[:350], str(brute.get("stdout", ""))[:180], str(student.get("stdout", ""))[:180]])
             story.append(_table(failure_rows, [18 * mm, 72 * mm, 39 * mm, 39 * mm], styles))
-        elif isinstance(comparisons, list) and comparisons:
-            story.append(Paragraph(f"No confirmed student/brute-force output disagreements in {len(comparisons)} differential case(s). Inputs are omitted.", styles["small"]))
+        if isinstance(comparisons, list) and comparisons:
+            complete_comparisons = sum(
+                1 for comparison in comparisons
+                if isinstance(comparison, dict)
+                and all(
+                    ((comparison.get("outcomes") or {}).get(name) or {}).get("execution_class") == "program_success"
+                    for name in ("student", "brute_force", "efficient")
+                )
+            )
+            unverified_cases = len(comparisons) - complete_comparisons
+            if mismatches:
+                message = (
+                    f"{complete_comparisons} case(s) completed all three runs; "
+                    f"{unverified_cases} lacked a complete comparison because of "
+                    "a timeout or the benchmark deadline. Unverified cases are "
+                    "not counted as wrong answers."
+                )
+            else:
+                message = (
+                    f"No confirmed student/brute-force output disagreements among "
+                    f"{complete_comparisons} complete three-program comparisons. "
+                    f"{unverified_cases} case(s) lacked a complete comparison because "
+                    "of a timeout or the benchmark deadline; they remain unverified, "
+                    "not counted as wrong answers. Inputs are omitted."
+                )
+            story.append(Paragraph(message, styles["small"]))
 
         if agent3a_benchmark.get("status"):
             story.append(Paragraph(

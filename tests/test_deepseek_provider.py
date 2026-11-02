@@ -78,7 +78,7 @@ def test_sends_json_mode_request_and_parses_object():
     assert request.full_url == "https://api.deepseek.com/chat/completions"
     assert request.get_header("Authorization") == "Bearer test-key"
     assert body["model"] == "deepseek-flash"
-    assert body["max_tokens"] == 3072
+    assert body["max_tokens"] == 4096
     assert body["reasoning_effort"] == "low"
     assert body["temperature"] == 0
     assert body["response_format"] == {"type": "json_object"}
@@ -275,14 +275,14 @@ def test_rejects_non_official_https_endpoint():
 
 def test_rejects_out_of_bounds_max_tokens():
     with pytest.raises(ValueError, match="max_tokens"):
-        DeepSeekProvider("test-key", max_tokens=8193)
+        DeepSeekProvider("test-key", max_tokens=16385)
 
 
 
 def test_agent_caps_match_the_standard_submission_budget():
     assert len(AGENT_OUTPUT_TOKEN_CAPS) == 7
     assert sum(AGENT_OUTPUT_TOKEN_CAPS.values()) == PER_SUBMISSION_OUTPUT_TOKEN_BUDGET
-    assert AGENT_OUTPUT_TOKEN_CAPS[TASK_REFERENCES] == 8192
+    assert AGENT_OUTPUT_TOKEN_CAPS[TASK_REFERENCES] == 12288
 
 
 def test_unknown_agent_task_is_rejected_before_network_call():
@@ -300,13 +300,13 @@ def test_unknown_agent_task_is_rejected_before_network_call():
 @pytest.mark.parametrize(
     ("task", "expected_cap"),
     [
-        (TASK_RECONSTRUCTION, 3072),
-        (TASK_REFERENCES, 8192),
-        (TASK_RANDOM_GENERATOR, 4096),
-        (TASK_EDGE_CASES, 3072),
-        (TASK_COMPLEXITY, 2048),
-        (TASK_MATHEMATICAL_PROOF, 6144),
-        (TASK_CODE_QUALITY, 2048),
+        (TASK_RECONSTRUCTION, 4096),
+        (TASK_REFERENCES, 12288),
+        (TASK_RANDOM_GENERATOR, 8192),
+        (TASK_EDGE_CASES, 12288),
+        (TASK_COMPLEXITY, 4096),
+        (TASK_MATHEMATICAL_PROOF, 8192),
+        (TASK_CODE_QUALITY, 4096),
     ],
 )
 def test_request_uses_its_agent_specific_output_cap(task, expected_cap):

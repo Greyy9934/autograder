@@ -53,7 +53,7 @@ def test_mock_agent3a_generator_is_reproducible_and_emits_valid_legacy_inputs():
     ).stdout
 
 
-def test_mock_agent3a_generator_respects_structured_schema_and_progresses_size():
+def test_mock_agent3a_generator_respects_structured_schema_and_stratifies_size():
     schema = {
         "version": 1,
         "size_field": "values",
@@ -70,8 +70,28 @@ def test_mock_agent3a_generator_respects_structured_schema_and_progresses_size()
     )
     cases = json.loads(run.stdout)["inputs"]
     sizes = [int(case["input"].splitlines()[0]) for case in cases]
-    assert sizes == sorted(sizes)
+    assert all(1 <= size <= 20 for size in sizes)
     assert all(len(case["input"].splitlines()[1].split()) == sizes[i] for i, case in enumerate(cases))
+
+
+def test_mock_agent3a_keeps_large_batches_brute_force_focused():
+    schema = {
+        "version": 1,
+        "size_field": "values",
+        "fields": [
+            {"name": "n", "type": "int", "min": 1, "max": 20000},
+            {"name": "values", "type": "int_array", "length_from": "n", "min": -9, "max": 9},
+        ],
+    }
+    code = _generator_program(schema)
+    run = subprocess.run(
+        [sys.executable, "-c", code, "17", "100"],
+        check=True, capture_output=True, text=True,
+    )
+    sizes = [int(case["input"].splitlines()[0]) for case in json.loads(run.stdout)["inputs"]]
+    assert len(sizes) == 100
+    assert max(sizes) <= 128
+    assert sum(size <= 32 for size in sizes) >= 60
 
 
 def test_mock_agent_responses_match_real_agent_json_schemas():

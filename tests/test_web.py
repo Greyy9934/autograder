@@ -284,6 +284,13 @@ def test_instructor_confirmation_endpoint_confirms_valid_draft(monkeypatch):
         constraints=("Both integers are within signed 32-bit range.",),
         input_format="Two integers separated by whitespace.",
         output_format="Print their sum followed by a newline.",
+        input_schema={
+            "version": 1,
+            "fields": [
+                {"name": "a", "type": "int", "min": -100, "max": 100},
+                {"name": "b", "type": "int", "min": -100, "max": 100},
+            ],
+        },
     )
 
     response = client.post(
@@ -361,6 +368,13 @@ def test_instructor_confirmation_rejects_modified_draft(monkeypatch):
         },
         input_format="Two integers.",
         output_format="Print their sum.",
+        input_schema={
+            "version": 1,
+            "fields": [
+                {"name": "a", "type": "int", "min": -100, "max": 100},
+                {"name": "b", "type": "int", "min": -100, "max": 100},
+            ],
+        },
     )
     modified = draft.to_dict()
     modified["output_format"] = "Print their product."
@@ -388,6 +402,13 @@ def _reference_generation_spec(confirmed=True):
         },
         input_format="Two integers separated by whitespace.",
         output_format="Print their sum followed by a newline.",
+        input_schema={
+            "version": 1,
+            "fields": [
+                {"name": "a", "type": "int", "min": -100, "max": 100},
+                {"name": "b", "type": "int", "min": -100, "max": 100},
+            ],
+        },
     )
     return draft.confirm(instructor_approved=True) if confirmed else draft
 
@@ -492,6 +513,13 @@ def test_instructor_confirmation_rejects_recomputed_modified_draft(monkeypatch):
         },
         input_format="Two integers.",
         output_format="Print their sum.",
+        input_schema={
+            "version": 1,
+            "fields": [
+                {"name": "a", "type": "int", "min": -100, "max": 100},
+                {"name": "b", "type": "int", "min": -100, "max": 100},
+            ],
+        },
     )
     original_token = _create_draft_token(draft.fingerprint())
 
@@ -666,7 +694,15 @@ def _install_ui_workflow_mocks(monkeypatch):
     import app.web
 
     source = "int main(void) { return 0; }"
-    spec = {"title": "Test assignment", "problem_statement": "Return zero."}
+    spec = {
+        "title": "Test assignment",
+        "problem_statement": "Return zero.",
+        "input_format": "One integer.",
+        "output_format": "Print zero.",
+        "input_schema": {"version": 1, "fields": [
+            {"name": "x", "type": "int", "min": -10, "max": 10}
+        ]},
+    }
     fingerprint = "a" * 64
 
     def fake_prepare(request, x_preparation_key=""):
@@ -778,9 +814,7 @@ def test_ui_agent3_generates_tests_only_after_approval(monkeypatch):
 
     payload = {
         "submission_id": submission_id,
-        "token_count": 1,
-        "minimum": 0,
-        "maximum": 100,
+        "random_count": 1,
     }
 
     denied = test_client.post("/api/ui/generate-tests", json=payload)
@@ -799,12 +833,19 @@ def test_ui_agent3_generates_tests_only_after_approval(monkeypatch):
         "constraints": (),
         "input_format": "One integer.",
         "output_format": "Print one integer.",
+        "input_schema": {"version": 1, "fields": [
+            {"name": "x", "type": "int", "min": 0, "max": 100}
+        ]},
         "time_limit_seconds": 2.0,
         "memory_limit_mb": 256,
         "version": 1,
         "confirmed": True,
     }
     app.web._UI_SUBMISSIONS[submission_id]["confirmed_spec"] = confirmed_spec
+    app.web._UI_SUBMISSIONS[submission_id]["references"] = {
+        "brute_force": {"code": "int main(void) { return 0; }"},
+        "efficient": {"code": "int main(void) { return 0; }"},
+    }
 
     calls = {"plans": 0}
 
@@ -812,8 +853,8 @@ def test_ui_agent3_generates_tests_only_after_approval(monkeypatch):
         calls["plans"] += 1
         assert kwargs["source"] == source
         assert kwargs["spec"].confirmed is True
-        assert kwargs["schema"].minimum == 0
-        assert kwargs["schema"].maximum == 100
+        assert kwargs["schema"].validate("50\n")
+        assert not kwargs["schema"].validate("101\n")
         return {
             "status": "generated",
             "execution_performed": False,
@@ -1128,7 +1169,24 @@ def test_ui_execution_uses_stored_plans_and_caches_result(monkeypatch):
         json={"submission_id": submission_id, "instructor_approved": True},
     )
 
-    plans = {"status": "generated", "random_tests": {}, "adversarial_tests": {}}
+    record = app.web._UI_SUBMISSIONS[submission_id]
+    schema = {"version": 1, "fields": [
+        {"name": "a", "type": "int", "min": 0, "max": 100},
+        {"name": "b", "type": "int", "min": 0, "max": 100},
+    ]}
+    record["confirmed_spec"]["problem_id"] = "test-problem"
+    record["confirmed_spec"]["input_schema"] = schema
+    from analyzers.assignment_spec import AssignmentSpec
+    spec_data = dict(record["confirmed_spec"])
+    spec_data["constraints"] = tuple(spec_data.get("constraints", ()))
+    record["confirmed_fingerprint"] = AssignmentSpec(**spec_data).fingerprint()
+    record["input_schema"] = schema
+    plans = {
+        "status": "generated",
+        "spec_fingerprint": record["confirmed_fingerprint"],
+        "random_tests": {},
+        "adversarial_tests": {},
+    }
     app.web._UI_SUBMISSIONS[submission_id]["test_plans"] = plans
     app.web._UI_SUBMISSIONS[submission_id]["prepared_result"] = {
         "status": "reconstruction_ready"

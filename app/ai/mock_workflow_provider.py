@@ -64,8 +64,12 @@ def _generator_program(schema: dict[str, Any]) -> str:
         "    length_field=next((f for f in fields if f['name']==length_name and f['type']=='int'),None)\n"
         "    desired=None\n"
         "    if length_field:\n"
-        "        lo=int(length_field['min']); hi=min(int(length_field['max']),max(lo,2000))\n"
-        "        desired=lo if count==1 else lo+(hi-lo)*index//(count-1)\n"
+        "        lo=int(length_field['min']); hi=min(int(length_field['max']),max(lo,128))\n"
+        "        span=hi-lo\n"
+        "        if count < 10: desired=rng.randint(lo,hi)\n"
+        "        elif index < count*70//100: desired=rng.randint(lo,lo+span//4)\n"
+        "        elif index < count*90//100: desired=rng.randint(lo+span//4,lo+span//2)\n"
+        "        else: desired=rng.randint(lo+span//2,hi)\n"
         "    values={}; lines=[]\n"
         "    for f in fields:\n"
         "        name=f['name']; kind=f['type']; lo=int(f['min']); hi=int(f['max'])\n"
@@ -167,7 +171,7 @@ class MockWorkflowProvider:
                 "generator_program": _generator_program(input_schema),
                 "design_rationale": "Offline generator follows the approved input schema and uses a reproducible seed.",
                 "distributions": ["seeded_progressive"],
-                "size_strategy": "Progressively increase the schema-declared size field.",
+                "size_strategy": "Seeded 70/20/10 size bands favor small/medium brute-force comparisons with a few larger probes.",
                 "limitations": ["SIMULATED AGENT 3A RESPONSE: generator design is deterministic, not AI-authored."],
             }
         if task == TASK_EDGE_CASES:

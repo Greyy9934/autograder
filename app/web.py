@@ -10,6 +10,7 @@ import secrets
 import tempfile
 import io
 import json
+import logging
 import zipfile
 
 from fastapi import FastAPI, HTTPException, Header, Response
@@ -33,6 +34,7 @@ from analyzers.agent3_ai import (
 from analyzers.batch_execution import run_c_batch
 from analyzers.batch_execution import benchmark_three_programs_parallel
 from app.ai.config import create_ai_provider, mock_mode_enabled
+from app.ai.diagnostics import request_id_var
 from app.ai.base import AIProviderError
 from app.orchestrator import evaluate_submission, evaluate_execution_evidence
 from app.runner import compile_c_source
@@ -52,6 +54,13 @@ from starlette.background import BackgroundTask
 from app.pdf_report import generate_pdf_report
 from app.ai.demo_runner import build_real_demo_payload
 
+logger = logging.getLogger("autograder.workflow")
+# Uvicorn configures its own handlers, but application loggers otherwise inherit
+# Python's WARNING default and silently drop the INFO stage/usage diagnostics.
+# Enable concise workflow/provider diagnostics without logging source or prompts.
+for _application_logger_name in ("autograder", "app", "analyzers"):
+    logging.getLogger(_application_logger_name).setLevel(logging.INFO)
+
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR.parent / '.env', override=False)
 
@@ -60,6 +69,19 @@ app = FastAPI(
     description="Rule-driven evaluator for C programs",
     version="0.2.0",
 )
+
+
+@app.middleware("http")
+async def attach_request_id(request: Request, call_next):
+    """Tag each request so workflow and provider diagnostics can be correlated."""
+    request_id = secrets.token_hex(6)
+    token = request_id_var.set(request_id)
+    try:
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+    finally:
+        request_id_var.reset(token)
 
 app.mount(
     "/static",
@@ -222,6 +244,8 @@ def confirm_assignment(
         draft = AssignmentSpec(**values)
         if draft.confirmed:
             raise ValueError("The submitted specification must be an unconfirmed draft.")
+        if not draft.input_schema:
+            raise ValueError("Agent 1 must provide an input schema before this specification can be approved.")
         fingerprint = draft.fingerprint()
         if not secrets.compare_digest(
             fingerprint, request.expected_fingerprint
@@ -306,6 +330,19 @@ def prepare_submission(
             detail="Problem statement must not be blank when supplied.",
         )
 
+    started = time.perf_counter()
+    provider_mode = (
+        "demo_scenario" if request.demo_mode
+        else "offline_mock" if mock_mode_enabled()
+        else os.getenv("AI_PROVIDER", "gemini").strip().lower()
+    )
+    logger.info(
+        "workflow_prepare_started request_id=%s mode=%s source_bytes=%d statement_present=%s",
+        request_id_var.get(),
+        provider_mode,
+        len(request.source.encode("utf-8")),
+        bool(request.problem_statement and request.problem_statement.strip()),
+    )
     result = evaluate_submission(
         source=request.source,
         problem_statement=request.problem_statement,
@@ -329,6 +366,26 @@ def prepare_submission(
         result["assignment_spec_draft_token"] = _create_draft_token(
             fingerprint
         )
+    reconstruction = result.get("reconstruction") or {}
+    preflight_result = result.get("preflight") or {}
+    compilation = result.get("compilation") or {}
+    spec = result.get("assignment_spec") or {}
+    candidates = reconstruction.get("candidates") or []
+    logger.info(
+        "workflow_prepare_completed request_id=%s mode=%s elapsed_ms=%.1f result_status=%s preflight=%s compile=%s agent1_status=%s agent1_provider=%s candidate_count=%d clarifying_question_count=%d schema_present=%s assignment_spec_status=%s",
+        request_id_var.get(),
+        provider_mode,
+        (time.perf_counter() - started) * 1000,
+        result.get("status", "unknown"),
+        preflight_result.get("decision", "unknown"),
+        compilation.get("status", "not_run"),
+        reconstruction.get("status", "not_run"),
+        reconstruction.get("reconstruction_provider", "not_connected"),
+        len(candidates),
+        len(reconstruction.get("clarifying_questions") or []),
+        bool(spec.get("input_schema")),
+        result.get("assignment_spec_status", "not_created"),
+    )
     return result
 
 
@@ -360,6 +417,7 @@ class ReferenceGenerationRequest(BaseModel):
     assignment_spec: dict
     expected_fingerprint: str = Field(min_length=64, max_length=64)
     approval_token: str = Field(min_length=1, max_length=256)
+    user_supplied_problem_statement: str | None = Field(default=None, max_length=20000)
 
 
 @app.post("/api/generate-references")
@@ -387,6 +445,8 @@ def generate_references(
         spec = AssignmentSpec(**values)
         if not spec.confirmed:
             raise ValueError("Instructor-confirmed specification required.")
+        if not spec.input_schema:
+            raise ValueError("Agent 1 must provide an input schema before Agent 2 can generate references.")
         if not secrets.compare_digest(spec.fingerprint(), request.expected_fingerprint):
             raise ValueError("Assignment specification fingerprint mismatch.")
         if not _verify_approval_token(spec.fingerprint(), request.approval_token):
@@ -394,7 +454,11 @@ def generate_references(
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    result = generate_reference_solutions_for_confirmed_spec(spec, provider=provider)
+    result = generate_reference_solutions_for_confirmed_spec(
+        spec,
+        provider=provider,
+        user_supplied_problem_statement=request.user_supplied_problem_statement,
+    )
     if provider is not None and isinstance(result, dict):
         result["analysis_mode"] = "simulated"
         result["provider_mode"] = "demo_scenario"
@@ -626,6 +690,7 @@ def _get_ui_submission(session_id: str, submission_id: str) -> dict[str, Any]:
 class UIConfirmRequest(BaseModel):
     submission_id: str = Field(min_length=20, max_length=128)
     instructor_approved: bool
+    accept_provisional_spec: bool = False
 
 
 class UIGenerateReferencesRequest(BaseModel):
@@ -858,6 +923,19 @@ def instructor_ui_prepare(request: PreparationRequest, http_request: Request):
             "references": None,
         }
         result["submission_id"] = _save_ui_submission(session_id, record)
+        logger.info(
+            "ui_submission_draft_persisted request_id=%s submission_id_prefix=%s",
+            request_id_var.get(),
+            result["submission_id"][:8],
+        )
+    elif result.get("assignment_spec_status") != "draft_requires_instructor_confirmation":
+        logger.warning(
+            "ui_submission_draft_not_persisted request_id=%s result_status=%s assignment_spec_status=%s agent1_status=%s",
+            request_id_var.get(),
+            result.get("status", "unknown"),
+            result.get("assignment_spec_status", "not_created"),
+            (result.get("reconstruction") or {}).get("status", "not_run"),
+        )
     return result
 
 @app.post("/api/ui/confirm-assignment")
@@ -869,6 +947,21 @@ def instructor_ui_confirm(request: UIConfirmRequest, http_request: Request):
         raise HTTPException(status_code=403, detail="Explicit instructor approval is required.")
     if record.get("confirmed_spec") is not None:
         raise HTTPException(status_code=409, detail="This submission has already been approved.")
+    draft_spec = record.get("draft_spec") or {}
+    if not isinstance(draft_spec.get("input_schema"), dict):
+        raise HTTPException(
+            status_code=409,
+            detail="Agent 1 did not return a usable input schema. Clarify the input grammar and resubmit before approval.",
+        )
+    if (
+        (record.get("prepared_result") or {}).get("reconstruction", {}).get("status")
+        == "needs_clarification"
+        and request.accept_provisional_spec is not True
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="This draft has open clarification(s); explicit instructor acceptance is required.",
+        )
 
     confirmation = confirm_assignment(
         ConfirmAssignmentRequest(
@@ -906,6 +999,7 @@ def instructor_ui_generate_references(
         assignment_spec=record["confirmed_spec"],
         expected_fingerprint=record["confirmed_fingerprint"],
         approval_token=record["approval_token"],
+        user_supplied_problem_statement=record.get("problem_statement"),
     )
     key = os.getenv("INSTRUCTOR_CONFIRMATION_KEY", "").strip()
     if record.get("demo_mode") is True:
@@ -924,6 +1018,15 @@ def instructor_ui_generate_references(
         references["analysis_mode"] = "simulated"
         references["demo_scenario_id"] = record["scenario_id"]
         references["demo_scenario_name"] = record.get("demo_scenario_name")
+    logger.info(
+        "agent2_reference_generation_completed request_id=%s mode=%s status=%s brute_force_present=%s efficient_present=%s validation_status=%s",
+        request_id_var.get(),
+        "demo" if record.get("demo_mode") is True else "live",
+        references.get("status", "unknown"),
+        bool((references.get("brute_force") or {}).get("code")),
+        bool((references.get("efficient") or {}).get("code")),
+        (references.get("validation") or {}).get("status", "not_run"),
+    )
     record["references"] = references
     return references
 
@@ -947,6 +1050,8 @@ def instructor_ui_generate_tests(
         spec_data["constraints"] = tuple(spec_data.get("constraints", ()))
         spec = AssignmentSpec(**spec_data)
         approved_schema = spec.to_dict().get("input_schema")
+        if approved_schema is None:
+            raise ValueError("Agent 1 must provide an input schema before tests can be generated.")
         if approved_schema is not None:
             from analyzers.structured_input_schema import StructuredIntegerInputSchema
             schema = StructuredIntegerInputSchema.from_dict(approved_schema)
@@ -987,6 +1092,26 @@ def instructor_ui_generate_tests(
     prepared = record.get("prepared_result") or {}
     risk_data = prepared.get("source_risks") or {}
     references = record.get("references") or {}
+    brute_reference = references.get("brute_force") if isinstance(references, dict) else None
+    efficient_reference = references.get("efficient") if isinstance(references, dict) else None
+    brute_code = brute_reference.get("code") if isinstance(brute_reference, dict) else None
+    efficient_code = efficient_reference.get("code") if isinstance(efficient_reference, dict) else None
+    if not (
+        isinstance(brute_code, str) and brute_code.strip()
+        and isinstance(efficient_code, str) and efficient_code.strip()
+    ):
+        reason = references.get("message") if isinstance(references, dict) else None
+        logger.warning(
+            "agent3_generation_blocked request_id=%s reason=references_unavailable agent2_status=%s",
+            request_id_var.get(),
+            references.get("status", "not_run") if isinstance(references, dict) else "not_run",
+        )
+        detail = "Agent 3 is paused because Agent 2 did not produce both reference programs."
+        if isinstance(reason, str) and reason:
+            detail += " " + reason
+        else:
+            detail += " Review the Agent 2 status and retry after the request budget resets."
+        raise HTTPException(status_code=409, detail=detail)
     demo_mode = record.get("demo_mode") is True
     random_count = request.random_count
     adversarial_count = min(request.adversarial_count, 10) if demo_mode else request.adversarial_count
@@ -1008,7 +1133,15 @@ def instructor_ui_generate_tests(
     ):
         # A repeated click/retry with identical settings must not repeat the two
         # paid Agent 3 calls. Changing any test-plan setting creates a new run.
-        return record["test_plans"]
+        cached = record["test_plans"]
+        logger.info(
+            "agent3_generation_reused request_id=%s status=%s random_count=%s adversarial_count=%s",
+            request_id_var.get(),
+            cached.get("status", "unknown"),
+            (cached.get("random_tests") or {}).get("count", 0),
+            (cached.get("adversarial_tests") or {}).get("case_count", 0),
+        )
+        return cached
 
     result = generate_test_plans(
         source=record["source"], spec=spec, schema=schema,
@@ -1051,8 +1184,11 @@ def instructor_ui_generate_tests(
                     provider_error = None
 
             if provider is not None:
+                agent_problem = dict(confirmed)
+                if record.get("problem_statement"):
+                    agent_problem["user_supplied_problem_statement"] = record["problem_statement"]
                 agent3a = generate_agent3a_program(
-                    provider, problem=confirmed, schema=schema_data,
+                    provider, problem=agent_problem, schema=schema_data,
                     references=references, student_source=record["source"],
                     max_cases=min(random_count, 100),
                 )
@@ -1071,7 +1207,7 @@ def instructor_ui_generate_tests(
                                           else generated.get("status", "generation_failed"))
 
                 agent3b = analyze_agent3b_edges(
-                    provider, problem=confirmed, schema=schema_data,
+                    provider, problem=agent_problem, schema=schema_data,
                     references=references, student_source=record["source"],
                 )
                 if agent3b.get("status") == "proposed_unvalidated":
@@ -1170,6 +1306,25 @@ def instructor_ui_generate_tests(
         record["input_schema"] = schema_data
         record["test_generation_request_key"] = generation_request_key
 
+    agent3a_result = result.get("agent3a") or {}
+    agent3b_result = result.get("agent3b") or {}
+    agent3a_inputs = ((agent3a_result.get("generation") or {}).get("inputs") or [])
+    agent3b_cases = agent3b_result.get("cases") or []
+    benchmark_result = result.get("agent3a_benchmark") or {}
+    logger.info(
+        "agent3_generation_completed request_id=%s mode=%s status=%s random_plan_count=%s adversarial_plan_count=%s agent3a_status=%s generated_input_count=%d agent3b_status=%s edge_case_count=%d benchmark_status=%s benchmark_observation_count=%d",
+        request_id_var.get(),
+        "demo" if demo_mode else "live",
+        result.get("status", "unknown"),
+        (result.get("random_tests") or {}).get("count", 0),
+        (result.get("adversarial_tests") or {}).get("case_count", 0),
+        agent3a_result.get("status", "not_run"),
+        len(agent3a_inputs),
+        agent3b_result.get("status", "not_run"),
+        len(agent3b_cases),
+        benchmark_result.get("status", "not_run"),
+        len(benchmark_result.get("chart_data") or []),
+    )
     return result
 
 
@@ -1381,6 +1536,8 @@ def _grade_snapshot_analysis_identity(provider: Any, result: dict[str, Any]) -> 
     root = BASE_DIR.parent
     analysis_files = (
         "analyzers/problem_reconstruction.py",
+        "analyzers/structured_input_schema.py",
+        "analyzers/output_contract.py",
         "analyzers/reference_solutions.py",
         "analyzers/agent3_ai.py",
         "analyzers/complexity_analysis.py",
@@ -1441,6 +1598,62 @@ def instructor_ui_execute_tests(
 
     if record.get("execution_result") is not None:
         return record["execution_result"]
+    if plans.get("spec_fingerprint") != record.get("confirmed_fingerprint"):
+        raise HTTPException(
+            status_code=409,
+            detail="Generated tests do not match the confirmed I/O contract; no code was executed.",
+        )
+
+    # Revalidate at the final execution boundary, even for cached AI proposals.
+    schema_data = record.get("input_schema")
+    confirmed_schema = (record.get("confirmed_spec") or {}).get("input_schema")
+    try:
+        if not isinstance(schema_data, dict) or schema_data != confirmed_schema:
+            raise ValueError("Execution schema differs from confirmed schema.")
+        from analyzers.structured_input_schema import StructuredIntegerInputSchema
+        approved_schema = StructuredIntegerInputSchema.from_dict(schema_data)
+    except (KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=409,
+            detail="The confirmed input schema is unavailable, mismatched, or invalid; no code was executed.",
+        ) from exc
+
+    agent3a_proposal = record.get("agent3a") or {}
+    random_cases = ((agent3a_proposal.get("generation") or {}).get("inputs") or [])
+    if agent3a_proposal.get("status") == "generated" and (
+        not isinstance(random_cases, list)
+        or not random_cases
+        or any(
+            not isinstance(case, dict)
+            or not isinstance(case.get("input"), str)
+            or not approved_schema.validate(case["input"])
+            for case in random_cases
+        )
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="Agent 3A inputs no longer match the confirmed schema; no code was executed.",
+        )
+
+    submitted_cases = request.test_cases or []
+    if any(not approved_schema.validate(case.input) for case in submitted_cases):
+        raise HTTPException(
+            status_code=422,
+            detail="A submitted test input violates the confirmed input schema; no code was executed.",
+        )
+
+    agent3b_proposal = record.get("agent3b") or {}
+    edge_cases_for_validation = agent3b_proposal.get("cases") or []
+    if not isinstance(edge_cases_for_validation, list) or any(
+        not isinstance(case, dict)
+        or not isinstance(case.get("input"), str)
+        or not approved_schema.validate(case["input"])
+        for case in edge_cases_for_validation
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="Agent 3B inputs no longer match the confirmed schema; no code was executed.",
+        )
 
     prepared = record.get("prepared_result")
     if not isinstance(prepared, dict):
@@ -1532,8 +1745,9 @@ def instructor_ui_execute_tests(
                 outcomes[name]["execution_class"] == "program_success"
                 for name in outcomes
             )
+            from analyzers.output_contract import normalize_stdout
             outputs = [
-                outcomes[name]["stdout"].strip()
+                normalize_stdout(outcomes[name]["stdout"])
                 for name in ("student", "brute_force", "efficient")
             ]
             edge_comparisons.append({
@@ -1578,6 +1792,10 @@ def instructor_ui_execute_tests(
             for case in demo_scenario["edge_cases"]
         ]
     prepared_for_execution = dict(prepared)
+    # Preparation stores an unconfirmed draft fingerprint; execution must be
+    # bound to the exact instructor-confirmed specification used for test plans.
+    prepared_for_execution["assignment_spec"] = record["confirmed_spec"]
+    prepared_for_execution["assignment_spec_fingerprint"] = record["confirmed_fingerprint"]
     if isinstance(references, dict):
         prepared_for_execution["reference_solutions"] = references
 
@@ -1627,13 +1845,18 @@ def instructor_ui_execute_tests(
             record["source"],
             provider,
             context={
-                "prepared_result": prepared,
-                "execution_evidence": {
-                    "execution_evidence_summary": result.get("execution_evidence_summary"),
-                    "random_test_execution": result.get("random_test_execution"),
-                    "adversarial_execution": result.get("adversarial_execution"),
-                    "mathematical_verification": result.get("mathematical_verification"),
+                "approved_problem": {
+                    key: record["confirmed_spec"].get(key)
+                    for key in (
+                        "problem_statement", "input_format", "output_format",
+                        "constraints", "input_schema",
+                    )
+                    if key in record["confirmed_spec"]
                 },
+                "execution_evidence_summary": result.get("execution_evidence_summary"),
+                "mathematical_verification_status": (
+                    result.get("mathematical_verification") or {}
+                ).get("status", "not_run"),
             },
         )
     else:
@@ -1745,6 +1968,44 @@ def instructor_ui_execute_tests(
     provenance["grade_snapshot_policy"] = (
         "Complete AI metric vectors are pinned by source, approved specification, grading rules, provider/model, and analysis implementation. Incomplete provider results are shown but are not frozen."
     )
+    complexity = result.get("complexity_analysis") or {}
+    proof = result.get("mathematical_verification") or {}
+    quality = result.get("code_quality") or {}
+    random_execution = result.get("random_test_execution") or {}
+    adversarial_execution = result.get("adversarial_execution") or {}
+    edge_execution = result.get("agent3b_execution") or {}
+    grade = result.get("grading") or {}
+    logger.info(
+        "agent4_complexity_completed request_id=%s status=%s graph_count=%d",
+        request_id_var.get(),
+        complexity.get("status", "not_run"),
+        len(complexity.get("complexity_graphs") or {}),
+    )
+    logger.info(
+        "agent5_mathematical_verification_completed request_id=%s status=%s formally_verified=%s",
+        request_id_var.get(),
+        proof.get("status", "not_run"),
+        proof.get("formally_verified", "unknown"),
+    )
+    logger.info(
+        "agent6_code_quality_completed request_id=%s status=%s finding_count=%d",
+        request_id_var.get(),
+        quality.get("status", "not_run"),
+        len(quality.get("findings") or []),
+    )
+    logger.info(
+        "execution_evidence_completed request_id=%s result_status=%s random_status=%s random_case_count=%s adversarial_status=%s adversarial_case_count=%s edge_status=%s edge_case_count=%s grade_present=%s grade_snapshot_status=%s",
+        request_id_var.get(),
+        result.get("execution_status", result.get("status", "unknown")),
+        random_execution.get("status", "not_run"),
+        random_execution.get("total_cases", random_execution.get("case_count", 0)),
+        adversarial_execution.get("status", "not_run"),
+        adversarial_execution.get("total_cases", adversarial_execution.get("case_count", 0)),
+        edge_execution.get("status", "not_run"),
+        edge_execution.get("validated_case_count", 0),
+        bool(grade),
+        (grade.get("reproducibility") or {}).get("grade_snapshot_status", "unknown"),
+    )
     record["execution_result"] = result
     return result
 
@@ -1793,6 +2054,13 @@ def instructor_ui_benchmark_complexity(
             detail=result.get("message", "Invalid benchmark request."),
         )
 
+    logger.info(
+        "agent4_runtime_benchmark_completed request_id=%s status=%s case_count=%d observation_count=%d",
+        request_id_var.get(),
+        result.get("status", "unknown"),
+        len(cases),
+        len(result.get("chart_data") or []),
+    )
     # Store separately from execution and grading evidence.
     record["complexity_benchmark"] = result
     return result

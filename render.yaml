@@ -12,4 +12,4 @@ services:
       - key: NEON_DATABASE_URL
         sync: false
       - key: AI_DAILY_REQUEST_CREDITS
-        value: "7"
+        value: "350"

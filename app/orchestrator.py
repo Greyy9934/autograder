@@ -38,6 +38,66 @@ def _attach_grading(result: dict[str, Any]) -> dict[str, Any]:
 
 
 
+def _compact_complexity_static(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    keys = (
+        "status", "time_complexity", "space_complexity", "loop_count",
+        "max_loop_depth_estimate", "dynamic_allocation_count",
+        "input_size_model", "confidence", "proof_status",
+    )
+    compact = {key: value[key] for key in keys if key in value}
+    compact["recursive_functions"] = (value.get("recursive_functions") or [])[:6]
+    compact["findings"] = [
+        {key: item[key] for key in ("rule", "severity", "line", "message") if key in item}
+        for item in (value.get("findings") or [])[:6]
+        if isinstance(item, dict)
+    ]
+    return compact
+
+
+def _compact_complexity_benchmark(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    chart = [
+        item for item in (value.get("chart_data") or [])
+        if isinstance(item, dict)
+    ]
+    if len(chart) > 12:
+        indices = sorted({round(i * (len(chart) - 1) / 11) for i in range(12)})
+        chart = [chart[i] for i in indices]
+    results = [item for item in (value.get("results") or []) if isinstance(item, dict)]
+    failed = sum(
+        item.get("failed_runs", 0) for item in results
+        if isinstance(item.get("failed_runs", 0), int)
+        and not isinstance(item.get("failed_runs", 0), bool)
+    )
+    return {
+        "status": value.get("status", "unknown"),
+        "measurement_scope": value.get("measurement_scope"),
+        "input_size_count": len(results),
+        "failed_run_count": failed,
+        "chart_data_sample": [
+            {key: point[key] for key in ("input_size", "median_runtime_seconds", "runtime_seconds") if key in point}
+            for point in chart
+        ],
+    }
+
+
+def _compact_complexity_analysis(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    analysis = value.get("ai_analysis") if isinstance(value.get("ai_analysis"), dict) else {}
+    return {
+        "status": value.get("status", "unknown"),
+        "algorithm": analysis.get("algorithm"),
+        "time_complexity": analysis.get("time_complexity"),
+        "space_complexity": analysis.get("space_complexity"),
+        "confidence": analysis.get("confidence"),
+        "limitations": (analysis.get("limitations") or [])[:3],
+    }
+
+
 def evaluate_execution_evidence(
     source: str,
     prepared_result: dict[str, Any],
@@ -104,8 +164,10 @@ def evaluate_execution_evidence(
             return _attach_grading(result)
 
         fingerprint = generated_test_plans.get("spec_fingerprint")
+        approved_fingerprint = result.get("assignment_spec_fingerprint")
         if (
             not fingerprint
+            or fingerprint != approved_fingerprint
             or random_plan.get("spec_fingerprint") != fingerprint
             or adversarial_plan.get("spec_fingerprint") != fingerprint
         ):
@@ -195,8 +257,9 @@ def evaluate_execution_evidence(
             complexity_result = analyze_complexity(
                 source,
                 provider,
-                static_analysis=result.get("complexity_estimate"),
-                benchmark=result.get("complexity_benchmark"),
+                static_analysis=_compact_complexity_static(result.get("complexity_estimate")),
+                benchmark=_compact_complexity_benchmark(result.get("complexity_benchmark")),
+                problem_context=result.get("assignment_spec"),
             )
             result["complexity_analysis"] = complexity_result
             result["complexity_reconciliation"] = (
@@ -207,7 +270,10 @@ def evaluate_execution_evidence(
                 )
             )
 
-    # Agent 5: review the student's algorithm only after execution evidence.
+    from app.execution_summary import summarize_execution_evidence
+    result["execution_evidence_summary"] = summarize_execution_evidence(result)
+
+    # Agent 5 receives compact evidence counts, never full test outputs or run logs.
     reconstruction = result.get("reconstruction") or {}
     candidates = reconstruction.get("candidates", [])
 
@@ -224,21 +290,29 @@ def evaluate_execution_evidence(
                     "Do not assume an externally supplied algorithm description."
                 ),
                 "supporting_evidence": {
-                    "complexity_analysis": result.get("complexity_analysis"),
-                    "complexity_reconciliation": result.get("complexity_reconciliation"),
-                    "complexity_benchmark": result.get("complexity_benchmark"),
+                    "complexity_analysis": _compact_complexity_analysis(result.get("complexity_analysis")),
+                    "complexity_reconciliation": {
+                        "status": (result.get("complexity_reconciliation") or {}).get("status", "not_run"),
+                        "review_required": (result.get("complexity_reconciliation") or {}).get("review_required"),
+                        "review_flags": [
+                            {key: flag[key] for key in ("code", "severity") if key in flag}
+                            for flag in ((result.get("complexity_reconciliation") or {}).get("review_flags") or [])[:4]
+                            if isinstance(flag, dict)
+                        ],
+                    },
+                    "runtime_benchmark": _compact_complexity_benchmark(result.get("complexity_benchmark")),
                     "execution_evidence_summary": result.get("execution_evidence_summary"),
-                    "adversarial_execution": result.get("adversarial_execution"),
-                    "random_test_execution": result.get("random_test_execution"),
-                    "agent3b_execution": agent3b_execution,
+                    "agent3b_execution": {
+                        "status": (agent3b_execution or {}).get("status", "not_run"),
+                        "validated_case_count": (agent3b_execution or {}).get("validated_case_count", 0),
+                        "all_three_agreed_cases": (agent3b_execution or {}).get("all_three_agreed_cases", 0),
+                        "comparison_count": len((agent3b_execution or {}).get("differential_comparisons") or []),
+                    },
                 },
             },
             provider,
         )
 
-    from app.execution_summary import summarize_execution_evidence
-
-    result["execution_evidence_summary"] = summarize_execution_evidence(result)
     result["execution_status"] = "completed"
     return _attach_grading(result)
 
@@ -246,6 +320,8 @@ def evaluate_execution_evidence(
 def generate_reference_solutions_for_confirmed_spec(
     spec: Any,
     provider: Any = None,
+    *,
+    user_supplied_problem_statement: str | None = None,
 ) -> dict[str, Any]:
     """Run Agent 2 only after explicit instructor approval."""
     from analyzers.assignment_spec import AssignmentSpec
@@ -255,6 +331,12 @@ def generate_reference_solutions_for_confirmed_spec(
         return {
             "status": "rejected",
             "message": "An instructor-confirmed assignment specification is required.",
+            "references_trusted": False,
+        }
+    if not spec.input_schema:
+        return {
+            "status": "rejected",
+            "message": "Agent 1 must provide an input schema before Agent 2 can generate executable references.",
             "references_trusted": False,
         }
 
@@ -269,6 +351,8 @@ def generate_reference_solutions_for_confirmed_spec(
             }
 
     problem = spec.to_dict()
+    if user_supplied_problem_statement:
+        problem["user_supplied_problem_statement"] = user_supplied_problem_statement
     result = generate_reference_solutions(problem, provider)
     result["spec_fingerprint"] = spec.fingerprint()
     result["instructor_confirmed"] = True
@@ -367,10 +451,13 @@ def evaluate_submission(
             "Preflight passed, but problem reconstruction was unavailable. "
             "No correctness conclusion has been made."
         )
-    elif reconstruction.get("status") == "needs_clarification":
+    elif reconstruction.get("status") == "needs_clarification" and len(
+        reconstruction.get("candidates", [])
+    ) != 1:
         result["status"] = "needs_clarification"
         result["message"] = (
-            "Please clarify the intended problem before correctness grading."
+            "The task still has multiple or no viable interpretations. "
+            "Clarify it before generating reference solutions."
         )
     elif reconstruction.get("status") == "ready" and len(
         reconstruction.get("candidates", [])
@@ -385,7 +472,15 @@ def evaluate_submission(
         result["message"] = reconstruction.get("message")
     else:
         candidates = reconstruction.get("candidates", [])
-        if reconstruction.get("status") == "ready" and len(candidates) == 1:
+        if reconstruction.get("status") in {"ready", "needs_clarification"} and len(candidates) == 1:
+            if not isinstance(candidates[0].get("input_schema"), dict):
+                result["status"] = "input_schema_required"
+                result["message"] = (
+                    "Agent 1 did not return an input schema. Clarify the input "
+                    "grammar and bounds before proceeding."
+                )
+                result["reconstruction"] = reconstruction
+                return _attach_grading(result)
             selected_problem = dict(candidates[0])
             selected_problem["constraints"] = reconstruction.get("constraints", [])
             from analyzers.assignment_spec import AssignmentSpec
@@ -432,9 +527,16 @@ def evaluate_submission(
                         "message": "Edge-case bounds must be a dictionary of supported options.",
                     }
         result["status"] = "reconstruction_ready"
-        result["message"] = (
-            "Problem reconstruction completed. Correctness still requires "
-            "validated references and test-based evaluation."
-        )
+        if reconstruction.get("status") == "needs_clarification":
+            result["message"] = (
+                "One problem interpretation is available as a provisional draft. "
+                "Review the listed questions and assumptions before instructor "
+                "approval; correctness has not been assessed."
+            )
+        else:
+            result["message"] = (
+                "Problem reconstruction completed. Correctness still requires "
+                "validated references and test-based evaluation."
+            )
 
     return _attach_grading(result)

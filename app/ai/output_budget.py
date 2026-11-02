@@ -13,18 +13,31 @@ TASK_COMPLEXITY = "Perform AI-first time and space complexity analysis."
 TASK_MATHEMATICAL_PROOF = "Produce a mathematical correctness proof or concrete counterexample."
 TASK_CODE_QUALITY = "Perform the final AI-led code quality and maintainability review."
 
-# Completion-token limits sum to the previous 7 x 4096 workflow allowance.
+# Per-task completion ceilings provide response headroom while staying far below the provider ceiling.
 AGENT_OUTPUT_TOKEN_CAPS = MappingProxyType({
-    TASK_RECONSTRUCTION: 3072,
-    TASK_REFERENCES: 8192,
-    TASK_RANDOM_GENERATOR: 4096,
-    TASK_EDGE_CASES: 3072,
-    TASK_COMPLEXITY: 2048,
-    TASK_MATHEMATICAL_PROOF: 6144,
-    TASK_CODE_QUALITY: 2048,
+    TASK_RECONSTRUCTION: 4096,
+    TASK_REFERENCES: 12288,
+    TASK_RANDOM_GENERATOR: 8192,
+    TASK_EDGE_CASES: 12288,
+    TASK_COMPLEXITY: 4096,
+    TASK_MATHEMATICAL_PROOF: 8192,
+    TASK_CODE_QUALITY: 4096,
 })
-PER_SUBMISSION_OUTPUT_TOKEN_BUDGET = 28_672
-MAX_OUTPUT_TOKENS_PER_REQUEST = 8192
+PER_SUBMISSION_OUTPUT_TOKEN_BUDGET = 53_248
+MAX_OUTPUT_TOKENS_PER_REQUEST = 16384
+MAX_PROVIDER_INPUT_JSON_BYTES = 48 * 1024
+
+# Preserve low reasoning for algorithmic work; the final code/proof must still
+# fit inside the explicit per-agent completion cap. Agent 6 is a bounded review.
+TASK_REASONING_EFFORT = MappingProxyType({
+    TASK_RECONSTRUCTION: "low",
+    TASK_REFERENCES: "low",
+    TASK_RANDOM_GENERATOR: "low",
+    TASK_EDGE_CASES: "low",
+    TASK_COMPLEXITY: "low",
+    TASK_MATHEMATICAL_PROOF: "low",
+    TASK_CODE_QUALITY: "none",
+})
 
 if sum(AGENT_OUTPUT_TOKEN_CAPS.values()) != PER_SUBMISSION_OUTPUT_TOKEN_BUDGET:
     raise RuntimeError("Per-agent output caps must sum to the submission budget.")
@@ -33,6 +46,17 @@ if any(
     for cap in AGENT_OUTPUT_TOKEN_CAPS.values()
 ):
     raise RuntimeError("An agent output cap is outside the provider limit.")
+
+
+def reasoning_effort_for_task(task: str) -> str:
+    """Return the deliberately selected DeepSeek reasoning mode for a task."""
+    try:
+        return TASK_REASONING_EFFORT[task]
+    except (KeyError, TypeError) as exc:
+        raise AIProviderError(
+            "No DeepSeek reasoning policy is configured for this agent.",
+            category="configuration_error",
+        ) from exc
 
 
 def output_token_cap_for_task(task: str) -> int:

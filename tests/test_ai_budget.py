@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 
 from app.ai.base import AIProviderError
+from app.ai.output_budget import TASK_RECONSTRUCTION
 from app.ai.budget import BudgetedProvider, RequestBudget
 
 
@@ -57,10 +58,10 @@ def test_budgeted_provider_blocks_before_call(tmp_path):
     provider = FakeProvider()
     guarded = BudgetedProvider(provider, budget, credits_per_call=2)
 
-    assert guarded.generate_json("task", {}, {}) == {"ok": True}
+    assert guarded.generate_json(TASK_RECONSTRUCTION, {}, {}) == {"ok": True}
 
     with pytest.raises(AIProviderError) as caught:
-        guarded.generate_json("task", {}, {})
+        guarded.generate_json(TASK_RECONSTRUCTION, {}, {})
 
     assert caught.value.category == "budget_exhausted"
     assert provider.calls == 1
@@ -103,7 +104,7 @@ def test_budget_storage_failure_blocks_provider_call(tmp_path):
 
     with pytest.raises(AIProviderError):
         budget = RequestBudget(parent_file / "usage.sqlite3", daily_limit=10)
-        BudgetedProvider(provider, budget).generate_json("task", {}, {})
+        BudgetedProvider(provider, budget).generate_json(TASK_RECONSTRUCTION, {}, {})
 
     assert provider.calls == 0
 
@@ -141,10 +142,10 @@ def test_neon_budget_uses_shared_storage_without_local_sqlite(
     assert not (tmp_path / "local-budget.sqlite3").exists()
 
 
-def test_default_daily_budget_is_seven_provider_requests(monkeypatch, tmp_path):
+def test_default_daily_budget_allows_fifty_standard_submissions(monkeypatch, tmp_path):
     from app.ai.budget import create_request_budget
 
     monkeypatch.delenv("AI_DAILY_REQUEST_CREDITS", raising=False)
     monkeypatch.setenv("AI_BUDGET_DB", str(tmp_path / "budget.sqlite3"))
     budget = create_request_budget()
-    assert budget.daily_limit == 7
+    assert budget.daily_limit == 350

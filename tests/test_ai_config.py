@@ -79,7 +79,7 @@ def test_configured_deepseek_provider_is_created():
     assert isinstance(provider.provider, DeepSeekProvider)
     assert provider.provider.api_key == "deepseek-test-key"
     assert provider.provider.model == "deepseek-flash"
-    assert provider.provider.max_tokens == 8192
+    assert provider.provider.max_tokens == 16384
     assert provider.provider.max_retries == 0
     assert provider.credits_per_call == 1
 

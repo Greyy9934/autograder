@@ -1964,8 +1964,11 @@ html, body {
   max-width: 100%;
   margin: 8px 0;
   padding: 12px;
-  overflow-x: auto;
-  white-space: pre;
+  max-height: 560px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 4;
   background: #282522;
   color: #f7eee4;
   border: 1px solid #6f625a;

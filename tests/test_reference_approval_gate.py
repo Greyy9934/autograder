@@ -40,6 +40,13 @@ def make_spec():
         constraints=("Both integers are between -10 and 10.",),
         input_format="Two whitespace-separated integers.",
         output_format="Print their sum.",
+        input_schema={
+            "version": 1,
+            "fields": [
+                {"name": "a", "type": "int", "min": -10, "max": 10},
+                {"name": "b", "type": "int", "min": -10, "max": 10},
+            ],
+        },
     )
 
 
@@ -79,6 +86,16 @@ def test_preparation_does_not_call_agent_2(mock_reconstruct, mock_preflight):
             "problem_statement": "Read two integers and print their sum.",
             "input_format": "Two whitespace-separated integers.",
             "output_format": "Print their sum.",
+            "input_schema": {
+                "version": 1,
+                "fields": [
+                    {"name": "a", "type": "int", "min": -10, "max": 10},
+                    {"name": "b", "type": "int", "min": -10, "max": 10},
+                ],
+            },
+            "evidence": ["The source reads two integers."],
+            "assumptions": [],
+            "confidence": 0.9,
         }],
         "constraints": ["Both integers are between -10 and 10."],
     }
@@ -92,3 +109,29 @@ def test_preparation_does_not_call_agent_2(mock_reconstruct, mock_preflight):
     assert result["assignment_spec_status"] == "draft_requires_instructor_confirmation"
     assert result["reference_solutions"] is None
     assert provider.calls == 0
+
+
+@patch("app.orchestrator.preflight")
+@patch("app.orchestrator.reconstruct_problem")
+def test_preparation_blocks_candidate_without_input_schema(mock_reconstruct, mock_preflight):
+    mock_preflight.return_value = {"decision": "continue"}
+    mock_reconstruct.return_value = {
+        "status": "ready",
+        "candidates": [{
+            "id": "sum",
+            "title": "Sum two integers",
+            "problem_statement": "Read two integers and print their sum.",
+            "input_format": "Two whitespace-separated integers.",
+            "output_format": "Print their sum.",
+            "evidence": ["The code reads two integers."],
+            "assumptions": [],
+            "confidence": 0.9,
+        }],
+        "constraints": [],
+    }
+
+    result = evaluate_submission("int main(void) { return 0; }")
+
+    assert result["status"] == "input_schema_required"
+    assert "assignment_spec" not in result
+    assert "schema" in result["message"].lower()

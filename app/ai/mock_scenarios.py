@@ -21,7 +21,16 @@ SCENARIOS = {
                 ),
                 "input_format": "An integer n, followed by n integers and a target integer.",
                 "output_format": "Print YES if a valid pair exists; otherwise print NO.",
-                "evidence": ["The submitted code reads an array and a target."],
+                "input_schema": {
+                    "version": 1,
+                    "fields": [
+                        {"name": "n", "type": "int", "min": 0, "max": 1000},
+                        {"name": "values", "type": "int_array", "length_from": "n", "min": -1000000, "max": 1000000},
+                        {"name": "target", "type": "int", "min": -2000000, "max": 2000000},
+                    ],
+                    "size_field": "values",
+                },
+                "evidence": ["scanf reads n, then n integers, then the target."],
                 "assumptions": ["Each array element may be used at most once."],
                 "confidence": 0.96,
             }],

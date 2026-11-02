@@ -1,11 +1,19 @@
 """Persistent, concurrency-safe AI request budget."""
 
+import logging
 import os
 import sqlite3
+import time
 from contextlib import closing
 from pathlib import Path
 
 from app.ai.base import AIProviderError
+from app.ai.diagnostics import request_id_var
+from app.ai.output_budget import (
+    MAX_PROVIDER_INPUT_JSON_BYTES,
+    output_token_cap_for_task,
+    reasoning_effort_for_task,
+)
 
 
 class RequestBudget:
@@ -204,15 +212,96 @@ class BudgetedProvider:
         # Enforce the same request/response contract at the shared call boundary.
         from app.ai.guardrails import GuardedProvider
 
-        self.budget.reserve(self.credits_per_call)
+        logger = logging.getLogger(__name__)
+        provider_name = type(self.provider).__name__
+        model = getattr(self.provider, "model", "unknown")
+        request_cap = output_token_cap_for_task(task)
+        reasoning_effort = reasoning_effort_for_task(task)
+        if provider_name == "DeepSeekProvider":
+            import json
+            input_json_bytes = len(json.dumps(
+                {"payload": payload, "schema": schema},
+                ensure_ascii=False,
+                separators=(",", ":"),
+            ).encode("utf-8"))
+            if input_json_bytes > MAX_PROVIDER_INPUT_JSON_BYTES:
+                exc = AIProviderError(
+                    "AI input exceeds the per-request size safety limit; reduce the problem or source size.",
+                    category="input_too_large",
+                )
+                logger.warning(
+                    "ai_request_blocked request_id=%s provider=%s model=%s task=%s category=input_too_large input_json_bytes=%d limit_bytes=%d",
+                    request_id_var.get(), provider_name, model, task,
+                    input_json_bytes, MAX_PROVIDER_INPUT_JSON_BYTES,
+                )
+                raise exc
+        try:
+            reserved_total = self.budget.reserve(self.credits_per_call)
+        except Exception as exc:
+            logger.warning(
+                "ai_request_blocked request_id=%s provider=%s model=%s task=%s error_type=%s category=%s status_code=%s",
+                request_id_var.get(),
+                provider_name,
+                model,
+                task,
+                type(exc).__name__,
+                getattr(exc, "category", "unknown"),
+                getattr(exc, "status_code", None),
+            )
+            raise
+
+        started = time.perf_counter()
+        logger.info(
+            "ai_request_started request_id=%s provider=%s model=%s task=%s max_output_tokens=%s reasoning_effort=%s daily_reserved=%s daily_limit=%s",
+            request_id_var.get(),
+            provider_name,
+            model,
+            task,
+            min(request_cap, getattr(self.provider, "max_tokens", request_cap)),
+            reasoning_effort,
+            reserved_total,
+            getattr(self.budget, "daily_limit", "unknown"),
+        )
         try:
             result = GuardedProvider(self.provider).generate_json(
                 task, payload, schema
             )
-        except Exception:
+        except Exception as exc:
             self._record_provider_usage()
+            usage = getattr(self.provider, "last_usage", None) or {}
+            logger.warning(
+                "ai_request_failed request_id=%s provider=%s model=%s task=%s elapsed_ms=%.1f error_type=%s category=%s status_code=%s retryable=%s finish_reason=%s prompt_tokens=%s completion_tokens=%s reasoning_tokens=%s total_tokens=%s",
+                request_id_var.get(),
+                provider_name,
+                model,
+                task,
+                (time.perf_counter() - started) * 1000,
+                type(exc).__name__,
+                getattr(exc, "category", "unknown"),
+                getattr(exc, "status_code", None),
+                getattr(exc, "retryable", None),
+                getattr(self.provider, "last_finish_reason", None),
+                usage.get("prompt_tokens", "unknown"),
+                usage.get("completion_tokens", "unknown"),
+                usage.get("reasoning_tokens", "unknown"),
+                usage.get("total_tokens", "unknown"),
+            )
             raise
         self._record_provider_usage()
+        usage = getattr(self.provider, "last_usage", None) or {}
+        logger.info(
+            "ai_request_completed request_id=%s provider=%s model=%s task=%s elapsed_ms=%.1f finish_reason=%s prompt_tokens=%s completion_tokens=%s reasoning_tokens=%s total_tokens=%s",
+            request_id_var.get(),
+            provider_name,
+            model,
+            task,
+            (time.perf_counter() - started) * 1000,
+            getattr(self.provider, "last_finish_reason", None),
+            usage.get("prompt_tokens", "unknown"),
+            usage.get("completion_tokens", "unknown"),
+            usage.get("reasoning_tokens", "unknown"),
+            usage.get("total_tokens", "unknown"),
+        )
         return result
 
     def _record_provider_usage(self) -> None:
@@ -234,7 +323,7 @@ class BudgetedProvider:
 def create_request_budget() -> RequestBudget:
     default_path = Path.home() / ".local" / "share" / "autograder" / "ai-budget.sqlite3"
     path = os.getenv("AI_BUDGET_DB", str(default_path)).strip()
-    raw_limit = os.getenv("AI_DAILY_REQUEST_CREDITS", "7").strip()
+    raw_limit = os.getenv("AI_DAILY_REQUEST_CREDITS", "350").strip()
 
     try:
         limit = int(raw_limit)

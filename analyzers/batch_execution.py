@@ -9,7 +9,10 @@ from pathlib import Path
 from typing import Any
 
 from app import runner
+from analyzers.output_contract import normalize_stdout
 
+BRUTE_FORCE_BENCHMARK_CASE_TIMEOUT_SECONDS = 0.75
+MAX_BENCHMARK_SIZE_LADDER_POINTS = 16
 
 
 def _classify_execution(run: dict[str, Any]) -> str:
@@ -111,6 +114,8 @@ def run_c_batch(
     *,
     time_budget_seconds: float | None = 10.0,
     _shared_gate: _SharedExecutionGate | None = None,
+    stop_after_timeout: bool = False,
+    per_case_timeout_seconds: float | None = None,
 ) -> dict[str, Any]:
 
     if not isinstance(source, str) or not source.strip():
@@ -129,6 +134,13 @@ def run_c_batch(
     ):
         return {"status": "invalid_request", "results": []}
 
+    if per_case_timeout_seconds is not None and (
+        isinstance(per_case_timeout_seconds, bool)
+        or not isinstance(per_case_timeout_seconds, (int, float))
+        or not 0.1 <= per_case_timeout_seconds <= 10.0
+    ):
+        return {"status": "invalid_request", "results": []}
+
     if len(source.encode("utf-8")) > 256 * 1024:
         return {"status": "invalid_request", "results": []}
 
@@ -136,6 +148,7 @@ def run_c_batch(
         return {"status": "invalid_request", "results": []}
 
     results = []
+    timeout_stopped_early = False
 
     with tempfile.TemporaryDirectory(prefix="autograder-batch-") as temp:
         work = Path(temp)
@@ -258,10 +271,15 @@ def run_c_batch(
                 "/work/submission",
             ]
 
-            effective_timeout = (
+            case_timeout = (
                 runner.RUN_TIMEOUT_SECONDS
+                if per_case_timeout_seconds is None
+                else float(per_case_timeout_seconds)
+            )
+            effective_timeout = (
+                case_timeout
                 if remaining is None
-                else max(0.01, min(runner.RUN_TIMEOUT_SECONDS, remaining))
+                else max(0.01, min(case_timeout, remaining))
             )
             with input_path.open("rb") as program_input:
                 run = runner._run_bounded(
@@ -274,7 +292,7 @@ def run_c_batch(
             shared_budget_limited = (
                 _shared_gate is not None
                 and remaining is not None
-                and remaining < runner.RUN_TIMEOUT_SECONDS - 0.05
+                and remaining < case_timeout - 0.05
             )
             execution_class = _classify_benchmark_run(
                 run,
@@ -299,6 +317,14 @@ def run_c_batch(
                 "run_seconds": run.get("seconds"),
             })
 
+            # A brute-force timeout is a useful empirical boundary: larger
+            # instances of this same workload are unlikely to finish within
+            # the same cap. Stop that reference here instead of burning the
+            # remaining wall-clock budget on known-infeasible cases.
+            if stop_after_timeout and execution_class == "time_limit_exceeded":
+                timeout_stopped_early = True
+                break
+
     summary = _summarize_results(results)
     has_issues = any(
         item["execution_class"] != "program_success"
@@ -312,15 +338,13 @@ def run_c_batch(
         "compile_seconds": compile_result["seconds"],
         "compiled_once": True,
         "executed": len(results),
+        "timeout_stopped_early": timeout_stopped_early,
         "time_budget_seconds": time_budget_seconds,
         "execution_elapsed_seconds": round(
             time.monotonic() - benchmark_started_at, 6
         ),
         "time_budget_exhausted": bool(
-            deadline is not None and (
-                time.monotonic() >= deadline
-                or len(results) < len(inputs)
-            )
+            deadline is not None and time.monotonic() >= deadline
         ),
         "summary": summary,
         "results": results,
@@ -331,13 +355,13 @@ def run_c_batch(
 def _adaptive_benchmark_case_order(
     generated_cases: list[dict[str, Any]],
     *,
-    max_ladder_points: int = 16,
+    max_ladder_points: int = MAX_BENCHMARK_SIZE_LADDER_POINTS,
 ) -> tuple[list[int], list[int]]:
     """Prioritize one validated case per geometrically spaced workload size.
 
-    All generated cases remain in the run. The ladder only changes execution
-    order so a shared wall-clock cap samples the full size range before
-    repeated cases consume the budget.
+    The ladder selects one case per logarithmically spaced size, then a bounded
+    set of additional low-size cases, before the upper probes and remaining
+    cases. The brute-force worker may stop after an actual per-case timeout.
     """
     sizes = [case["input_size"] for case in generated_cases]
     unique_sizes = sorted(set(sizes))
@@ -370,15 +394,45 @@ def _adaptive_benchmark_case_order(
     for index, size in enumerate(sizes):
         representative_by_size.setdefault(size, index)
 
-    prioritized = [
+    ladder_representatives = [
         representative_by_size[size]
         for size in ladder_sizes
     ]
-    prioritized_set = set(prioritized)
-    remaining = [
+    # Spend a few additional executions on low/medium workloads before probing
+    # the expensive upper end. The output shapes differ across random inputs at
+    # the same n, so these repetitions add correctness value without sacrificing
+    # the sparse growth ladder.
+    midpoint = (len(ladder_sizes) - 1) // 2
+    small_size_ceiling = ladder_sizes[midpoint]
+    representative_set = set(ladder_representatives)
+    small_repeats = [
         index for index in range(len(generated_cases))
-        if index not in prioritized_set
+        if index not in representative_set and sizes[index] <= small_size_ceiling
     ]
+    if len(small_repeats) > max_ladder_points:
+        if max_ladder_points == 1:
+            small_repeats = small_repeats[:1]
+        else:
+            last = len(small_repeats) - 1
+            small_repeats = [
+                small_repeats[position * last // (max_ladder_points - 1)]
+                for position in range(max_ladder_points)
+            ]
+    split = midpoint + 1
+    prioritized = (
+        ladder_representatives[:split]
+        + small_repeats
+        + ladder_representatives[split:]
+    )
+    prioritized_set = set(prioritized)
+    # After the growth ladder, use smaller workloads first. This retains broad
+    # correctness coverage when the shared time budget cannot reach every
+    # duplicate/randomized sample.
+    remaining = sorted(
+        (index for index in range(len(generated_cases))
+         if index not in prioritized_set),
+        key=lambda index: (sizes[index], index),
+    )
     return prioritized + remaining, ladder_sizes
 
 
@@ -427,7 +481,27 @@ def benchmark_three_programs_parallel(
             }
         input_sizes.append(size)
 
-    case_order, size_ladder = _adaptive_benchmark_case_order(generated_cases)
+    case_order, size_ladder = _adaptive_benchmark_case_order(
+        generated_cases,
+        max_ladder_points=MAX_BENCHMARK_SIZE_LADDER_POINTS,
+    )
+    representative_indices = {
+        next(index for index, case in enumerate(generated_cases)
+             if case["input_size"] == size)
+        for size in size_ladder
+    }
+    small_size_ceiling = (
+        size_ladder[(len(size_ladder) - 1) // 2]
+        if size_ladder else -1
+    )
+    small_repeat_count = sum(
+        1 for index, case in enumerate(generated_cases)
+        if index not in representative_indices
+        and case["input_size"] <= small_size_ceiling
+    )
+    prioritized_case_count = len(size_ladder) + min(
+        MAX_BENCHMARK_SIZE_LADDER_POINTS, small_repeat_count
+    )
     inputs = [inputs[index] for index in case_order]
     input_sizes = [input_sizes[index] for index in case_order]
     source_case_numbers = [index + 1 for index in case_order]
@@ -457,6 +531,11 @@ def benchmark_three_programs_parallel(
                 inputs,
                 time_budget_seconds=float(time_budget_seconds),
                 _shared_gate=gate,
+                stop_after_timeout=(name == "brute_force"),
+                per_case_timeout_seconds=(
+                    BRUTE_FORCE_BENCHMARK_CASE_TIMEOUT_SECONDS
+                    if name == "brute_force" else None
+                ),
             )
             for name, source in programs.items()
         }
@@ -502,7 +581,10 @@ def benchmark_three_programs_parallel(
             else:
                 outcomes[name] = {
                     "execution_class": (
-                        "not_executed_before_deadline"
+                        ("not_run_after_brute_force_timeout"
+                         if name == "brute_force"
+                         and batches[name].get("timeout_stopped_early")
+                         else "not_executed_before_deadline")
                         if batch.get("compiled_once") is True
                         else batch.get("status") or "not_executed"
                     ),
@@ -517,7 +599,7 @@ def benchmark_three_programs_parallel(
             for name in outcomes
         )
         outputs = [
-            outcomes[name]["stdout"].strip()
+            normalize_stdout(outcomes[name]["stdout"])
             for name in ("student", "brute_force", "efficient")
         ]
         comparisons.append({
@@ -547,9 +629,10 @@ def benchmark_three_programs_parallel(
         ),
         "time_budget_seconds": float(time_budget_seconds),
         "shared_execution_window": True,
-        "case_order_strategy": "geometric_size_ladder_then_remaining_generated_cases",
+        "case_order_strategy": "low_size_growth_ladder_with_small_repeats_then_upper_probes",
+        "brute_force_case_timeout_seconds": BRUTE_FORCE_BENCHMARK_CASE_TIMEOUT_SECONDS,
         "prioritized_size_ladder": size_ladder,
-        "prioritized_case_count": len(size_ladder),
+        "prioritized_case_count": prioritized_case_count,
         "execution_elapsed_seconds": max(
             (batch.get("execution_elapsed_seconds", 0)
              for batch in batches.values()),

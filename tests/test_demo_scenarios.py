@@ -39,7 +39,13 @@ def _agent_contracts(scenario_id):
     assert reconstructed["status"] == "ready"
     candidate = reconstructed["candidates"][0]
     references = generate_reference_solutions(
-        {"problem_statement": scenario["statement"], "constraints": scenario["constraints"]},
+        {
+            "problem_statement": candidate["problem_statement"],
+            "input_format": candidate["input_format"],
+            "output_format": candidate["output_format"],
+            "input_schema": candidate["input_schema"],
+            "constraints": scenario["constraints"],
+        },
         provider,
     )
     assert references["status"] == "generated_unverified"
@@ -67,13 +73,21 @@ def _agent_contracts(scenario_id):
     assert validated["status"] == "validated"
     assert all(validate_demo_input(scenario_id, case["input"]) for case in generated["inputs"])
     if scenario_id == "fibonacci":
-        assert [case["input_size"] for case in generated["inputs"]] == [10, 20, 30, 40]
+        assert all(1 <= case["input_size"] <= 14 for case in generated["inputs"])
     if scenario_id == "traveling_salesman":
-        assert [case["input_size"] for case in generated["inputs"]] == [4, 7, 9, 12]
+        assert all(2 <= case["input_size"] <= 7 for case in generated["inputs"])
     assert all(validate_demo_input(scenario_id, case["input"]) for case in validated["cases"])
-    assert analyze_complexity(scenario["student"], provider)["status"] == "analyzed"
+    assert analyze_complexity(
+        scenario["student"], provider, problem_context=spec.to_dict()
+    )["status"] == "analyzed"
     proof = verify_algorithm(
-        {"problem_statement": scenario["statement"], "constraints": scenario["constraints"]},
+        {
+            "problem_statement": scenario["statement"],
+            "constraints": scenario["constraints"],
+            "input_format": spec.input_format,
+            "output_format": spec.output_format,
+            "input_schema": spec.to_dict()["input_schema"],
+        },
         {"code": scenario["student"], "algorithm": "Inspect the submitted implementation."},
         provider,
     )

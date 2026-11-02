@@ -14,7 +14,12 @@ def candidate(identifier, statement):
         "problem_statement": statement,
         "input_format": "Two integers separated by whitespace.",
         "output_format": "Print the result followed by a newline.",
-        "evidence": ["Source evidence"],
+        "input_schema": {
+            "version": 1,
+            "fields": [{"name": "value", "type": "int", "min": -100, "max": 100}],
+            "size_field": "value",
+        },
+        "evidence": ["Source evidence from the integer parsing code."],
         "assumptions": [],
         "confidence": 0.7,
     }
@@ -628,10 +633,9 @@ class Agent4OrchestratorTests(unittest.TestCase):
             result["complexity_reconciliation"]["analysis_type"],
             "ai_primary_with_evidence_reconciliation",
         )
-        self.assertEqual(
-            provider.calls[0]["payload"]["static_analysis_supporting_evidence"],
-            self.prepared["complexity_estimate"],
-        )
+        supporting = provider.calls[0]["payload"]["static_analysis_supporting_evidence"]
+        self.assertEqual(supporting["loop_count"], self.prepared["complexity_estimate"]["loop_count"])
+        self.assertEqual(supporting["status"], self.prepared["complexity_estimate"]["status"])
 
     def test_agent4_does_not_run_by_default(self):
         provider = ScenarioAIProvider([])

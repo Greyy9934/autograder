@@ -10,9 +10,17 @@ def candidate(identifier, title, statement, confidence):
         "id": identifier,
         "title": title,
         "problem_statement": statement,
-        "input_format": "A sequence of integers separated by whitespace.",
+        "input_format": "n followed by n integers.",
         "output_format": "Print the calculated result followed by a newline.",
-        "evidence": ["The source contains a loop over an integer array."],
+        "input_schema": {
+            "version": 1,
+            "fields": [
+                {"name": "n", "type": "int", "min": 1, "max": 100},
+                {"name": "values", "type": "int_array", "length_from": "n", "min": -100, "max": 100},
+            ],
+            "size_field": "values",
+        },
+        "evidence": ["Line 4 reads n with scanf; line 5 reads n integer values."],
         "assumptions": ["The input contains integers."],
         "confidence": confidence,
     }
@@ -51,6 +59,26 @@ class ReconstructionAITests(unittest.TestCase):
         )
         self.assertEqual(result["inferred_problem"], "Calculate an array sum.")
         self.assertEqual(result["confidence"], 0.9)
+
+    def test_candidate_without_schema_is_rejected(self):
+        item = candidate("A", "Sum", "Calculate an array sum.", 0.9)
+        del item["input_schema"]
+        result = reconstruct_problem(
+            "int main(void) { return 0; }",
+            provider=MockAIProvider(response([item])),
+        )
+        self.assertEqual(result["status"], "provider_error")
+        self.assertIn("input_schema", result["message"])
+
+    def test_unsupported_grammar_must_return_questions_without_candidate(self):
+        result = reconstruct_problem(
+            "int main(void) { return 0; }",
+            provider=MockAIProvider(response([], status="needs_clarification", questions=[
+                "Confirm the string-token input grammar and bounds."
+            ])),
+        )
+        self.assertEqual(result["status"], "needs_clarification")
+        self.assertEqual(result["candidates"], [])
 
     def test_malformed_response_is_not_trusted(self):
         result = reconstruct_problem(

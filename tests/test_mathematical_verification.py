@@ -8,6 +8,16 @@ from analyzers.mathematical_verification import verify_algorithm
 PROBLEM = {
     "problem_statement": "Given integers, return their maximum.",
     "constraints": ["At least one integer."],
+    "input_format": "n followed by n integers.",
+    "output_format": "Print one integer: the maximum.",
+    "input_schema": {
+        "version": 1,
+        "fields": [
+            {"name": "n", "type": "int", "min": 1, "max": 100},
+            {"name": "values", "type": "int_array", "length_from": "n", "min": -1000, "max": 1000},
+        ],
+        "size_field": "values",
+    },
 }
 
 ALGORITHM = {
@@ -83,3 +93,27 @@ class MathematicalVerificationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_agent5_receives_approved_input_and_output_contract():
+    problem = {
+        **PROBLEM,
+        "input_format": "n followed by n integers",
+        "output_format": "One integer: the maximum",
+        "input_schema": {
+            "version": 1,
+            "fields": [
+                {"name": "n", "type": "int", "min": 1, "max": 10},
+                {"name": "values", "type": "int_array", "length_from": "n", "min": -9, "max": 9},
+            ],
+            "size_field": "values",
+        },
+    }
+    provider = MockAIProvider(response())
+    result = verify_algorithm(problem, ALGORITHM, provider)
+    assert result["status"] == "proof_sketch"
+    contract = provider.calls[0]["payload"]["approved_io_contract"]
+    assert contract["input_format"] == problem["input_format"]
+    assert contract["output_format"] == problem["output_format"]
+    assert contract["output_contract"]["format"] == problem["output_format"]
+    assert contract["input_schema"] == problem["input_schema"]
