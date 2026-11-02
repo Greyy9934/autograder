@@ -101,15 +101,14 @@
               </div>
               <h2>Submit your C program</h2>
               <p>
-                Provide the problem statement and source code. The analyzer
-                examines the submitted source and reports evidence-based
-                observations.
+                Paste your C source code (required). A problem statement is optional;
+                Agent 1 reconstructs the problem and generates the input/output contract from your code and any context you provide.
               </p>
 
               <div class="field-block">
-                <label for="problem">PROBLEM STATEMENT</label>
+                <label for="problem">PROBLEM STATEMENT (OPTIONAL)</label>
                 <textarea id="problem" rows="5"
-                  placeholder="Paste the complete problem statement here..."></textarea>
+                  placeholder="Optional: paste the problem statement to help Agent 1 disambiguate the task..."></textarea>
               </div>
 
               <div class="field-block">
@@ -174,7 +173,7 @@
             <div class="post">
               <h2>Problem understanding and reference generation</h2>
               <p>Log in once, then use the main SUBMIT button. With Demo unchecked, SUBMIT automatically starts Agent 1 and the instructor workflow. Credentials are sent only to the server and are not saved in this page.</p>
-              <p class="board-notice"><strong>AI DATA NOTICE:</strong> Live analysis sends the problem statement and submitted C source to the configured external AI provider. Demo mode uses simulated responses and makes no AI requests. Public C execution is disabled on this deployment.</p>
+              <p class="board-notice"><strong>AI DATA NOTICE:</strong> Live analysis sends the submitted C source and, if provided, the problem statement to the configured external AI provider. Demo mode uses simulated responses and makes no AI requests. Public C execution is disabled on this deployment.</p>
 
               <div id="instructor-login-panel">
                 <div class="field-block">
@@ -404,7 +403,7 @@
     </div>
   </dialog>
 
-  <script src="/static/app.js?v=20261102-schema-contract" defer></script>
+  <script src="/static/app.js?v=20261102-agent1-owned-io-contract" defer></script>
   <script>
     (() => {
       const dialog = document.getElementById("help-dialog");

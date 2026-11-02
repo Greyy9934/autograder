@@ -15,7 +15,7 @@ TASK_CODE_QUALITY = "Perform the final AI-led code quality and maintainability r
 
 # Per-task completion ceilings provide response headroom while staying far below the provider ceiling.
 AGENT_OUTPUT_TOKEN_CAPS = MappingProxyType({
-    TASK_RECONSTRUCTION: 4096,
+    TASK_RECONSTRUCTION: 6144,
     TASK_REFERENCES: 12288,
     TASK_RANDOM_GENERATOR: 8192,
     TASK_EDGE_CASES: 12288,
@@ -23,7 +23,7 @@ AGENT_OUTPUT_TOKEN_CAPS = MappingProxyType({
     TASK_MATHEMATICAL_PROOF: 8192,
     TASK_CODE_QUALITY: 4096,
 })
-PER_SUBMISSION_OUTPUT_TOKEN_BUDGET = 53_248
+PER_SUBMISSION_OUTPUT_TOKEN_BUDGET = 55_296
 MAX_OUTPUT_TOKENS_PER_REQUEST = 16384
 MAX_PROVIDER_INPUT_JSON_BYTES = 48 * 1024
 

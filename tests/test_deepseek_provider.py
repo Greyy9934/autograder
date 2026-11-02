@@ -78,7 +78,7 @@ def test_sends_json_mode_request_and_parses_object():
     assert request.full_url == "https://api.deepseek.com/chat/completions"
     assert request.get_header("Authorization") == "Bearer test-key"
     assert body["model"] == "deepseek-flash"
-    assert body["max_tokens"] == 4096
+    assert body["max_tokens"] == 6144
     assert body["reasoning_effort"] == "low"
     assert body["temperature"] == 0
     assert body["response_format"] == {"type": "json_object"}
@@ -300,7 +300,7 @@ def test_unknown_agent_task_is_rejected_before_network_call():
 @pytest.mark.parametrize(
     ("task", "expected_cap"),
     [
-        (TASK_RECONSTRUCTION, 4096),
+        (TASK_RECONSTRUCTION, 6144),
         (TASK_REFERENCES, 12288),
         (TASK_RANDOM_GENERATOR, 8192),
         (TASK_EDGE_CASES, 12288),

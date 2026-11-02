@@ -53,7 +53,7 @@ def test_homepage_loads():
 
     assert response.status_code == 200
     assert "AutoGrader" in response.text
-    assert "Live analysis sends the problem statement and submitted C source" in response.text
+    assert "A problem statement is optional" in response.text and "submitted C source" in response.text
     assert "Demo mode uses simulated responses" in response.text
 
 

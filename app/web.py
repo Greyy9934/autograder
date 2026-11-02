@@ -951,7 +951,9 @@ def instructor_ui_confirm(request: UIConfirmRequest, http_request: Request):
     if not isinstance(draft_spec.get("input_schema"), dict):
         raise HTTPException(
             status_code=409,
-            detail="Agent 1 did not return a usable input schema. Clarify the input grammar and resubmit before approval.",
+            detail=("Agent 1 did not produce a valid structured input schema. "
+                    "The user does not enter schemas; approval and execution remain "
+                    "blocked until Agent 1 returns the complete I/O contract."),
         )
     if (
         (record.get("prepared_result") or {}).get("reconstruction", {}).get("status")

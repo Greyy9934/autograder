@@ -476,8 +476,9 @@ def evaluate_submission(
             if not isinstance(candidates[0].get("input_schema"), dict):
                 result["status"] = "input_schema_required"
                 result["message"] = (
-                    "Agent 1 did not return an input schema. Clarify the input "
-                    "grammar and bounds before proceeding."
+                    "Agent 1 could not produce a complete structured input schema. "
+                    "No schema entry is required from the user; the workflow paused "
+                    "before reference generation rather than guessing."
                 )
                 result["reconstruction"] = reconstruction
                 return _attach_grading(result)

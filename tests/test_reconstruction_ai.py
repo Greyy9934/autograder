@@ -88,16 +88,22 @@ class ReconstructionAITests(unittest.TestCase):
         self.assertEqual(result["status"], "provider_error")
         self.assertTrue(result["can_continue"])
 
-    def test_missing_statement_and_tests_are_allowed(self):
+    def test_code_is_sufficient_to_start_reconstruction_and_agent_owns_schema(self):
+        provider = MockAIProvider(response([
+            candidate("A", "Unknown", "A tentative interpretation.", 0.3)
+        ]))
         result = reconstruct_problem(
             "int main(void) { return 0; }",
-            provider=MockAIProvider(response([
-                candidate("A", "Unknown", "A tentative interpretation.", 0.3)
-            ])),
+            provider=provider,
         )
         self.assertTrue(result["can_continue"])
         self.assertEqual(result["problem_statement_source"], "missing")
         self.assertEqual(result["valid_test_case_count"], 0)
+        self.assertIsNone(provider.calls[0]["payload"]["problem_statement"])
+        instructions = provider.calls[0]["payload"]["instructions"]
+        self.assertIn("only required user field is C source", instructions)
+        self.assertIn("Never ask the user to design or enter", instructions)
+        self.assertIn("input_schema", provider.calls[0]["schema"]["properties"]["candidates"]["items"]["required"])
 
     def test_clarification_response_requires_question(self):
         invalid = response([], status="needs_clarification")
