@@ -4,6 +4,11 @@ import random
 from typing import Any, Callable
 
 from analyzers.assignment_spec import AssignmentSpec
+from analyzers.workload_limits import (
+    MAX_GENERATED_BATCH_INPUT_BYTES,
+    MAX_GENERATED_CASE_INPUT_BYTES,
+    max_generated_array_length,
+)
 
 
 InputGenerator = Callable[[random.Random, AssignmentSpec, str], str]
@@ -17,6 +22,7 @@ def generate_random_test_batch(
     count: int,
     input_generator: InputGenerator,
     input_validator: InputValidator,
+    schema=None,
     distribution: str = "uniform",
 ) -> dict[str, Any]:
     """Generate and validate a deterministic batch using an explicit format adapter."""
@@ -49,10 +55,23 @@ def generate_random_test_batch(
 
     rng = random.Random(seed)
     inputs = []
+    total_input_bytes = 0
+    generated_size_cap = None
+
+    from analyzers.structured_input_schema import StructuredIntegerInputSchema
+    if isinstance(schema, StructuredIntegerInputSchema):
+        generated_size_cap = max_generated_array_length(schema)
 
     try:
         for index in range(count):
-            generated = input_generator(rng, spec, distribution)
+            if generated_size_cap is not None and isinstance(
+                schema, StructuredIntegerInputSchema
+            ):
+                generated = schema.generate(
+                    rng, distribution, max_array_length=generated_size_cap
+                )
+            else:
+                generated = input_generator(rng, spec, distribution)
 
             if not isinstance(generated, str):
                 raise ValueError(f"Generated input {index + 1} is not text.")
@@ -67,7 +86,14 @@ def generate_random_test_batch(
                     "message": "Generated input failed assignment validation.",
                 }
 
+            input_bytes = len(generated.encode("utf-8"))
+            if input_bytes > MAX_GENERATED_CASE_INPUT_BYTES:
+                break
+            if total_input_bytes + input_bytes > MAX_GENERATED_BATCH_INPUT_BYTES:
+                break
+
             inputs.append(generated)
+            total_input_bytes += input_bytes
 
     except Exception as exc:
         return {
@@ -83,6 +109,10 @@ def generate_random_test_batch(
         "seed": seed,
         "distribution": distribution,
         "count": len(inputs),
+        "requested_count": count,
+        "shortfall_count": max(0, count - len(inputs)),
+        "coverage_status": "complete" if len(inputs) == count else "partial",
+        "total_input_bytes": total_input_bytes,
         "inputs": inputs,
         "spec_fingerprint": spec.fingerprint(),
         "reproducible": True,
@@ -122,4 +152,5 @@ def generate_schema_test_batch(
         distribution=distribution,
         input_generator=lambda rng, _spec, mode: schema.generate(rng, mode),
         input_validator=lambda text, _spec: schema.validate(text),
+        schema=schema,
     )

@@ -140,3 +140,12 @@ def test_agent3a_explains_stdout_format_differences_and_adaptive_benchmark_windo
     assert "Extra prompts or labels still violate the approved output contract" in JS
     assert '"Benchmark time cap"' in JS
     assert "adaptive, capped at 10 seconds" in JS
+
+
+def test_agent3_network_errors_can_be_correlated_to_bounded_server_stage_logs():
+    assert '"X-Request-ID": requestId' in JS
+    assert "Connection to the server was interrupted (request" in JS
+    assert 'url.includes("/api/ui/generate-tests") ? "Agent 3"' in JS
+    assert "logs before retrying" in JS
+    assert "16 KiB each and 512 KiB total" in JS
+    assert '"Bounded local sample"' in JS

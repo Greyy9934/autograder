@@ -4,6 +4,12 @@ import unittest
 from analyzers.input_schema import IntegerInputSchema
 from analyzers.assignment_spec import AssignmentSpec
 from analyzers.random_test_generator import generate_schema_test_batch
+from analyzers.structured_input_schema import StructuredIntegerInputSchema
+from analyzers.workload_limits import (
+    MAX_GENERATED_ARRAY_LENGTH,
+    MAX_GENERATED_BATCH_INPUT_BYTES,
+    MAX_GENERATED_CASE_INPUT_BYTES,
+)
 
 
 class InputSchemaTests(unittest.TestCase):
@@ -49,6 +55,53 @@ class InputSchemaTests(unittest.TestCase):
         self.assertEqual(result["status"], "generated")
         self.assertEqual(len(result["inputs"]), 20)
         self.assertTrue(all(self.schema.validate(item) for item in result["inputs"]))
+
+    def test_huge_approved_array_bound_is_not_used_as_a_random_allocation_target(self):
+        schema = StructuredIntegerInputSchema.from_dict({
+            "version": 1,
+            "fields": [
+                {"name": "n", "type": "int", "min": 1, "max": 2147483647},
+                {"name": "Arr", "type": "int_array", "length_from": "n", "min": -2147483648, "max": 2147483647},
+            ],
+            "size_field": "n",
+        })
+        spec = AssignmentSpec(
+            problem_id="bounded-array", title="Bounded array", problem_statement="Read n values.",
+            constraints=("n is in the approved schema bounds",), input_format="n then n integers",
+            output_format="one integer", input_schema=schema.to_dict(),
+        ).confirm(instructor_approved=True)
+
+        result = generate_schema_test_batch(
+            spec, schema=schema, seed=7, count=100, distribution="uniform",
+        )
+
+        self.assertEqual(result["status"], "generated")
+        self.assertEqual(len(result["inputs"]), 100)
+        self.assertLessEqual(max(schema.input_size(value) for value in result["inputs"]), MAX_GENERATED_ARRAY_LENGTH)
+        self.assertTrue(all(len(value.encode("utf-8")) <= MAX_GENERATED_CASE_INPUT_BYTES for value in result["inputs"]))
+        self.assertLessEqual(result["total_input_bytes"], MAX_GENERATED_BATCH_INPUT_BYTES)
+
+    def test_minimum_array_size_above_operational_cap_fails_without_allocating(self):
+        schema = StructuredIntegerInputSchema.from_dict({
+            "version": 1,
+            "fields": [
+                {"name": "n", "type": "int", "min": 2147483647, "max": 2147483647},
+                {"name": "Arr", "type": "int_array", "length_from": "n", "min": 0, "max": 1},
+            ],
+            "size_field": "n",
+        })
+        spec = AssignmentSpec(
+            problem_id="impossible-array", title="Impossible array", problem_statement="Read n values.",
+            constraints=("n is fixed",), input_format="n then n integers", output_format="one integer",
+            input_schema=schema.to_dict(),
+        ).confirm(instructor_approved=True)
+
+        result = generate_schema_test_batch(
+            spec, schema=schema, seed=1, count=1, distribution="uniform",
+        )
+
+        self.assertEqual(result["status"], "generator_error")
+        self.assertIn("exceeds the local test-generation limit", result["message"])
 
 
 if __name__ == "__main__":

@@ -4,11 +4,15 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from analyzers.agent3_ai import (
+    MAX_AGENT3A_BATCH_INPUT_BYTES,
+    MAX_AGENT3A_CASE_INPUT_BYTES,
+    MAX_AGENT3A_GENERATOR_OUTPUT_BYTES,
     analyze_agent3b_edges,
     execute_agent3a_program,
     generate_agent3a_program,
 )
 from analyzers.input_schema import IntegerInputSchema
+from analyzers.structured_input_schema import StructuredIntegerInputSchema
 
 
 class CapturingProvider:
@@ -19,6 +23,14 @@ class CapturingProvider:
     def generate_json(self, *, task, payload, schema):
         self.calls.append({"task": task, "payload": payload, "schema": schema})
         return self.response
+
+
+def _fake_generator_run(stdout, returncode=0):
+    def run(_command, **kwargs):
+        kwargs["stdout"].write(stdout)
+        kwargs["stderr"].write(b"")
+        return SimpleNamespace(returncode=returncode)
+    return run
 
 
 def _problem(schema):
@@ -79,6 +91,10 @@ class Agent3ContractTests(unittest.TestCase):
         self.assertEqual(payload["generator_contract"]["requested_distribution"], "sorted")
         self.assertIn("O(n^2) -> 256, 1024, 4096", payload["generator_contract"]["runtime_sampling"])
         self.assertIn("exactly the requested number", payload["instructions"])
+        self.assertEqual(
+            payload["generator_contract"]["resource_limits"]["max_case_input_bytes"],
+            MAX_AGENT3A_CASE_INPUT_BYTES,
+        )
 
     def test_agent3a_fails_closed_if_approved_schema_is_missing(self):
         provider = CapturingProvider({})
@@ -119,14 +135,10 @@ class Agent3ContractTests(unittest.TestCase):
     def test_invalid_case_is_excluded_without_discarding_valid_batch(self):
         with patch(
             "analyzers.agent3_ai.subprocess.run",
-            return_value=SimpleNamespace(
-                returncode=0,
-                stdout=json.dumps({"inputs": [
+            side_effect=_fake_generator_run(json.dumps({"inputs": [
                     {"input": "42\n"},
                     {"input": "101\n"},
-                ]}),
-                stderr="",
-            ),
+                ]}).encode("utf-8")),
         ):
             result = execute_agent3a_program(
                 {"generator_program": "pass"}, seed=1,
@@ -141,10 +153,8 @@ class Agent3ContractTests(unittest.TestCase):
     def test_all_schema_invalid_cases_fail_closed(self):
         with patch(
             "analyzers.agent3_ai.subprocess.run",
-            return_value=SimpleNamespace(
-                returncode=0,
-                stdout=json.dumps({"inputs": [{"input": "101\n"}]}),
-                stderr="",
+            side_effect=_fake_generator_run(
+                json.dumps({"inputs": [{"input": "101\n"}]}).encode("utf-8")
             ),
         ):
             result = execute_agent3a_program(
@@ -154,6 +164,60 @@ class Agent3ContractTests(unittest.TestCase):
         self.assertEqual(result["status"], "generator_output_invalid")
         self.assertIn("No generated case matched", result["message"])
         self.assertEqual(result["inputs"], [])
+
+    def test_generator_stdout_is_bounded_before_json_parsing(self):
+        with patch(
+            "analyzers.agent3_ai.subprocess.run",
+            side_effect=_fake_generator_run(b" " * (MAX_AGENT3A_GENERATOR_OUTPUT_BYTES + 1)),
+        ):
+            result = execute_agent3a_program(
+                {"generator_program": "pass"}, seed=1,
+                schema=IntegerInputSchema(1, 0, 100), max_cases=1,
+            )
+        self.assertEqual(result["status"], "generator_output_limit")
+        self.assertIn("1 MiB", result["message"])
+
+    def test_oversized_cases_are_rejected_before_schema_parsing(self):
+        huge_input = "0" * (MAX_AGENT3A_CASE_INPUT_BYTES + 1)
+        with patch(
+            "analyzers.agent3_ai.subprocess.run",
+            side_effect=_fake_generator_run(
+                json.dumps({"inputs": [{"input": huge_input}]}).encode("utf-8")
+            ),
+        ):
+            result = execute_agent3a_program(
+                {"generator_program": "pass"}, seed=1,
+                schema=IntegerInputSchema(1, 0, 100), max_cases=1,
+            )
+        self.assertEqual(result["status"], "generator_output_invalid")
+        self.assertIn("operational case limit", result["message"])
+
+    def test_total_valid_test_input_bytes_are_capped(self):
+        schema = StructuredIntegerInputSchema.from_dict({
+            "version": 1,
+            "fields": [
+                {"name": "n", "type": "int", "min": 1, "max": 4000},
+                {"name": "values", "type": "int_array", "length_from": "n", "min": 0, "max": 99},
+            ],
+            "size_field": "values",
+        })
+        cases = []
+        for last in range(100):
+            text = "3001\n" + "1 " * 3000 + f"{last}\n"
+            cases.append({"input": text})
+        with patch(
+            "analyzers.agent3_ai.subprocess.run",
+            side_effect=_fake_generator_run(
+                json.dumps({"inputs": cases}).encode("utf-8")
+            ),
+        ):
+            result = execute_agent3a_program(
+                {"generator_program": "pass"}, seed=1, schema=schema, max_cases=100,
+            )
+        self.assertEqual(result["status"], "generated")
+        self.assertFalse(result["coverage_complete"])
+        self.assertLessEqual(result["total_input_bytes"], MAX_AGENT3A_BATCH_INPUT_BYTES)
+        self.assertIn("batch exceeds", result["rejected_cases"][0]["reason"])
 
 
 

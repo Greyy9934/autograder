@@ -8,6 +8,10 @@ from typing import Any
 from analyzers.assignment_spec import AssignmentSpec
 from analyzers.input_schema import IntegerInputSchema
 from analyzers.structured_input_schema import StructuredIntegerInputSchema
+from analyzers.workload_limits import (
+    MAX_GENERATED_CASE_INPUT_BYTES,
+    max_generated_array_length,
+)
 
 
 def plan_adversarial_tests(
@@ -31,6 +35,26 @@ def plan_adversarial_tests(
     if isinstance(max_cases, bool) or not isinstance(max_cases, int) or not 1 <= max_cases <= 100:
         return {"status": "invalid_request", "cases": []}
 
+    if isinstance(schema, StructuredIntegerInputSchema):
+        array_length_fields = {
+            field["length_from"] for field in schema.fields
+            if field["type"] == "int_array"
+        }
+        array_cap = max_generated_array_length(schema)
+        if any(
+            field["name"] in array_length_fields and field["min"] > array_cap
+            for field in schema.fields
+        ):
+            return {
+                "status": "workload_limit_exceeded",
+                "reason": (
+                    "The approved minimum array size exceeds the safe local "
+                    f"test-generation cap of {array_cap} elements. Reduce the "
+                    "input bound before running local comparisons."
+                ),
+                "cases": [],
+            }
+
     findings = static_findings if isinstance(static_findings, list) else []
     refs = reference_metadata if isinstance(reference_metadata, dict) else {}
     rng = random.Random(seed)
@@ -38,7 +62,11 @@ def plan_adversarial_tests(
     seen: set[str] = set()
 
     def add(text: str, reason: str, priority: str, trigger: str):
-        if len(candidates) >= max_cases or not schema.validate(text):
+        if (
+            len(candidates) >= max_cases
+            or len(text.encode("utf-8")) > MAX_GENERATED_CASE_INPUT_BYTES
+            or not schema.validate(text)
+        ):
             return
         normalized = " ".join(text.split())
         digest = hashlib.sha256(normalized.encode()).hexdigest()

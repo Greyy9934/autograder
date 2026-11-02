@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 import random
+from analyzers.workload_limits import max_generated_array_length
 
 
 @dataclass(frozen=True)
@@ -117,19 +118,46 @@ class StructuredIntegerInputSchema:
             for field in self.fields
         )
 
-    def generate(self, rng: random.Random, distribution="uniform"):
+    def generate(
+        self,
+        rng: random.Random,
+        distribution="uniform",
+        *,
+        max_array_length: int = 512,
+    ):
         if distribution not in {
             "uniform", "boundary_biased", "duplicate_heavy",
             "sorted", "reverse_sorted",
         }:
             raise ValueError("Unsupported distribution.")
 
+        if (
+            isinstance(max_array_length, bool)
+            or not isinstance(max_array_length, int)
+            or max_array_length < 1
+        ):
+            raise ValueError("max_array_length must be a positive integer.")
+
+        length_fields = {
+            field["length_from"] for field in self.fields
+            if field["type"] == "int_array"
+        }
+        schema_cap = max_generated_array_length(self)
+        if schema_cap is not None:
+            max_array_length = min(max_array_length, schema_cap)
         values = {}
         tokens = []
 
         for field in self.fields:
             name = field["name"]
             low, high = field["min"], field["max"]
+            if field["type"] == "int" and name in length_fields:
+                if low > max_array_length:
+                    raise ValueError(
+                        f"Minimum array length for {name!r} exceeds the local "
+                        f"test-generation limit ({max_array_length})."
+                    )
+                high = min(high, max_array_length)
             count = 1 if field["type"] == "int" else values[field["length_from"]]
 
             if distribution == "boundary_biased":

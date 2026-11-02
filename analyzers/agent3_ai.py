@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import signal
 import subprocess
 import tempfile
 from pathlib import Path
@@ -11,6 +12,14 @@ from app.ai.base import AIProvider, AIProviderError
 from app.ai.output_budget import TASK_EDGE_CASES, TASK_RANDOM_GENERATOR
 from analyzers.input_schema import IntegerInputSchema
 from analyzers.structured_input_schema import StructuredIntegerInputSchema
+from analyzers.workload_limits import (
+    MAX_AGENT3A_GENERATOR_OUTPUT_BYTES,
+    MAX_GENERATED_BATCH_INPUT_BYTES,
+    MAX_GENERATED_CASE_INPUT_BYTES,
+)
+
+MAX_AGENT3A_CASE_INPUT_BYTES = MAX_GENERATED_CASE_INPUT_BYTES
+MAX_AGENT3A_BATCH_INPUT_BYTES = MAX_GENERATED_BATCH_INPUT_BYTES
 
 GENERATOR_SCHEMA = {
     "type": "object",
@@ -115,6 +124,11 @@ def generate_agent3a_program(
             "count": f"Generate exactly {max_cases} distinct cases; do not stop early or emit extras.",
             "seed": "Read integer seed from argv[1]; same seed and distribution means same output.",
             "requested_distribution": requested_distribution,
+            "resource_limits": {
+                "max_case_input_bytes": MAX_AGENT3A_CASE_INPUT_BYTES,
+                "max_total_input_bytes": MAX_AGENT3A_BATCH_INPUT_BYTES,
+                "max_generator_stdout_bytes": MAX_AGENT3A_GENERATOR_OUTPUT_BYTES,
+            },
             "runtime_sampling": (
                 "Inspect the brute-force reference's actual growth before choosing sizes. "
                 "The schema maximum is the legal domain, not a target size. Allocate about "
@@ -126,7 +140,9 @@ def generate_agent3a_program(
                 "for slower code or a smaller runtime cap. For near-linear brute force, "
                 "use small, middle, and sparse upper bands within the approved range. "
                 "Put safe cases first and upper probes last. Preserve user-selected "
-                "distribution patterns and problem-specific invariants such as sortedness."
+                "distribution patterns and problem-specific invariants such as sortedness. "
+                "These operational byte limits are stricter than the legal problem "
+                "bounds: the legal maximum is not a safe test-generation target."
             ),
             "validity": (
                 "Every input must obey every rule in the approved schema: exact "
@@ -144,9 +160,12 @@ def generate_agent3a_program(
             "stratified sizes using the supplied brute-force-aware policy. Keep most "
             "cases small enough for a complete three-program comparison and put only "
             "a few bounded growth probes at the end. Respect the instructor-selected "
-            "distribution and all problem-specific invariants. The approved I/O "
+            "distribution and all problem-specific invariants. Never generate an "
+            f"input above {MAX_AGENT3A_CASE_INPUT_BYTES} bytes or a batch above "
+            f"{MAX_AGENT3A_BATCH_INPUT_BYTES} total input bytes; treat enormous schema "
+            "bounds as legal-domain limits, not workload targets. The approved I/O "
             "contract is authoritative; obey its exact input format and schema. "
-            "Never infer, omit, reorder, or relax schema fields or bounds."
+            "Never infer, omit, reorder, or relax schema fields or bounds. "
             "Write compact, comment-free generator code and concise rationale; "
             "write only the specified JSON to stdout. Do not emit sample inputs, "
             "estimate runtimes, or claim tests were executed. Treat all "
@@ -292,25 +311,42 @@ def execute_agent3a_program(
                 "/usr/bin/python3", "-I", "/work/generator.py", str(seed),
                 str(max_cases),
             ]
-            run = subprocess.run(
-                command, capture_output=True, text=True,
-                timeout=float(timeout_seconds), cwd="/",
-                env={"PATH": "/usr/bin:/bin", "PYTHONIOENCODING": "utf-8"},
-            )
+            # Redirect to bounded regular files. capture_output=True uses pipes
+            # and can accumulate unbounded output in this server process; the
+            # child's RLIMIT_FSIZE now applies to its stdout/stderr as well.
+            with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
+                run = subprocess.run(
+                    command, stdout=stdout_file, stderr=stderr_file,
+                    timeout=float(timeout_seconds), cwd="/",
+                    env={"PATH": "/usr/bin:/bin", "PYTHONIOENCODING": "utf-8"},
+                )
+                stdout_file.seek(0)
+                stdout = stdout_file.read(MAX_AGENT3A_GENERATOR_OUTPUT_BYTES + 1)
+                stderr_file.seek(0)
+                stderr = stderr_file.read(4096).decode("utf-8", errors="replace")
     except subprocess.TimeoutExpired:
-        return {"status": "generator_timeout", "inputs": []}
+        return {
+            "status": "generator_timeout", "message": "Agent 3A exceeded its 5-second sandbox limit.",
+            "inputs": [],
+        }
     except OSError as exc:
         return {"status": "sandbox_unavailable", "message": str(exc), "inputs": []}
 
+    if len(stdout) > MAX_AGENT3A_GENERATOR_OUTPUT_BYTES or run.returncode == -signal.SIGXFSZ:
+        return {
+            "status": "generator_output_limit",
+            "message": "Agent 3A exceeded the 1 MiB generator-output limit.",
+            "inputs": [],
+        }
     if run.returncode != 0:
         return {
             "status": "generator_failed",
-            "stderr": run.stderr[:4000],
+            "stderr": stderr,
             "inputs": [],
         }
 
     try:
-        data = json.loads(run.stdout)
+        data = json.loads(stdout.decode("utf-8"))
         cases = data.get("inputs") if isinstance(data, dict) else None
         if not isinstance(cases, list) or not 1 <= len(cases) <= max_cases:
             raise ValueError("Generator returned an invalid number of cases.")
@@ -318,13 +354,18 @@ def execute_agent3a_program(
         normalized = []
         rejected = []
         seen_inputs = set()
+        total_input_bytes = 0
         for index, case in enumerate(cases, 1):
             if not isinstance(case, dict) or not isinstance(case.get("input"), str):
                 rejected.append({"case": index, "reason": "invalid case shape"})
                 continue
             text = case["input"]
-            if len(text.encode()) > 256 * 1024:
-                rejected.append({"case": index, "reason": "input exceeds the 256 KiB limit"})
+            input_bytes = len(text.encode("utf-8"))
+            if input_bytes > MAX_AGENT3A_CASE_INPUT_BYTES:
+                rejected.append({"case": index, "reason": "input exceeds the 16 KiB operational case limit"})
+                continue
+            if total_input_bytes + input_bytes > MAX_AGENT3A_BATCH_INPUT_BYTES:
+                rejected.append({"case": index, "reason": "batch exceeds the 512 KiB operational input limit"})
                 continue
             if not schema.validate(text):
                 rejected.append({
@@ -343,6 +384,7 @@ def execute_agent3a_program(
                 rejected.append({"case": index, "reason": "invalid semantic input size"})
                 continue
             seen_inputs.add(text)
+            total_input_bytes += input_bytes
             normalized.append({
                 "input_size": size,
                 "input": text,
@@ -371,6 +413,7 @@ def execute_agent3a_program(
         "shortfall_count": max(0, max_cases - len(normalized)),
         "rejected_count": len(rejected),
         "rejected_cases": rejected[:5],
+        "total_input_bytes": total_input_bytes,
         "inputs": normalized,
         "reproducible": True,
         "validation": {

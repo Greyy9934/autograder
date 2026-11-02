@@ -11,6 +11,7 @@ import tempfile
 import io
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 import zipfile
 
 from fastapi import FastAPI, HTTPException, Header, Response
@@ -64,6 +65,30 @@ logger = logging.getLogger("autograder.workflow")
 for _application_logger_name in ("autograder", "app", "analyzers"):
     logging.getLogger(_application_logger_name).setLevel(logging.INFO)
 
+# Keep correlated workflow/provider diagnostics readable even when the server
+# was launched from a detached terminal. Never log source, prompts, or secrets.
+_workflow_log_path = Path(
+    os.getenv("AUTOGRADER_LOG_FILE", str(Path(tempfile.gettempdir()) / "autograder-workflow.log"))
+).expanduser()
+try:
+    _workflow_log_path.parent.mkdir(parents=True, exist_ok=True)
+    _workflow_file_handler = RotatingFileHandler(
+        _workflow_log_path, maxBytes=2 * 1024 * 1024, backupCount=3, encoding="utf-8"
+    )
+    _workflow_file_handler.setFormatter(logging.Formatter(
+        "%(asctime)s %(levelname)s %(name)s %(message)s"
+    ))
+    for _application_logger_name in ("autograder", "app", "analyzers"):
+        _application_logger = logging.getLogger(_application_logger_name)
+        if not any(getattr(handler, "_autograder_workflow_file", False)
+                   for handler in _application_logger.handlers):
+            _workflow_file_handler._autograder_workflow_file = True
+            _application_logger.addHandler(_workflow_file_handler)
+except OSError:
+    logging.getLogger("autograder.workflow").exception(
+        "workflow_file_logging_unavailable path=%s", _workflow_log_path
+    )
+
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR.parent / '.env', override=False)
 
@@ -77,7 +102,14 @@ app = FastAPI(
 @app.middleware("http")
 async def attach_request_id(request: Request, call_next):
     """Tag each request so workflow and provider diagnostics can be correlated."""
-    request_id = secrets.token_hex(6)
+    supplied_id = request.headers.get("X-Request-ID", "")
+    safe_supplied_id = (
+        supplied_id if 8 <= len(supplied_id) <= 64
+        and supplied_id.replace("-", "").isalnum()
+        and supplied_id.isascii()
+        else ""
+    )
+    request_id = safe_supplied_id or secrets.token_hex(6)
     token = request_id_var.set(request_id)
     try:
         response = await call_next(request)
@@ -1040,6 +1072,7 @@ def instructor_ui_generate_tests(
     request: UIGenerateTestsRequest,
     http_request: Request,
 ):
+    request_started = time.perf_counter()
     session_id = _require_ui_session(http_request)
     record = _get_ui_submission(session_id, request.submission_id)
 
@@ -1132,6 +1165,15 @@ def instructor_ui_generate_tests(
     generation_request_key = hashlib.sha256(
         json.dumps(generation_request, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
+    logger.info(
+        "agent3_generation_started request_id=%s mode=%s random_count=%d adversarial_count=%d distribution=%s schema_fields=%d",
+        request_id_var.get(),
+        "demo" if demo_mode else "live",
+        random_count,
+        adversarial_count,
+        request.random_distribution,
+        len(schema_data.get("fields", [])) if isinstance(schema_data, dict) else 0,
+    )
     if (
         record.get("test_generation_request_key") == generation_request_key
         and isinstance(record.get("test_plans"), dict)
@@ -1148,12 +1190,20 @@ def instructor_ui_generate_tests(
         )
         return cached
 
+    stage_started = time.perf_counter()
     result = generate_test_plans(
         source=record["source"], spec=spec, schema=schema,
         random_seed=request.random_seed, random_count=random_count,
         random_distribution=request.random_distribution,
         adversarial_seed=request.adversarial_seed, adversarial_count=adversarial_count,
         static_findings=risk_data.get("findings", []), reference_metadata=references,
+    )
+    logger.info(
+        "agent3_local_plan_completed request_id=%s elapsed_ms=%.1f status=%s random_count=%s edge_count=%s",
+        request_id_var.get(), (time.perf_counter() - stage_started) * 1000,
+        result.get("status", "unknown"),
+        (result.get("random_tests") or {}).get("count", 0),
+        (result.get("adversarial_tests") or {}).get("case_count", 0),
     )
 
     if result.get("status") == "generated":
@@ -1192,13 +1242,22 @@ def instructor_ui_generate_tests(
                 agent_problem = dict(confirmed)
                 if record.get("problem_statement"):
                     agent_problem["user_supplied_problem_statement"] = record["problem_statement"]
+                stage_started = time.perf_counter()
+                logger.info("agent3a_provider_started request_id=%s", request_id_var.get())
                 agent3a = generate_agent3a_program(
                     provider, problem=agent_problem, schema=schema_data,
                     references=references, student_source=record["source"],
                     max_cases=min(random_count, 100),
                     requested_distribution=request.random_distribution,
                 )
+                logger.info(
+                    "agent3a_provider_completed request_id=%s elapsed_ms=%.1f status=%s",
+                    request_id_var.get(), (time.perf_counter() - stage_started) * 1000,
+                    agent3a.get("status", "unknown"),
+                )
                 if agent3a.get("status") == "program_generated_unexecuted":
+                    stage_started = time.perf_counter()
+                    logger.info("agent3a_sandbox_started request_id=%s case_limit=%d", request_id_var.get(), min(random_count, 100))
                     generated = execute_agent3a_program(
                         agent3a, seed=request.random_seed, schema=schema,
                         max_cases=min(random_count, 100),
@@ -1211,10 +1270,23 @@ def instructor_ui_generate_tests(
                     agent3a["generation"] = generated
                     agent3a["status"] = ("generated" if generated.get("status") == "generated"
                                           else generated.get("status", "generation_failed"))
+                    logger.info(
+                        "agent3a_sandbox_completed request_id=%s elapsed_ms=%.1f status=%s valid_cases=%d rejected_cases=%d generated_input_bytes=%d",
+                        request_id_var.get(), (time.perf_counter() - stage_started) * 1000,
+                        generated.get("status", "unknown"), len(generated.get("inputs") or []),
+                        generated.get("rejected_count", 0), generated.get("total_input_bytes", 0),
+                    )
 
+                stage_started = time.perf_counter()
+                logger.info("agent3b_provider_started request_id=%s", request_id_var.get())
                 agent3b = analyze_agent3b_edges(
                     provider, problem=agent_problem, schema=schema_data,
                     references=references, student_source=record["source"],
+                )
+                logger.info(
+                    "agent3b_provider_completed request_id=%s elapsed_ms=%.1f status=%s",
+                    request_id_var.get(), (time.perf_counter() - stage_started) * 1000,
+                    agent3b.get("status", "unknown"),
                 )
                 if agent3b.get("status") == "proposed_unvalidated":
                     validated = validate_agent3b_edges(agent3b, schema=schema)
@@ -1285,14 +1357,25 @@ def instructor_ui_generate_tests(
             brute = references.get("brute_force") or {}
             efficient = references.get("efficient") or {}
             if brute.get("code") and efficient.get("code"):
+                benchmark_budget = benchmark_time_budget_for_case_count(len(generated_cases))
+                stage_started = time.perf_counter()
+                logger.info(
+                    "agent3a_benchmark_started request_id=%s cases=%d shared_budget_seconds=%.1f",
+                    request_id_var.get(), len(generated_cases), benchmark_budget,
+                )
                 agent3a_benchmark = benchmark_three_programs_parallel(
                     record["source"],
                     brute["code"],
                     efficient["code"],
                     generated_cases,
-                    time_budget_seconds=benchmark_time_budget_for_case_count(
-                        len(generated_cases)
-                    ),
+                    time_budget_seconds=benchmark_budget,
+                )
+                logger.info(
+                    "agent3a_benchmark_completed request_id=%s elapsed_ms=%.1f status=%s comparisons=%d observations=%d",
+                    request_id_var.get(), (time.perf_counter() - stage_started) * 1000,
+                    agent3a_benchmark.get("status", "unknown"),
+                    len(agent3a_benchmark.get("differential_comparisons") or []),
+                    len(agent3a_benchmark.get("chart_data") or []),
                 )
             else:
                 agent3a_benchmark = {
@@ -1320,8 +1403,9 @@ def instructor_ui_generate_tests(
     agent3b_cases = agent3b_result.get("cases") or []
     benchmark_result = result.get("agent3a_benchmark") or {}
     logger.info(
-        "agent3_generation_completed request_id=%s mode=%s status=%s random_plan_count=%s adversarial_plan_count=%s agent3a_status=%s generated_input_count=%d agent3b_status=%s edge_case_count=%d benchmark_status=%s benchmark_observation_count=%d",
+        "agent3_generation_completed request_id=%s elapsed_ms=%.1f mode=%s status=%s random_plan_count=%s adversarial_plan_count=%s agent3a_status=%s generated_input_count=%d agent3b_status=%s edge_case_count=%d benchmark_status=%s benchmark_observation_count=%d",
         request_id_var.get(),
+        (time.perf_counter() - request_started) * 1000,
         "demo" if demo_mode else "live",
         result.get("status", "unknown"),
         (result.get("random_tests") or {}).get("count", 0),

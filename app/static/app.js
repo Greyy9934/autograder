@@ -357,15 +357,27 @@ int main(void) {
   let instructorAuthenticated = false;
 
   async function apiRequest(url, payload = {}) {
-    const response = await fetch(url, {
-      method: "POST",
-      credentials: "same-origin",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+    const requestId = globalThis.crypto?.randomUUID?.() ||
+      `ui-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+    let response;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-Request-ID": requestId
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (error) {
+      if (error?.name === "AbortError") throw error;
+      const stage = url.includes("/api/ui/generate-tests") ? "Agent 3" : "workflow";
+      throw new Error(
+        `Connection to the server was interrupted (request ${requestId}). The server may still be processing; check its matching ${stage} logs before retrying.`
+      );
+    }
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       throw new Error(typeof data.detail === "string"
@@ -1519,7 +1531,8 @@ int main(void) {
     executeTestsButton.hidden = false;
     agent3Button.disabled = true;
     agent3Button.textContent = "[ generating tests… ]";
-    if (agent3Output) agent3Output.textContent = "Generating test inputs…";
+    if (agent3Output) agent3Output.textContent =
+      "Agent 3A is generating and validating bounded inputs; Agent 3B and runtime comparisons follow. Test inputs are capped at 16 KiB each and 512 KiB total, regardless of larger legal schema bounds. This can take up to about two minutes. Keep this page open and do not submit the same run again.";
     try {
       const result = await apiRequest("/api/ui/generate-tests", payload);
       currentDraft.testPlans = result;
@@ -1552,13 +1565,20 @@ int main(void) {
 
       const agent3a = result.agent3a || {};
       const generation = agent3a.generation || {};
+      const localRandomPlan = result.random_tests || {};
+      if (localRandomPlan.coverage_status === "partial" || localRandomPlan.status === "generator_error") {
+        const localCount = Number(localRandomPlan.count || localRandomPlan.inputs?.length || 0);
+        const requestedLocalCount = Number(localRandomPlan.requested_count || payload.random_count);
+        stageText(agent3Output, "Bounded local sample",
+          localRandomPlan.message || `${localCount} of ${requestedLocalCount} requested inputs fit the local per-case and batch byte limits.`);
+      }
       const generatedCount = Array.isArray(generation.inputs)
         ? generation.inputs.length : 0;
       if (generation.requested_count) {
         const emitted = generation.returned_count ?? generatedCount;
         const rejected = Number(generation.rejected_count || 0);
         stageText(agent3Output, "Agent 3A coverage",
-          `${generatedCount} valid unique cases of ${generation.requested_count} requested (${emitted} emitted${rejected ? `, ${rejected} rejected` : ""}).`);
+          `${generatedCount} valid unique cases of ${generation.requested_count} requested (${emitted} emitted${rejected ? `, ${rejected} rejected` : ""}; ${Number(generation.total_input_bytes || 0).toLocaleString()} input bytes).`);
         const firstReason = generation.rejected_cases?.[0]?.reason;
         if (firstReason) stageText(agent3Output, "First rejected case reason", firstReason);
       }
