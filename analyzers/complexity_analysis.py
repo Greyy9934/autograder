@@ -3,6 +3,7 @@
 from typing import Any
 
 from app.ai.base import AIProvider, AIProviderError
+from app.ai.output_budget import TASK_COMPLEXITY
 from analyzers.complexity_math import parse_complexity_expression
 
 
@@ -262,7 +263,7 @@ def analyze_complexity(
 
     try:
         raw = provider.generate_json(
-            task="Perform AI-first time and space complexity analysis.",
+            task=TASK_COMPLEXITY,
             payload=payload,
             schema=COMPLEXITY_ANALYSIS_SCHEMA,
         )

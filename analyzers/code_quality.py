@@ -3,6 +3,8 @@
 import re
 from typing import Any
 
+from app.ai.output_budget import TASK_CODE_QUALITY
+
 
 def analyze_code_quality(source: str) -> dict[str, Any]:
     if not isinstance(source, str) or not source.strip():
@@ -198,7 +200,7 @@ def review_code_quality(
     }
     try:
         response = provider.generate_json(
-            task="Perform the final AI-led code quality and maintainability review.",
+            task=TASK_CODE_QUALITY,
             payload=payload,
             schema=CODE_QUALITY_SCHEMA,
         )

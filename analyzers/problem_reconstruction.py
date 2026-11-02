@@ -3,6 +3,7 @@
 from typing import Any
 
 from app.ai.base import AIProvider, AIProviderError
+from app.ai.output_budget import TASK_RECONSTRUCTION
 from analyzers.structured_input_schema import StructuredIntegerInputSchema
 
 
@@ -220,7 +221,7 @@ def reconstruct_problem(
     try:
         result = _validate_response(
             provider.generate_json(
-                task="Reconstruct the intended programming problem.",
+                task=TASK_RECONSTRUCTION,
                 payload=payload,
                 schema=RECONSTRUCTION_SCHEMA,
             )

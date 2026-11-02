@@ -6,6 +6,17 @@ import pytest
 
 from app.ai.base import AIProviderError
 from app.ai.deepseek_provider import DeepSeekProvider
+from app.ai.output_budget import (
+    AGENT_OUTPUT_TOKEN_CAPS,
+    PER_SUBMISSION_OUTPUT_TOKEN_BUDGET,
+    TASK_CODE_QUALITY,
+    TASK_COMPLEXITY,
+    TASK_EDGE_CASES,
+    TASK_MATHEMATICAL_PROOF,
+    TASK_RANDOM_GENERATOR,
+    TASK_RECONSTRUCTION,
+    TASK_REFERENCES,
+)
 
 
 class FakeResponse:
@@ -56,7 +67,7 @@ def test_sends_json_mode_request_and_parses_object():
     )
 
     result = provider.generate_json(
-        "Analyze code",
+        TASK_RECONSTRUCTION,
         {"source": "int main(void) { return 0; }"},
         {"type": "object", "required": ["status"]},
     )
@@ -67,7 +78,7 @@ def test_sends_json_mode_request_and_parses_object():
     assert request.full_url == "https://api.deepseek.com/chat/completions"
     assert request.get_header("Authorization") == "Bearer test-key"
     assert body["model"] == "deepseek-flash"
-    assert body["max_tokens"] == 4096
+    assert body["max_tokens"] == 3072
     assert body["reasoning_effort"] == "low"
     assert body["temperature"] == 0
     assert body["response_format"] == {"type": "json_object"}
@@ -86,7 +97,7 @@ def test_retries_temporary_http_error_then_succeeds():
         max_retries=2,
     )
 
-    assert provider.generate_json("task", {}, {}) == {"ok": True}
+    assert provider.generate_json(TASK_CODE_QUALITY, {}, {}) == {"ok": True}
     assert len(opener.calls) == 2
     assert sleeps == [0.5]
 
@@ -97,7 +108,7 @@ def test_does_not_retry_authentication_error():
     provider = DeepSeekProvider("test-key", opener=opener, sleep=lambda _: None)
 
     with pytest.raises(AIProviderError) as caught:
-        provider.generate_json("task", {}, {})
+        provider.generate_json(TASK_CODE_QUALITY, {}, {})
 
     assert caught.value.category == "authentication_error"
     assert caught.value.retryable is False
@@ -113,7 +124,7 @@ def test_classifies_rate_limit():
     )
 
     with pytest.raises(AIProviderError) as caught:
-        provider.generate_json("task", {}, {})
+        provider.generate_json(TASK_CODE_QUALITY, {}, {})
 
     assert caught.value.category == "rate_limited"
     assert caught.value.status_code == 429
@@ -129,7 +140,7 @@ def test_retries_network_failure():
         max_retries=2,
     )
 
-    assert provider.generate_json("task", {}, {}) == {"ok": True}
+    assert provider.generate_json(TASK_CODE_QUALITY, {}, {}) == {"ok": True}
     assert len(opener.calls) == 2
     assert sleeps == [0.5]
 
@@ -149,7 +160,7 @@ def test_rejects_invalid_model_output(content, category):
     )
 
     with pytest.raises(AIProviderError) as caught:
-        provider.generate_json("task", {}, {})
+        provider.generate_json(TASK_CODE_QUALITY, {}, {})
 
     assert caught.value.category == category
 
@@ -179,7 +190,7 @@ def test_rejects_response_that_does_not_match_schema():
 
     with pytest.raises(AIProviderError) as caught:
         provider.generate_json(
-            "task",
+            TASK_CODE_QUALITY,
             {},
             {
                 "type": "object",
@@ -199,7 +210,7 @@ def test_rejects_oversized_response():
     )
 
     with pytest.raises(AIProviderError) as caught:
-        provider.generate_json("task", {}, {"type": "object"})
+        provider.generate_json(TASK_CODE_QUALITY, {}, {"type": "object"})
 
     assert caught.value.category == "response_too_large"
 
@@ -209,7 +220,7 @@ def test_rejects_invalid_schema_before_network_call():
     provider = DeepSeekProvider("test-key", opener=opener)
 
     with pytest.raises(AIProviderError) as caught:
-        provider.generate_json("task", {}, {"type": "not-a-json-schema-type"})
+        provider.generate_json(TASK_CODE_QUALITY, {}, {"type": "not-a-json-schema-type"})
 
     assert caught.value.category == "invalid_request"
     assert opener.calls == []
@@ -226,7 +237,7 @@ def test_default_provider_does_not_retry_paid_requests():
     provider = DeepSeekProvider("test-key", opener=opener, sleep=lambda _: None)
 
     with pytest.raises(AIProviderError) as caught:
-        provider.generate_json("task", {}, {})
+        provider.generate_json(TASK_CODE_QUALITY, {}, {})
 
     assert caught.value.category == "provider_unavailable"
     assert len(opener.calls) == 1
@@ -237,7 +248,7 @@ def test_rejects_truncated_output_without_retry():
     provider = DeepSeekProvider("test-key", opener=opener)
 
     with pytest.raises(AIProviderError) as caught:
-        provider.generate_json("task", {}, {})
+        provider.generate_json(TASK_CODE_QUALITY, {}, {})
 
     assert caught.value.category == "output_truncated"
     assert len(opener.calls) == 1
@@ -250,7 +261,7 @@ def test_records_provider_reported_token_usage():
         opener=FakeOpener([response('{"ok":true}', usage=usage)]),
     )
 
-    assert provider.generate_json("task", {}, {}) == {"ok": True}
+    assert provider.generate_json(TASK_CODE_QUALITY, {}, {}) == {"ok": True}
     assert provider.last_usage == usage
 
 
@@ -265,3 +276,43 @@ def test_rejects_non_official_https_endpoint():
 def test_rejects_out_of_bounds_max_tokens():
     with pytest.raises(ValueError, match="max_tokens"):
         DeepSeekProvider("test-key", max_tokens=8193)
+
+
+
+def test_agent_caps_match_the_standard_submission_budget():
+    assert len(AGENT_OUTPUT_TOKEN_CAPS) == 7
+    assert sum(AGENT_OUTPUT_TOKEN_CAPS.values()) == PER_SUBMISSION_OUTPUT_TOKEN_BUDGET
+    assert AGENT_OUTPUT_TOKEN_CAPS[TASK_REFERENCES] == 8192
+
+
+def test_unknown_agent_task_is_rejected_before_network_call():
+    opener = FakeOpener([])
+    provider = DeepSeekProvider("test-key", opener=opener)
+
+    with pytest.raises(AIProviderError) as caught:
+        provider.generate_json("unmapped task", {}, {"type": "object"})
+
+    assert caught.value.category == "configuration_error"
+    assert opener.calls == []
+
+
+
+@pytest.mark.parametrize(
+    ("task", "expected_cap"),
+    [
+        (TASK_RECONSTRUCTION, 3072),
+        (TASK_REFERENCES, 8192),
+        (TASK_RANDOM_GENERATOR, 4096),
+        (TASK_EDGE_CASES, 3072),
+        (TASK_COMPLEXITY, 2048),
+        (TASK_MATHEMATICAL_PROOF, 6144),
+        (TASK_CODE_QUALITY, 2048),
+    ],
+)
+def test_request_uses_its_agent_specific_output_cap(task, expected_cap):
+    opener = FakeOpener([response('{"ok":true}')])
+    provider = DeepSeekProvider("test-key", opener=opener)
+
+    assert provider.generate_json(task, {}, {"type": "object"}) == {"ok": True}
+    body = json.loads(opener.calls[0][0].data)
+    assert body["max_tokens"] == expected_cap

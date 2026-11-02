@@ -79,7 +79,7 @@ def test_configured_deepseek_provider_is_created():
     assert isinstance(provider.provider, DeepSeekProvider)
     assert provider.provider.api_key == "deepseek-test-key"
     assert provider.provider.model == "deepseek-flash"
-    assert provider.provider.max_tokens == 4096
+    assert provider.provider.max_tokens == 8192
     assert provider.provider.max_retries == 0
     assert provider.credits_per_call == 1
 
@@ -138,25 +138,3 @@ def test_mock_mode_is_rejected_in_production():
     ):
         with pytest.raises(AIProviderError, match="disabled in production"):
             create_ai_provider()
-
-
-def test_invalid_deepseek_token_cap_fails_as_configuration_error():
-    from app.ai.base import AIProviderError
-
-    with (
-        patch("app.ai.config.load_dotenv"),
-        patch("app.ai.config.create_request_budget", return_value=object()),
-        patch.dict(
-            os.environ,
-            {
-                "AI_PROVIDER": "deepseek",
-                "DEEPSEEK_API_KEY": "test-key",
-                "DEEPSEEK_MAX_TOKENS": "not-an-integer",
-            },
-            clear=True,
-        ),
-    ):
-        with pytest.raises(AIProviderError) as caught:
-            create_ai_provider()
-
-    assert caught.value.category == "configuration_error"

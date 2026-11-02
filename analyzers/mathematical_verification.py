@@ -7,6 +7,7 @@ verified formal proof.
 from typing import Any
 
 from app.ai.base import AIProvider, AIProviderError
+from app.ai.output_budget import TASK_MATHEMATICAL_PROOF
 
 
 VERIFICATION_SCHEMA = {
@@ -133,7 +134,7 @@ def verify_algorithm(
 
     try:
         response = provider.generate_json(
-            task="Produce a mathematical correctness proof or concrete counterexample.",
+            task=TASK_MATHEMATICAL_PROOF,
             payload=payload,
             schema=VERIFICATION_SCHEMA,
         )

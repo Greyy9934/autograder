@@ -11,6 +11,15 @@ from copy import deepcopy
 from typing import Any
 
 from app.ai.mock_scenarios import get_scenario
+from app.ai.output_budget import (
+    TASK_CODE_QUALITY,
+    TASK_COMPLEXITY,
+    TASK_EDGE_CASES,
+    TASK_MATHEMATICAL_PROOF,
+    TASK_RANDOM_GENERATOR,
+    TASK_RECONSTRUCTION,
+    TASK_REFERENCES,
+)
 
 
 def _sample_input(schema: dict[str, Any], seed: int = 0) -> str:
@@ -98,7 +107,7 @@ class MockWorkflowProvider:
 
     def _generate_json_unchecked(self, task: str, payload: dict, schema: dict) -> dict:
         self.calls.append({"task": task, "payload": deepcopy(payload), "schema": deepcopy(schema)})
-        if task == "Reconstruct the intended programming problem.":
+        if task == TASK_RECONSTRUCTION:
             statement = ""
             if isinstance(payload, dict):
                 statement = str(
@@ -150,9 +159,9 @@ class MockWorkflowProvider:
             ]
             return response
 
-        if task == "Generate candidate C reference solutions.":
+        if task == TASK_REFERENCES:
             return get_scenario("agent2", "reference_solutions")
-        if task == "Design a problem-specific randomized test generator for Agent 3A.":
+        if task == TASK_RANDOM_GENERATOR:
             input_schema = payload.get("agent1_input_schema") or {}
             return {
                 "generator_program": _generator_program(input_schema),
@@ -161,7 +170,7 @@ class MockWorkflowProvider:
                 "size_strategy": "Progressively increase the schema-declared size field.",
                 "limitations": ["SIMULATED AGENT 3A RESPONSE: generator design is deterministic, not AI-authored."],
             }
-        if task == "Discover concrete adversarial edge cases for the submitted C program.":
+        if task == TASK_EDGE_CASES:
             input_schema = payload.get("agent1_input_schema") or {}
             return {
                 "summary": "Offline mock proposals exercise representative schema-valid inputs.",
@@ -178,7 +187,7 @@ class MockWorkflowProvider:
                 ],
                 "limitations": ["SIMULATED AGENT 3B RESPONSE: proposals are not AI-derived adversarial hypotheses."],
             }
-        if task == "Perform AI-first time and space complexity analysis.":
+        if task == TASK_COMPLEXITY:
             response = get_scenario("agent4", "inconclusive")
             source_lines = str(payload.get("source_code", "")).splitlines()
             if source_lines:
@@ -193,9 +202,9 @@ class MockWorkflowProvider:
                     "evidence": [{"line": 1, "quote": "int main(void) { return 0; }"}],
                 }
             return response
-        if task == "Produce a mathematical correctness proof or concrete counterexample.":
+        if task == TASK_MATHEMATICAL_PROOF:
             return get_scenario("agent5", "inconclusive")
-        if task == "Perform the final AI-led code quality and maintainability review.":
+        if task == TASK_CODE_QUALITY:
             source = payload.get("submitted_source_code", "")
             return {
                 "summary": "Offline mock review completed structurally; no source-specific quality conclusion is asserted.",

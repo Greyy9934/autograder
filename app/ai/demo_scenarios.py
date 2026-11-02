@@ -6,6 +6,15 @@ import secrets
 from typing import Any
 
 from app.ai.base import AIProviderError
+from app.ai.output_budget import (
+    TASK_CODE_QUALITY,
+    TASK_COMPLEXITY,
+    TASK_EDGE_CASES,
+    TASK_MATHEMATICAL_PROOF,
+    TASK_RANDOM_GENERATOR,
+    TASK_RECONSTRUCTION,
+    TASK_REFERENCES,
+)
 from app.ai.guardrails import GuardedProvider
 from analyzers.structured_input_schema import StructuredIntegerInputSchema
 
@@ -462,13 +471,13 @@ DEMO_SCENARIOS = {
     "traveling_salesman": TSP,
 }
 TASK_TO_AGENT = {
-    "Reconstruct the intended programming problem.": "agent1",
-    "Generate candidate C reference solutions.": "agent2",
-    "Design a problem-specific randomized test generator for Agent 3A.": "agent3a",
-    "Discover concrete adversarial edge cases for the submitted C program.": "agent3b",
-    "Perform AI-first time and space complexity analysis.": "agent4",
-    "Produce a mathematical correctness proof or concrete counterexample.": "agent5",
-    "Perform the final AI-led code quality and maintainability review.": "agent6",
+    TASK_RECONSTRUCTION: "agent1",
+    TASK_REFERENCES: "agent2",
+    TASK_RANDOM_GENERATOR: "agent3a",
+    TASK_EDGE_CASES: "agent3b",
+    TASK_COMPLEXITY: "agent4",
+    TASK_MATHEMATICAL_PROOF: "agent5",
+    TASK_CODE_QUALITY: "agent6",
 }
 
 
@@ -538,7 +547,10 @@ class DemoScenarioProvider:
         if not isinstance(response, dict):
             raise AIProviderError(f"Demo response {agent} is missing for {self.scenario_id}.", category="demo_response_missing")
         self.calls.append(agent)
-        return deepcopy(response)
+        response = deepcopy(response)
+        if agent == "agent3b":
+            response["cases"] = response.get("cases", [])[:8]
+        return response
 
     def generate_json(self, task: str, payload: dict, schema: dict) -> dict:
         return self._guarded.generate_json(task, payload, schema)

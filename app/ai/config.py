@@ -20,17 +20,6 @@ def mock_mode_enabled() -> bool:
     }
 
 
-def _int_setting(name: str, default: int) -> int:
-    raw = os.getenv(name, str(default)).strip()
-    try:
-        return int(raw)
-    except (TypeError, ValueError) as exc:
-        raise AIProviderError(
-            f"{name} must be an integer.",
-            category="configuration_error",
-        ) from exc
-
-
 def create_ai_provider():
     """Create the explicitly selected offline mock or configured AI provider."""
     load_dotenv(PROJECT_ROOT / ".env", override=False)
@@ -71,7 +60,6 @@ def create_ai_provider():
         provider = DeepSeekProvider(
             api_key=api_key,
             model=os.getenv("DEEPSEEK_MODEL", "deepseek-flash").strip(),
-            max_tokens=_int_setting("DEEPSEEK_MAX_TOKENS", 4096),
             max_retries=0,
         )
 

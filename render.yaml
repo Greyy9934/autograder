@@ -13,5 +13,3 @@ services:
         sync: false
       - key: AI_DAILY_REQUEST_CREDITS
         value: "7"
-      - key: DEEPSEEK_MAX_TOKENS
-        value: "4096"

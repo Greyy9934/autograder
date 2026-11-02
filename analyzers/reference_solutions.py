@@ -3,6 +3,7 @@
 from typing import Any
 
 from app.ai.base import AIProvider, AIProviderError
+from app.ai.output_budget import TASK_REFERENCES
 
 
 REFERENCE_SCHEMA = {
@@ -117,7 +118,7 @@ def generate_reference_solutions(
     try:
         result = _validate_reference(
             provider.generate_json(
-                task="Generate candidate C reference solutions.",
+                task=TASK_REFERENCES,
                 payload=payload,
                 schema=REFERENCE_SCHEMA,
             )

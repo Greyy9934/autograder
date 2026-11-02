@@ -9,6 +9,10 @@ from urllib.request import Request, urlopen
 from urllib.parse import urlparse
 
 from app.ai.base import AIProviderError
+from app.ai.output_budget import (
+    MAX_OUTPUT_TOKENS_PER_REQUEST,
+    output_token_cap_for_task,
+)
 from jsonschema import Draft202012Validator, SchemaError, ValidationError
 
 
@@ -21,7 +25,7 @@ class DeepSeekProvider:
         endpoint: str = "https://api.deepseek.com/chat/completions",
         timeout: float = 45,
         max_retries: int = 0,
-        max_tokens: int = 4096,
+        max_tokens: int = MAX_OUTPUT_TOKENS_PER_REQUEST,
         opener=urlopen,
         sleep=time.sleep,
         max_response_bytes: int = 1048576,
@@ -47,8 +51,15 @@ class DeepSeekProvider:
             raise ValueError("max_response_bytes must be a positive integer.")
         if timeout <= 0:
             raise ValueError("timeout must be positive.")
-        if isinstance(max_tokens, bool) or not isinstance(max_tokens, int) or not 1 <= max_tokens <= 8192:
-            raise ValueError("max_tokens must be an integer between 1 and 8192.")
+        if (
+            isinstance(max_tokens, bool)
+            or not isinstance(max_tokens, int)
+            or not 1 <= max_tokens <= MAX_OUTPUT_TOKENS_PER_REQUEST
+        ):
+            raise ValueError(
+                "max_tokens must be an integer between 1 and "
+                f"{MAX_OUTPUT_TOKENS_PER_REQUEST}."
+            )
 
         self.max_response_bytes = max_response_bytes
         self.max_tokens = max_tokens
@@ -69,6 +80,8 @@ class DeepSeekProvider:
     ) -> dict[str, Any]:
         if not isinstance(task, str) or not task.strip():
             raise AIProviderError("Task must not be empty.", category="invalid_request")
+        task_cap = output_token_cap_for_task(task)
+        request_max_tokens = min(task_cap, self.max_tokens)
         if not isinstance(payload, dict) or not isinstance(schema, dict):
             raise AIProviderError(
                 "Payload and schema must be JSON objects.",
@@ -95,7 +108,7 @@ class DeepSeekProvider:
         self.last_usage = None
         body = {
             "model": self.model,
-            "max_tokens": self.max_tokens,
+            "max_tokens": request_max_tokens,
             # Keep the paid Flash path in bounded low-effort reasoning mode.
             "reasoning_effort": "low",
             "temperature": 0,
