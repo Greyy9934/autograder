@@ -13,17 +13,19 @@ TASK_COMPLEXITY = "Perform AI-first time and space complexity analysis."
 TASK_MATHEMATICAL_PROOF = "Produce a mathematical correctness proof or concrete counterexample."
 TASK_CODE_QUALITY = "Perform the final AI-led code quality and maintainability review."
 
-# Per-task completion ceilings provide response headroom while staying far below the provider ceiling.
+# Per-task completion ceilings provide headroom for complete structured answers.
+# They are maxima, not reservations: billing follows provider-reported usage.
 AGENT_OUTPUT_TOKEN_CAPS = MappingProxyType({
-    TASK_RECONSTRUCTION: 6144,
-    TASK_REFERENCES: 12288,
-    TASK_RANDOM_GENERATOR: 8192,
-    TASK_EDGE_CASES: 12288,
-    TASK_COMPLEXITY: 4096,
-    TASK_MATHEMATICAL_PROOF: 8192,
-    TASK_CODE_QUALITY: 4096,
+    TASK_RECONSTRUCTION: 8192,
+    TASK_REFERENCES: 14336,
+    TASK_RANDOM_GENERATOR: 10240,
+    TASK_EDGE_CASES: 14336,
+    TASK_COMPLEXITY: 8192,
+    TASK_MATHEMATICAL_PROOF: 10240,
+    TASK_CODE_QUALITY: 6144,
 })
-PER_SUBMISSION_OUTPUT_TOKEN_BUDGET = 55_296
+# Sum of seven per-request ceilings only; this is not pre-reserved or pre-billed.
+PER_SUBMISSION_OUTPUT_TOKEN_BUDGET = 71_680
 MAX_OUTPUT_TOKENS_PER_REQUEST = 16384
 MAX_PROVIDER_INPUT_JSON_BYTES = 48 * 1024
 

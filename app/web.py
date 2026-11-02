@@ -1638,6 +1638,7 @@ def _grade_snapshot_analysis_identity(provider: Any, result: dict[str, Any]) -> 
         "app/metric_scoring.py",
         "app/grading.py",
         "app/ai/guardrails.py",
+        "app/ai/output_budget.py",
         "app/ai/deepseek_provider.py",
         "app/ai/gemini_provider.py",
     )
