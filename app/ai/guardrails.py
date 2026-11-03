@@ -1,4 +1,5 @@
 """Provider-independent validation and safety boundary for AI agents."""
+# Module role: Validates AI input/output JSON sizes and schemas at the shared provider boundary.
 
 import json
 import os
@@ -12,6 +13,8 @@ from app.ai.base import AIProviderError
 class GuardedProvider:
     """Validate all AI inputs and outputs before they enter the application."""
 
+    # Function role: Initializes the object and its validated dependencies.
+    # Context: method/helper owned by GuardedProvider; it is reached through that object's workflow.
     def __init__(self, provider: Any) -> None:
         self.provider = provider
         self.max_payload_bytes = int(
@@ -26,6 +29,9 @@ class GuardedProvider:
                 category="configuration_error",
             )
 
+    # Function role: Implements the internal encode helper for guardrails.
+    # Context: method/helper owned by GuardedProvider; it is reached through that object's workflow.
+    # Same-file callers: generate_json.
     @staticmethod
     def _encode(value: Any, label: str) -> bytes:
         try:
@@ -41,6 +47,10 @@ class GuardedProvider:
                 category="invalid_input",
             ) from exc
 
+    # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
+    # Context: method/helper owned by GuardedProvider; it is reached through that object's workflow.
+    # Same-file callers: generate_json.
+    # Direct call references (conditional/branch-dependent): _encode, generate_json.
     def generate_json(
         self,
         task: str,

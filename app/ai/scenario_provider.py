@@ -1,4 +1,5 @@
 """Deterministic multi-scenario AI provider for exhaustive offline testing."""
+# Module role: Implements the scenario provider subsystem used by the AutoGrader workflow.
 
 from collections import deque
 from copy import deepcopy
@@ -10,16 +11,22 @@ from app.ai.base import AIProviderError
 class ScenarioAIProvider:
     """Replay realistic responses and failures without making network requests."""
 
+    # Function role: Initializes the object and its validated dependencies.
+    # Context: method/helper owned by ScenarioAIProvider; it is reached through that object's workflow.
     def __init__(self, scenarios: Iterable[Any], *, repeat_last: bool = False):
         self._scenarios = deque(scenarios)
         self._last = None
         self.repeat_last = repeat_last
         self.calls: list[dict[str, Any]] = []
 
+    # Function role: Implements remaining for scenario provider using this module's input and result contracts.
+    # Context: method/helper owned by ScenarioAIProvider; it is reached through that object's workflow.
     @property
     def remaining(self) -> int:
         return len(self._scenarios)
 
+    # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
+    # Context: method/helper owned by ScenarioAIProvider; it is reached through that object's workflow.
     def generate_json(
         self,
         task: str,
@@ -62,24 +69,28 @@ class ScenarioAIProvider:
         return deepcopy(scenario)
 
 
+# Function role: Implements provider timeout for scenario provider using this module's input and result contracts.
 def provider_timeout(message: str = "Simulated provider timeout.") -> AIProviderError:
     return AIProviderError(
         message, category="timeout", retryable=True
     )
 
 
+# Function role: Implements provider rate limit for scenario provider using this module's input and result contracts.
 def provider_rate_limit(message: str = "Simulated rate limit.") -> AIProviderError:
     return AIProviderError(
         message, category="rate_limit", retryable=True, status_code=429
     )
 
 
+# Function role: Implements provider auth failure for scenario provider using this module's input and result contracts.
 def provider_auth_failure(message: str = "Simulated authentication failure.") -> AIProviderError:
     return AIProviderError(
         message, category="authentication_error", status_code=401
     )
 
 
+# Function role: Implements provider unavailable for scenario provider using this module's input and result contracts.
 def provider_unavailable(message: str = "Simulated provider outage.") -> AIProviderError:
     return AIProviderError(
         message, category="provider_unavailable", retryable=True, status_code=503

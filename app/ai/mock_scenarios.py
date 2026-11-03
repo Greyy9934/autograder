@@ -1,4 +1,5 @@
 """Realistic, deterministic offline scenarios for provider-backed agents."""
+# Module role: Implements the mock scenarios subsystem used by the AutoGrader workflow.
 
 from copy import deepcopy
 
@@ -340,6 +341,7 @@ SCHEMA_BY_AGENT = {
 }
 
 
+# Function role: Return an isolated, schema-current copy of one named scenario.
 def get_scenario(agent: str, name: str) -> dict:
     """Return an isolated, schema-current copy of one named scenario."""
     try:

@@ -1,4 +1,5 @@
 """Deterministic, heuristic code-quality analysis for C submissions."""
+# Module role: Implements the code quality subsystem used by the AutoGrader workflow.
 
 import re
 from typing import Any
@@ -6,6 +7,8 @@ from typing import Any
 from app.ai.output_budget import TASK_CODE_QUALITY
 
 
+# Function role: Implements analyze code quality for code quality using this module's input and result contracts.
+# Direct call references (conditional/branch-dependent): add.
 def analyze_code_quality(source: str) -> dict[str, Any]:
     if not isinstance(source, str) or not source.strip():
         return {
@@ -17,6 +20,9 @@ def analyze_code_quality(source: str) -> dict[str, Any]:
 
     findings: list[dict[str, str]] = []
 
+    # Function role: Adds one validated finding/case/issue to the result being assembled by analyze_code_quality.
+    # Context: method/helper owned by analyze_code_quality; it is reached through that object's workflow.
+    # Same-file callers: analyze_code_quality.
     def add(rule: str, severity: str, message: str) -> None:
         findings.append({
             "rule": rule,
@@ -149,6 +155,8 @@ CODE_QUALITY_SCHEMA = {
 }
 
 
+# Function role: Run the AI-led final code-quality review and validate cited evidence.
+# Numbered workflow order: 06.2c - Agent 6 source-cited maintainability and readability review.
 def review_code_quality(
     source: str,
     provider: Any,

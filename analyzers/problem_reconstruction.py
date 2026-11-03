@@ -1,4 +1,5 @@
 """Problem reconstruction intake and optional AI-provider integration."""
+# Module role: Requests Agent 1's inferred problem, constraints, input schema, output format, evidence, and assumptions.
 
 import logging
 from typing import Any
@@ -74,6 +75,8 @@ RECONSTRUCTION_SCHEMA = {
 }
 
 
+# Function role: Checks provider response fields, ranges, and source/schema evidence before accepting the result.
+# Same-file callers: reconstruct_problem.
 def _validate_response(result: Any) -> dict[str, Any]:
     if not isinstance(result, dict):
         raise AIProviderError("Reconstruction response must be an object.")
@@ -137,6 +140,9 @@ def _validate_response(result: Any) -> dict[str, Any]:
     return result
 
 
+# Function role: Accept source-only submissions and optionally invoke an AI provider.
+# Numbered workflow order: 02.1c - Agent 1: reconstruct task and generate the authoritative I/O schema.
+# Direct call references (conditional/branch-dependent): _validate_response.
 def reconstruct_problem(
     source: str,
     problem_statement: str | None = None,

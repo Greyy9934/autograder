@@ -1,4 +1,5 @@
 """Deterministic checks for generated reference programs."""
+# Module role: Implements the reference validation subsystem used by the AutoGrader workflow.
 
 from typing import Any
 
@@ -6,6 +7,8 @@ from analyzers.batch_execution import run_c_batch
 from analyzers.output_contract import normalize_stdout
 
 
+# Function role: Run a candidate reference against cases; never infer a proof.
+# Same-file callers: validate_reference_pair.
 def validate_reference_program(
     source: str,
     test_cases: list[dict[str, Any]],
@@ -127,6 +130,8 @@ def validate_reference_program(
     }
 
 
+# Function role: Compare two candidate references on the same supplied cases.
+# Direct call references (conditional/branch-dependent): validate_reference_program.
 def validate_reference_pair(
     brute_force_source: str,
     efficient_source: str,

@@ -1,5 +1,6 @@
 """Real, isolated, no-AI Two Sum demonstration using trusted built-in C programs."""
 from __future__ import annotations
+# Module role: Implements the demo runner subsystem used by the AutoGrader workflow.
 
 import random
 from typing import Any
@@ -92,10 +93,13 @@ int main(void) {
 """
 
 
+# Function role: Implements the internal make input helper for demo runner.
+# Same-file callers: _generate_benchmark_cases, _generate_edge_cases.
 def _make_input(values: list[int], target: int) -> str:
     return f"{len(values)}\n{' '.join(map(str, values))}\n{target}\n"
 
 
+# Function role: Implements the internal oracle helper for demo runner.
 def _oracle(values: list[int], target: int) -> str:
     seen: set[int] = set()
     for value in values:
@@ -105,6 +109,9 @@ def _oracle(values: list[int], target: int) -> str:
     return "NO"
 
 
+# Function role: Reproducible progressive-size, no-solution inputs (seed 20261101).
+# Same-file callers: build_real_demo_payload.
+# Direct call references (conditional/branch-dependent): _make_input.
 def _generate_benchmark_cases() -> list[dict[str, Any]]:
     """Reproducible progressive-size, no-solution inputs (seed 20261101)."""
     rng = random.Random(20261101)
@@ -122,6 +129,9 @@ def _generate_benchmark_cases() -> list[dict[str, Any]]:
     return cases
 
 
+# Function role: Implements the internal generate edge cases helper for demo runner.
+# Same-file callers: build_real_demo_payload.
+# Direct call references (conditional/branch-dependent): _make_input.
 def _generate_edge_cases() -> list[dict[str, Any]]:
     definitions = [
         ("empty_array", [], 5, "NO", "Minimum valid array length."),
@@ -144,6 +154,8 @@ def _generate_edge_cases() -> list[dict[str, Any]]:
     ]
 
 
+# Function role: Run only trusted demo code; accepts no user source or form data.
+# Direct call references (conditional/branch-dependent): _generate_benchmark_cases, _generate_edge_cases.
 def build_real_demo_payload() -> dict[str, Any]:
     """Run only trusted demo code; accepts no user source or form data."""
     cases = _generate_benchmark_cases()

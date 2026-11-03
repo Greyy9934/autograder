@@ -3,6 +3,7 @@
 Measurements reuse the isolated batch runner. They are observations, not
 proofs of asymptotic complexity.
 """
+# Module role: Implements the complexity benchmark subsystem used by the AutoGrader workflow.
 
 import hashlib
 import math
@@ -17,6 +18,7 @@ MAX_REPETITIONS = 10
 MAX_TOTAL_RUNS = 1000
 
 
+# Function role: Measure runtime for explicitly supplied input sizes and inputs.
 def benchmark_complexity(
     source: str,
     benchmark_cases: list[dict[str, Any]],

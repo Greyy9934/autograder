@@ -1,4 +1,5 @@
 """Typed models shared by the mathematical complexity engine."""
+# Module role: Implements the models subsystem used by the AutoGrader workflow.
 
 from __future__ import annotations
 

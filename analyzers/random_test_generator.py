@@ -1,4 +1,5 @@
 """Reproducible random test generation bound to confirmed specifications."""
+# Module role: Implements the random test generator subsystem used by the AutoGrader workflow.
 
 import random
 from typing import Any, Callable
@@ -15,6 +16,8 @@ InputGenerator = Callable[[random.Random, AssignmentSpec, str], str]
 InputValidator = Callable[[str, AssignmentSpec], bool]
 
 
+# Function role: Generate and validate a deterministic batch using an explicit format adapter.
+# Same-file callers: generate_schema_test_batch.
 def generate_random_test_batch(
     spec: AssignmentSpec,
     *,
@@ -123,6 +126,8 @@ def generate_random_test_batch(
     }
 
 
+# Function role: Generate tests using an explicit integer input schema.
+# Direct call references (conditional/branch-dependent): generate_random_test_batch.
 def generate_schema_test_batch(
     spec: AssignmentSpec,
     *,

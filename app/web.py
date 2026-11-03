@@ -1,3 +1,15 @@
+# Module role: FastAPI HTTP boundary: authentication, request validation, workflow state, route orchestration, logging, and downloads.
+# Numbered call order for the normal complete workflow (branches can stop or skip stages):
+#   01 browser SUBMIT performs static analysis, then runAgent1Workflow starts the instructor path.
+#   02 /api/ui/preflight checks source and compiles before Agent 1 is called.
+#   03 /api/ui/prepare -> evaluate_submission -> Agent 1 returns a problem draft and I/O schema.
+#   04 instructor approval -> /api/ui/confirm-assignment signs the reviewed specification fingerprint.
+#   05 /api/ui/generate-references -> Agent 2 produces candidate brute-force and efficient C programs.
+#   06 /api/ui/generate-tests -> Agent 3A/3B plans, validates cases, and prepares empirical comparisons.
+#   07 /api/ui/execute-tests -> bounded execution, then conditional Agents 4, 5, and 6.
+#   08 metric scoring -> deterministic rubric -> persist/reuse the complete grade snapshot.
+#   09 /api/ui/generate-report -> generate_pdf_report; test-case download is a separate UI action.
+#   This is the normal order, not a claim that every stage runs: ambiguity, missing configuration, or disabled execution can stop/skip later stages.
 from typing import Any
 import time
 from collections import defaultdict, deque
@@ -99,6 +111,7 @@ app = FastAPI(
 )
 
 
+# Function role: Tag each request so workflow and provider diagnostics can be correlated.
 @app.middleware("http")
 async def attach_request_id(request: Request, call_next):
     """Tag each request so workflow and provider diagnostics can be correlated."""
@@ -127,6 +140,8 @@ app.mount(
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 
+# Function role: Implements the internal approval signing key helper for web.
+# Same-file callers: _create_approval_token, _create_draft_token, _verify_draft_token, _verify_approval_token, _create_ui_session_token and other helpers.
 def _approval_signing_key() -> bytes:
     key = os.getenv("INSTRUCTOR_TOKEN_SIGNING_KEY", "").strip()
     if len(key) < 32:
@@ -137,6 +152,9 @@ def _approval_signing_key() -> bytes:
     return key.encode("utf-8")
 
 
+# Function role: Creates an HMAC-SHA256 token bound to the approved specification fingerprint and issue time; a client cannot edit the specification without invalidating the signature.
+# Same-file callers: confirm_assignment.
+# Direct call references (conditional/branch-dependent): _approval_signing_key.
 def _create_approval_token(fingerprint: str) -> str:
     issued_at = str(int(time.time()))
     message = f"{fingerprint}:{issued_at}".encode("utf-8")
@@ -146,6 +164,9 @@ def _create_approval_token(fingerprint: str) -> str:
     return f"{issued_at}.{signature}"
 
 
+# Function role: Signs the unapproved draft fingerprint so confirmation accepts only the server-issued draft, not a client-substituted contract.
+# Same-file callers: prepare_submission, instructor_ui_prepare.
+# Direct call references (conditional/branch-dependent): _approval_signing_key.
 def _create_draft_token(fingerprint: str) -> str:
     issued_at = str(int(time.time()))
     message = f"draft:{fingerprint}:{issued_at}".encode("utf-8")
@@ -155,6 +176,9 @@ def _create_draft_token(fingerprint: str) -> str:
     return f"{issued_at}.{signature}"
 
 
+# Function role: Checks age and verifies the draft-specific HMAC in constant time before instructor approval.
+# Same-file callers: confirm_assignment.
+# Direct call references (conditional/branch-dependent): _approval_signing_key.
 def _verify_draft_token(fingerprint: str, token: str) -> bool:
     try:
         issued_text, supplied_signature = token.split(".", 1)
@@ -173,6 +197,9 @@ def _verify_draft_token(fingerprint: str, token: str) -> bool:
     return secrets.compare_digest(expected, supplied_signature)
 
 
+# Function role: Checks age and compares the expected HMAC in constant time; approval tokens expire after fifteen minutes.
+# Same-file callers: generate_references.
+# Direct call references (conditional/branch-dependent): _approval_signing_key.
 def _verify_approval_token(fingerprint: str, token: str) -> bool:
     try:
         issued_text, supplied_signature = token.split(".", 1)
@@ -191,6 +218,7 @@ def _verify_approval_token(fingerprint: str, token: str) -> bool:
     return secrets.compare_digest(expected, supplied_signature)
 
 
+# Function role: Implements home for web using this module's input and result contracts.
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def home(request: Request):
     return templates.TemplateResponse(
@@ -200,6 +228,7 @@ def home(request: Request):
     )
 
 
+# Function role: Implements health for web using this module's input and result contracts.
 @app.get("/health")
 def health():
     try:
@@ -215,6 +244,7 @@ def health():
     }
 
 
+# Function role: Implements api status for web using this module's input and result contracts.
 @app.get("/api/status")
 def api_status():
     return {
@@ -248,6 +278,9 @@ class ConfirmAssignmentRequest(BaseModel):
 
 
 
+# Function role: Implements confirm assignment for web using this module's input and result contracts.
+# Same-file callers: instructor_ui_confirm.
+# Direct call references (conditional/branch-dependent): _verify_draft_token, _create_approval_token.
 @app.post("/api/confirm-assignment")
 def confirm_assignment(
     request: ConfirmAssignmentRequest,
@@ -309,6 +342,8 @@ _PREPARATION_REQUESTS = defaultdict(deque)
 _PREPARATION_RATE_LOCK = threading.Lock()
 
 
+# Function role: Checks preparation rate limit and reports whether the stage may proceed.
+# Same-file callers: prepare_submission.
 def _check_preparation_rate_limit(api_key: str) -> None:
     limit = int(os.getenv("PREPARATION_RATE_LIMIT", "10"))
     window = int(os.getenv("PREPARATION_RATE_WINDOW_SECONDS", "60"))
@@ -337,6 +372,9 @@ def _check_preparation_rate_limit(api_key: str) -> None:
         requests.append(now)
 
 
+# Function role: Implements prepare submission for web using this module's input and result contracts.
+# Same-file callers: instructor_ui_prepare.
+# Direct call references (conditional/branch-dependent): _check_preparation_rate_limit, _create_draft_token.
 @app.post("/api/prepare")
 def prepare_submission(
     request: PreparationRequest,
@@ -424,6 +462,7 @@ def prepare_submission(
     return result
 
 
+# Function role: Implements analyze source for web using this module's input and result contracts.
 @app.post("/api/analyze")
 def analyze_source(request: AnalysisRequest):
     source_bytes = request.source.encode("utf-8")
@@ -455,6 +494,9 @@ class ReferenceGenerationRequest(BaseModel):
     user_supplied_problem_statement: str | None = Field(default=None, max_length=20000)
 
 
+# Function role: Implements generate references for web using this module's input and result contracts.
+# Same-file callers: instructor_ui_generate_references.
+# Direct call references (conditional/branch-dependent): _verify_approval_token.
 @app.post("/api/generate-references")
 def generate_references(
     request: ReferenceGenerationRequest,
@@ -512,6 +554,8 @@ _LOGIN_ATTEMPTS = defaultdict(deque)
 _LOGIN_ATTEMPTS_LOCK = threading.Lock()
 
 
+# Function role: Rejects excessive login attempts from one client within the configured time window.
+# Same-file callers: instructor_ui_login.
 def _check_login_rate_limit(client_ip: str) -> None:
     now = time.monotonic()
     with _LOGIN_ATTEMPTS_LOCK:
@@ -525,16 +569,22 @@ def _check_login_rate_limit(client_ip: str) -> None:
             )
 
 
+# Function role: Adds a failed authentication attempt to the current client's rate-limit window.
+# Same-file callers: instructor_ui_login.
 def _record_login_failure(client_ip: str) -> None:
     with _LOGIN_ATTEMPTS_LOCK:
         _LOGIN_ATTEMPTS[client_ip].append(time.monotonic())
 
 
+# Function role: Clears the current client's failed-attempt history after successful authentication.
+# Same-file callers: instructor_ui_login.
 def _clear_login_failures(client_ip: str) -> None:
     with _LOGIN_ATTEMPTS_LOCK:
         _LOGIN_ATTEMPTS.pop(client_ip, None)
 
 
+# Function role: Verifies instructor password against the expected evidence or signature.
+# Same-file callers: instructor_ui_login.
 def _verify_instructor_password(password: str) -> bool:
     encoded = os.getenv("AUTOGRADER_PASSWORD_HASH", "").strip()
     try:
@@ -554,6 +604,9 @@ def _verify_instructor_password(password: str) -> bool:
         return False
 
 
+# Function role: Constructs ui session token with the module's required invariants.
+# Same-file callers: instructor_ui_login.
+# Direct call references (conditional/branch-dependent): _approval_signing_key.
 def _create_ui_session_token() -> str:
     issued = str(int(time.time()))
     nonce = secrets.token_urlsafe(24)
@@ -565,6 +618,9 @@ def _create_ui_session_token() -> str:
     return f"{payload}.{signature}"
 
 
+# Function role: Verifies ui session token against the expected evidence or signature.
+# Same-file callers: _require_ui_session, instructor_ui_logout.
+# Direct call references (conditional/branch-dependent): _approval_signing_key, _is_ui_session_revoked.
 def _verify_ui_session_token(token: str | None) -> bool:
     if not token:
         return False
@@ -590,6 +646,9 @@ def _verify_ui_session_token(token: str | None) -> bool:
     return not _is_ui_session_revoked(token)
 
 
+# Function role: Requires a valid unexpired, non-revoked instructor cookie and returns its session identity.
+# Same-file callers: instructor_ui_demo, instructor_ui_preflight, instructor_ui_prepare, instructor_ui_confirm, instructor_ui_generate_references and other helpers.
+# Direct call references (conditional/branch-dependent): _verify_ui_session_token.
 def _require_ui_session(request: Request) -> str:
     token = request.cookies.get("autograder_instructor_session")
     if not _verify_ui_session_token(token):
@@ -616,6 +675,8 @@ _UI_SUBMISSIONS: dict[str, dict[str, Any]] = {}
 _UI_SUBMISSIONS_LOCK = threading.RLock()
 
 
+# Function role: Implements the internal revoke ui session token helper for web.
+# Same-file callers: instructor_ui_logout.
 def _revoke_ui_session_token(token: str) -> None:
     digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
     try:
@@ -626,6 +687,8 @@ def _revoke_ui_session_token(token: str) -> None:
         ) from exc
 
 
+# Function role: Returns whether ui session revoked holds under this module's rules.
+# Same-file callers: _verify_ui_session_token.
 def _is_ui_session_revoked(token: str) -> bool:
     digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
     try:
@@ -636,6 +699,8 @@ def _is_ui_session_revoked(token: str) -> bool:
         ) from exc
 
 
+# Function role: Persists one session-owned workflow record in durable storage and updates the process cache.
+# Same-file callers: instructor_ui_prepare.
 def _save_ui_submission(session_id: str, record: dict[str, Any]) -> str:
     now = time.time()
     submission_id = secrets.token_urlsafe(32)
@@ -659,6 +724,8 @@ def _save_ui_submission(session_id: str, record: dict[str, Any]) -> str:
     return submission_id
 
 
+# Function role: Deletes all transient workflow records owned by the specified session.
+# Same-file callers: instructor_ui_logout.
 def _clear_ui_submissions(session_id: str) -> None:
     try:
         _persistent_clear_submissions(session_id)
@@ -675,6 +742,8 @@ def _clear_ui_submissions(session_id: str) -> None:
             _UI_SUBMISSIONS.pop(key, None)
 
 
+# Function role: Loads a submission only when it belongs to the authenticated session and has not expired.
+# Same-file callers: instructor_ui_confirm, instructor_ui_generate_references, instructor_ui_generate_tests, instructor_ui_download_test_cases, instructor_ui_execute_tests and other helpers.
 def _get_ui_submission(session_id: str, submission_id: str) -> dict[str, Any]:
     now = time.time()
     with _UI_SUBMISSIONS_LOCK:
@@ -778,6 +847,8 @@ class UIPDFReportRequest(BaseModel):
     submission_id: str = Field(min_length=20, max_length=128)
 
 
+# Function role: Run the isolated built-in demo only for an authenticated instructor.
+# Direct call references (conditional/branch-dependent): _require_ui_session.
 @app.post("/api/ui/demo")
 def instructor_ui_demo(
     http_request: Request,
@@ -790,6 +861,8 @@ def instructor_ui_demo(
     return build_real_demo_payload()
 
 
+# Function role: Implements instructor ui login for web using this module's input and result contracts.
+# Direct call references (conditional/branch-dependent): _check_login_rate_limit, _verify_instructor_password, _record_login_failure, _create_ui_session_token, _clear_login_failures.
 @app.post("/api/ui/login")
 def instructor_ui_login(
     request: InstructorLoginRequest,
@@ -830,6 +903,8 @@ def instructor_ui_login(
     return {"status": "authenticated", "expires_in_seconds": 1800}
 
 
+# Function role: Implements instructor ui logout for web using this module's input and result contracts.
+# Direct call references (conditional/branch-dependent): _verify_ui_session_token, _clear_ui_submissions, _revoke_ui_session_token.
 @app.post("/api/ui/logout")
 def instructor_ui_logout(http_request: Request, response: Response):
     token = http_request.cookies.get("autograder_instructor_session")
@@ -849,6 +924,9 @@ def instructor_ui_logout(http_request: Request, response: Response):
     return {"status": "logged_out"}
 
 
+# Function role: Run source-size and sandboxed compiler checks before Agent 1 is called.
+# Numbered workflow order: 01 - UI preflight gate, before any Agent 1 request.
+# Direct call references (conditional/branch-dependent): _require_ui_session.
 @app.post("/api/ui/preflight")
 def instructor_ui_preflight(request: PreparationRequest, http_request: Request):
     """Run source-size and sandboxed compiler checks before Agent 1 is called."""
@@ -880,6 +958,9 @@ def instructor_ui_preflight(request: PreparationRequest, http_request: Request):
         "agent1_started": False,
     }
 
+# Function role: Implements instructor ui prepare for web using this module's input and result contracts.
+# Numbered workflow order: 02 - preparation request; enters problem reconstruction after preflight/compile.
+# Direct call references (conditional/branch-dependent): _require_ui_session, _create_draft_token, prepare_submission, _save_ui_submission.
 @app.post("/api/ui/prepare")
 def instructor_ui_prepare(request: PreparationRequest, http_request: Request):
     session_id = _require_ui_session(http_request)
@@ -973,6 +1054,9 @@ def instructor_ui_prepare(request: PreparationRequest, http_request: Request):
         )
     return result
 
+# Function role: Implements instructor ui confirm for web using this module's input and result contracts.
+# Numbered workflow order: 03 - instructor confirms the fingerprinted Agent 1 specification.
+# Direct call references (conditional/branch-dependent): _require_ui_session, _get_ui_submission, confirm_assignment.
 @app.post("/api/ui/confirm-assignment")
 def instructor_ui_confirm(request: UIConfirmRequest, http_request: Request):
     session_id = _require_ui_session(http_request)
@@ -1020,6 +1104,9 @@ def instructor_ui_confirm(request: UIConfirmRequest, http_request: Request):
     }
 
 
+# Function role: Implements instructor ui generate references for web using this module's input and result contracts.
+# Numbered workflow order: 04 - Agent 2 request, allowed only for the confirmed specification.
+# Direct call references (conditional/branch-dependent): _require_ui_session, _get_ui_submission, generate_references.
 @app.post("/api/ui/generate-references")
 def instructor_ui_generate_references(
     request: UIGenerateReferencesRequest,
@@ -1067,6 +1154,9 @@ def instructor_ui_generate_references(
     record["references"] = references
     return references
 
+# Function role: Implements instructor ui generate tests for web using this module's input and result contracts.
+# Numbered workflow order: 05 - Agent 3 request: generate/validate cases and prepare the comparison.
+# Direct call references (conditional/branch-dependent): _require_ui_session, _get_ui_submission.
 @app.post("/api/ui/generate-tests")
 def instructor_ui_generate_tests(
     request: UIGenerateTestsRequest,
@@ -1420,6 +1510,8 @@ def instructor_ui_generate_tests(
     return result
 
 
+# Function role: Adapt measured student observations to the legacy reconciler format.
+# Same-file callers: instructor_ui_execute_tests.
 def _agent4_benchmark_evidence(benchmark):
     """Adapt measured student observations to the legacy reconciler format."""
     if not isinstance(benchmark, dict):
@@ -1464,6 +1556,8 @@ def _agent4_benchmark_evidence(benchmark):
     }
 
 
+# Function role: Evaluate AI-reported complexity notation with the bounded math engine.
+# Same-file callers: instructor_ui_execute_tests.
 def _attach_agent4_complexity_graphs(analysis):
     """Evaluate AI-reported complexity notation with the bounded math engine."""
     if not isinstance(analysis, dict):
@@ -1489,6 +1583,8 @@ def _attach_agent4_complexity_graphs(analysis):
     return analysis
 
 
+# Function role: Implements instructor ui download test cases for web using this module's input and result contracts.
+# Direct call references (conditional/branch-dependent): _require_ui_session, _get_ui_submission.
 @app.post("/api/ui/download-test-cases")
 def instructor_ui_download_test_cases(
     request: UIExecuteTestsRequest,
@@ -1581,6 +1677,8 @@ def instructor_ui_download_test_cases(
     )
 
 
+# Function role: Only freeze metrics after every AI stage needed by the rubric returned usable output.
+# Same-file callers: instructor_ui_execute_tests.
 def _grade_metric_snapshot_eligible(result: dict[str, Any], provider: Any) -> bool:
     """Only freeze metrics after every AI stage needed by the rubric returned usable output."""
     if provider is None:
@@ -1612,6 +1710,8 @@ def _grade_metric_snapshot_eligible(result: dict[str, Any], provider: Any) -> bo
     return True
 
 
+# Function role: Hashes provider/model plus relevant prompt, schema, guardrail, and scoring source files. Changing a token ceiling therefore produces a new grade snapshot identity.
+# Same-file callers: instructor_ui_execute_tests.
 def _grade_snapshot_analysis_identity(provider: Any, result: dict[str, Any]) -> dict[str, Any]:
     """Fingerprint the provider/model and prompt/schema implementation that produced metrics."""
     actual = provider
@@ -1657,6 +1757,9 @@ def _grade_snapshot_analysis_identity(provider: Any, result: dict[str, Any]) -> 
     }
 
 
+# Function role: Implements instructor ui execute tests for web using this module's input and result contracts.
+# Numbered workflow order: 06 - execute approved cases; optionally run Agents 4-6; build evidence and grade.
+# Direct call references (conditional/branch-dependent): _require_ui_session, _get_ui_submission, _agent4_benchmark_evidence, _attach_agent4_complexity_graphs, _grade_snapshot_analysis_identity, _grade_metric_snapshot_eligible.
 @app.post("/api/ui/execute-tests")
 def instructor_ui_execute_tests(
     request: UIExecuteTestsRequest,
@@ -2103,6 +2206,8 @@ def instructor_ui_execute_tests(
     return result
 
 
+# Function role: Implements instructor ui benchmark complexity for web using this module's input and result contracts.
+# Direct call references (conditional/branch-dependent): _require_ui_session, _get_ui_submission.
 @app.post("/api/ui/benchmark-complexity")
 def instructor_ui_benchmark_complexity(
     request: UIComplexityBenchmarkRequest,
@@ -2159,6 +2264,9 @@ def instructor_ui_benchmark_complexity(
     return result
 
 
+# Function role: Implements instructor ui generate report for web using this module's input and result contracts.
+# Numbered workflow order: 08 - generate and return the downloadable evaluation PDF.
+# Direct call references (conditional/branch-dependent): _require_ui_session, _get_ui_submission.
 @app.post("/api/ui/generate-report")
 def instructor_ui_generate_report(
     request: UIPDFReportRequest,
@@ -2209,6 +2317,7 @@ def instructor_ui_generate_report(
     )
 
 
+# Function role: Serve the standalone evaluation workflow page.
 @app.get("/workflow", include_in_schema=False)
 async def evaluation_workflow_page():
     """Serve the standalone evaluation workflow page."""
@@ -2218,6 +2327,7 @@ async def evaluation_workflow_page():
     )
 
 
+# Function role: Serve the standalone grading rubric page.
 @app.get("/rubric", include_in_schema=False)
 async def grading_rubric_page():
     """Serve the standalone grading rubric page."""
@@ -2227,6 +2337,7 @@ async def grading_rubric_page():
     )
 
 
+# Function role: Serve the standalone design principles page.
 @app.get("/principles", include_in_schema=False)
 async def design_principles_page():
     """Serve the standalone design principles page."""

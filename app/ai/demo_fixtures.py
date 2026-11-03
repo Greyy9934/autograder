@@ -3,6 +3,7 @@
 These examples are synthetic. They never inspect submissions, invoke an AI
 provider, compile code, or execute programs.
 """
+# Module role: Implements the demo fixtures subsystem used by the AutoGrader workflow.
 from copy import deepcopy
 from random import SystemRandom
 
@@ -125,6 +126,7 @@ _FIXTURES = {
 }
 
 
+# Function role: Return independent random fixtures; never accepts user input.
 def build_demo_payload():
     """Return independent random fixtures; never accepts user input."""
     selected = {

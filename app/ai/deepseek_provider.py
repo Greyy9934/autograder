@@ -1,4 +1,5 @@
 """DeepSeek provider using its OpenAI-compatible chat completions API."""
+# Module role: Calls DeepSeek's OpenAI-compatible JSON endpoint and turns provider errors, truncation, and usage into stable application results.
 
 import json
 import os
@@ -19,6 +20,8 @@ from jsonschema import Draft202012Validator, SchemaError, ValidationError
 
 
 class DeepSeekProvider:
+    # Function role: Initializes the object and its validated dependencies.
+    # Context: method/helper owned by DeepSeekProvider; it is reached through that object's workflow.
     def __init__(
         self,
         api_key: str,
@@ -76,6 +79,9 @@ class DeepSeekProvider:
         self.opener = opener
         self.sleep = sleep
 
+    # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
+    # Context: method/helper owned by DeepSeekProvider; it is reached through that object's workflow.
+    # Direct call references (conditional/branch-dependent): _extract_usage, _extract_finish_reason, _parse_response.
     def generate_json(
         self,
         task: str,
@@ -208,6 +214,9 @@ class DeepSeekProvider:
             category="provider_error",
         )
 
+    # Function role: Implements the internal extract usage helper for deepseek provider.
+    # Context: method/helper owned by DeepSeekProvider; it is reached through that object's workflow.
+    # Same-file callers: generate_json.
     @staticmethod
     def _extract_usage(raw: bytes) -> dict[str, int] | None:
         try:
@@ -237,6 +246,9 @@ class DeepSeekProvider:
         )
         return usage
 
+    # Function role: Implements the internal extract finish reason helper for deepseek provider.
+    # Context: method/helper owned by DeepSeekProvider; it is reached through that object's workflow.
+    # Same-file callers: generate_json.
     @staticmethod
     def _extract_finish_reason(raw: bytes) -> str | None:
         try:
@@ -247,6 +259,9 @@ class DeepSeekProvider:
             return None
         return value if isinstance(value, str) else None
 
+    # Function role: Checks DeepSeek's response envelope and finish_reason before parsing JSON; finish_reason=length becomes an explicit truncation error instead of a partial result entering grading.
+    # Context: method/helper owned by DeepSeekProvider; it is reached through that object's workflow.
+    # Same-file callers: generate_json.
     @staticmethod
     def _parse_response(raw: bytes) -> tuple[dict[str, Any], dict[str, int] | None]:
         try:

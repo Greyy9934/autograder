@@ -1,4 +1,5 @@
 """Explicit, deterministic input schemas for generated C-program tests."""
+# Module role: Implements the input schema subsystem used by the AutoGrader workflow.
 
 from dataclasses import dataclass
 import random
@@ -10,6 +11,8 @@ class IntegerInputSchema:
     minimum: int
     maximum: int
 
+    # Function role: Validates the constructed data object's invariants and canonicalizes supported fields.
+    # Context: method/helper owned by IntegerInputSchema; it is reached through that object's workflow.
     def __post_init__(self):
         if isinstance(self.token_count, bool) or not isinstance(self.token_count, int) or self.token_count < 1:
             raise ValueError("token_count must be a positive integer")
@@ -20,6 +23,8 @@ class IntegerInputSchema:
         if self.minimum > self.maximum:
             raise ValueError("minimum cannot exceed maximum")
 
+    # Function role: Checks the supplied value against this module's explicit contract and returns a validation result.
+    # Context: method/helper owned by IntegerInputSchema; it is reached through that object's workflow.
     def validate(self, text: str) -> bool:
         if not isinstance(text, str):
             return False
@@ -32,6 +37,8 @@ class IntegerInputSchema:
         except ValueError:
             return False
 
+    # Function role: Produces cases from the supplied schema, random seed, and selected distribution.
+    # Context: method/helper owned by IntegerInputSchema; it is reached through that object's workflow.
     def generate(self, rng: random.Random, distribution: str) -> str:
         if distribution == "uniform":
             values = [rng.randint(self.minimum, self.maximum) for _ in range(self.token_count)]

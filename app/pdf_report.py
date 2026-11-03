@@ -1,4 +1,5 @@
 """Professional, evidence-based AutoGrader technical evaluation dossier."""
+# Module role: Implements the pdf report subsystem used by the AutoGrader workflow.
 
 import math
 import os
@@ -47,6 +48,8 @@ ASCII_DASHES = str.maketrans({
 })
 
 
+# Function role: Implements the internal register fonts helper for pdf report.
+# Same-file callers: generate_pdf_report.
 def _register_fonts():
     global FONT, BOLD
     candidates = [
@@ -66,6 +69,9 @@ def _register_fonts():
                 pass
 
 
+# Function role: Find the first matching key recursively in nested evaluation data.
+# Same-file callers: _find, generate_pdf_report.
+# Direct call references (conditional/branch-dependent): _find.
 def _find(data, names, default=None):
     """Find the first matching key recursively in nested evaluation data."""
     if not isinstance(data, dict):
@@ -81,6 +87,9 @@ def _find(data, names, default=None):
     return default
 
 
+# Function role: Implements the internal human value helper for pdf report.
+# Same-file callers: _human_value, _safe.
+# Direct call references (conditional/branch-dependent): _human_value.
 def _human_value(value, depth=0):
     if value is None:
         return "Not available"
@@ -101,6 +110,9 @@ def _human_value(value, depth=0):
     return str(value)
 
 
+# Function role: Implements the internal safe helper for pdf report.
+# Same-file callers: _p, _table, _metric_cards, generate_pdf_report.
+# Direct call references (conditional/branch-dependent): _human_value.
 def _safe(value, limit=10000):
     if value is None:
         return "Not available"
@@ -108,10 +120,14 @@ def _safe(value, limit=10000):
     return escape(text).replace("\\n", "<br/>").replace("  ", "&nbsp;&nbsp;")
 
 
+# Function role: Implements the internal p helper for pdf report.
+# Direct call references (conditional/branch-dependent): _safe.
 def _p(value, style):
     return Paragraph(_safe(value), style)
 
 
+# Function role: Implements the internal flatten items helper for pdf report.
+# Same-file callers: generate_pdf_report.
 def _flatten_items(value):
     if isinstance(value, list):
         return value
@@ -122,6 +138,9 @@ def _flatten_items(value):
     return []
 
 
+# Function role: Implements the internal table helper for pdf report.
+# Same-file callers: generate_pdf_report.
+# Direct call references (conditional/branch-dependent): _safe.
 def _table(rows, widths, styles, header=True):
     converted = []
     for r_index, row in enumerate(rows):
@@ -153,6 +172,8 @@ def _table(rows, widths, styles, header=True):
     return t
 
 
+# Function role: Implements the internal bar chart helper for pdf report.
+# Same-file callers: generate_pdf_report.
 def _bar_chart(title, labels, values, width=470, height=205):
     drawing = Drawing(width, height)
     drawing.add(String(8, height - 17, title, fontName=BOLD,
@@ -177,6 +198,8 @@ def _bar_chart(title, labels, values, width=470, height=205):
 
 
 
+# Function role: Render empirical input-size/runtime observations.
+# Same-file callers: generate_pdf_report.
 def _line_chart(title, points, width=470, height=220):
     """Render empirical input-size/runtime observations."""
     drawing = Drawing(width, height)
@@ -214,6 +237,8 @@ def _line_chart(title, points, width=470, height=220):
 
 
 
+# Function role: Plot successful measured runtimes for each implementation.
+# Same-file callers: generate_pdf_report.
 def _multi_program_runtime_chart(title, measurements, width=470, height=245):
     """Plot successful measured runtimes for each implementation."""
     names = ("student", "brute_force", "efficient")
@@ -294,6 +319,9 @@ def _multi_program_runtime_chart(title, measurements, width=470, height=245):
     return drawing
 
 
+# Function role: Draw the adaptive generic growth curve returned by the math engine.
+# Same-file callers: generate_pdf_report.
+# Direct call references (conditional/branch-dependent): xy.
 def _complexity_curve_chart(graph, label, width=470, height=220):
     """Draw the adaptive generic growth curve returned by the math engine."""
     if not isinstance(graph, dict) or graph.get("status") != "completed":
@@ -327,6 +355,9 @@ def _complexity_curve_chart(graph, label, width=470, height=220):
         max_x = min_x + 1
     if max_y == min_y:
         max_y = min_y + 1
+    # Function role: Implements xy for pdf report using this module's input and result contracts.
+    # Context: method/helper owned by _complexity_curve_chart; it is reached through that object's workflow.
+    # Same-file callers: _complexity_curve_chart.
     def xy(point):
         px = left + (math.log10(point[0]) - min_x) / (max_x - min_x) * (right - left)
         py = bottom + (point[1] - min_y) / (max_y - min_y) * (top - bottom)
@@ -349,6 +380,8 @@ def _complexity_curve_chart(graph, label, width=470, height=220):
     return drawing
 
 
+# Function role: Implements the internal pie chart helper for pdf report.
+# Same-file callers: generate_pdf_report.
 def _pie_chart(title, labels, values, width=470, height=210):
     drawing = Drawing(width, height)
     drawing.add(String(8, height - 17, title, fontName=BOLD,
@@ -368,6 +401,8 @@ def _pie_chart(title, labels, values, width=470, height=210):
     return drawing
 
 
+# Function role: Implements the internal section helper for pdf report.
+# Same-file callers: generate_pdf_report.
 def _section(story, title, subtitle, styles):
     # Keep thematic pairs together across pages instead of letting section
     # headings land at the bottom of a page after unrelated material.
@@ -382,6 +417,9 @@ def _section(story, title, subtitle, styles):
     story.append(KeepTogether(heading))
 
 
+# Function role: Implements the internal metric cards helper for pdf report.
+# Same-file callers: generate_pdf_report.
+# Direct call references (conditional/branch-dependent): _safe.
 def _metric_cards(metrics, styles):
     cells = []
     for label, value in metrics:
@@ -402,6 +440,7 @@ def _metric_cards(metrics, styles):
     return t
 
 
+# Function role: Implements the internal draw page helper for pdf report.
 def _draw_page(canvas, doc):
     canvas.saveState()
     width, height = A4
@@ -423,6 +462,8 @@ def _draw_page(canvas, doc):
     canvas.restoreState()
 
 
+# Function role: Draw a compact scorecard with a dominant grade and weighted metric bars.
+# Same-file callers: generate_pdf_report.
 def _final_grade_graph(grading: dict[str, Any], width: float = 470, height: float = 196):
     """Draw a compact scorecard with a dominant grade and weighted metric bars."""
     drawing = Drawing(width, height)
@@ -455,6 +496,9 @@ def _final_grade_graph(grading: dict[str, Any], width: float = 470, height: floa
     return drawing
 
 
+# Function role: Generate a multi-section report with evidence-derived charts.
+# Numbered workflow order: 08.1 - render the evidence summary, charts, and grade as a human-readable PDF.
+# Direct call references (conditional/branch-dependent): _register_fonts, _find, _metric_cards, _table, _section, _safe, _flatten_items and further helpers.
 def generate_pdf_report(evaluation: dict[str, Any], output_path: str | Path) -> Path:
     """Generate a multi-section report with evidence-derived charts."""
     if not isinstance(evaluation, dict):

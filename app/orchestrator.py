@@ -1,4 +1,11 @@
 """Application-level coordination for AutoGrader."""
+# Module role: Coordinates preparation and evidence stages; keeps the overall workflow policy out of individual analyzers.
+# Numbered call order for the normal complete workflow (branches can stop or skip stages):
+#   01 evaluate_submission: source risks and preflight -> compile -> Agent 1 reconstruction/schema.
+#   02 after instructor approval, generate_reference_solutions_for_confirmed_spec gates and calls Agent 2.
+#   03 evaluate_execution_evidence validates source/spec identity, folds execution evidence, and conditionally calls Agents 4 and 5.
+#   04 app.web.py completes Agent 6, then derives metric scores, applies grading rules, and stores a grade snapshot.
+#   Branches may stop early; the numbered sequence describes the intended full workflow.
 
 import hashlib
 from typing import Any
@@ -20,6 +27,8 @@ from app.metric_scoring import derive_metric_scores
 from app.runner import compile_c_source
 
 
+# Function role: Attach a conservative, rule-driven grade to any evaluation result.
+# Same-file callers: evaluate_execution_evidence, evaluate_submission.
 def _attach_grading(result: dict[str, Any]) -> dict[str, Any]:
     """Attach a conservative, rule-driven grade to any evaluation result."""
     try:
@@ -38,6 +47,8 @@ def _attach_grading(result: dict[str, Any]) -> dict[str, Any]:
 
 
 
+# Function role: Implements the internal compact complexity static helper for orchestrator.
+# Same-file callers: evaluate_execution_evidence.
 def _compact_complexity_static(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
@@ -56,6 +67,8 @@ def _compact_complexity_static(value: Any) -> dict[str, Any] | None:
     return compact
 
 
+# Function role: Implements the internal compact complexity benchmark helper for orchestrator.
+# Same-file callers: evaluate_execution_evidence.
 def _compact_complexity_benchmark(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
@@ -84,6 +97,8 @@ def _compact_complexity_benchmark(value: Any) -> dict[str, Any] | None:
     }
 
 
+# Function role: Implements the internal compact complexity analysis helper for orchestrator.
+# Same-file callers: evaluate_execution_evidence.
 def _compact_complexity_analysis(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
@@ -98,6 +113,9 @@ def _compact_complexity_analysis(value: Any) -> dict[str, Any] | None:
     }
 
 
+# Function role: Run execution-dependent checks after preparation is complete.
+# Numbered workflow order: 06.3 - consolidate execution evidence and attach deterministic metrics/grade.
+# Direct call references (conditional/branch-dependent): _attach_grading, _compact_complexity_static, _compact_complexity_benchmark, _compact_complexity_analysis.
 def evaluate_execution_evidence(
     source: str,
     prepared_result: dict[str, Any],
@@ -317,6 +335,8 @@ def evaluate_execution_evidence(
     return _attach_grading(result)
 
 
+# Function role: Run Agent 2 only after explicit instructor approval.
+# Numbered workflow order: 04.1 - Agent 2 orchestration and confirmation/schema gate.
 def generate_reference_solutions_for_confirmed_spec(
     spec: Any,
     provider: Any = None,
@@ -359,6 +379,9 @@ def generate_reference_solutions_for_confirmed_spec(
     return result
 
 
+# Function role: Run preflight and heuristic source-risk analysis, then optional.
+# Numbered workflow order: 02.1 - preparation coordinator: source analysis, preflight, compile, then Agent 1.
+# Direct call references (conditional/branch-dependent): _attach_grading.
 def evaluate_submission(
     source: str,
     problem_statement: str | None = None,

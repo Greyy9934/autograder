@@ -3,6 +3,8 @@
 This module evaluates only ASTs produced by the restricted parser.
 It never evaluates Python source strings or calls Python eval().
 """
+# Module role: Evaluates approved complexity expressions with explicit precision and work limits; mpmath supports very large/small values safely.
+# Core concept: Bounded numerical evaluation lets the graph display very fast-growing or very slow-growing functions without allowing unbounded numeric work.
 
 from __future__ import annotations
 
@@ -41,6 +43,9 @@ class EvaluationResult:
     numerical_status: str = "not_evaluated"
     is_approximation: bool = False
 
+    # Function role: Return JSON-friendly output without losing large-value information.
+    # Context: method/helper owned by EvaluationResult; it is reached through that object's workflow.
+    # Direct call references (conditional/branch-dependent): _format_number.
     def to_dict(self) -> dict[str, Any]:
         """Return JSON-friendly output without losing large-value information."""
         return {
@@ -59,6 +64,8 @@ class EvaluationResult:
         }
 
 
+# Function role: Formats a bounded numeric result as stable human-readable text.
+# Same-file callers: to_dict.
 def _format_number(value: mp.mpf | None) -> str | None:
     if value is None:
         return None
@@ -69,6 +76,8 @@ def _format_number(value: mp.mpf | None) -> str | None:
     return mp.nstr(value, 30)
 
 
+# Function role: Rejects evaluation settings outside the explicit resource and numeric limits.
+# Same-file callers: evaluate_complexity_expression.
 def _validate_limits(limits: EvaluationLimits) -> None:
     if not isinstance(limits, EvaluationLimits):
         raise ValueError("limits must be an EvaluationLimits instance")
@@ -93,6 +102,8 @@ def _validate_limits(limits: EvaluationLimits) -> None:
         raise ValueError("default_precision cannot exceed max_precision")
 
 
+# Function role: Count base-2 logarithms needed to bring value down to <= 1.
+# Same-file callers: _function.
 def _log_star(value: mp.mpf) -> mp.mpf:
     """Count base-2 logarithms needed to bring value down to <= 1."""
     if value <= 1:
@@ -110,6 +121,8 @@ def _log_star(value: mp.mpf) -> mp.mpf:
     return mp.mpf(count)
 
 
+# Function role: Small, explicitly approximate inverse-Ackermann growth function.
+# Same-file callers: _function.
 def _inverse_ackermann_approx(value: mp.mpf) -> mp.mpf:
     """Small, explicitly approximate inverse-Ackermann growth function.
 
@@ -136,12 +149,19 @@ def _inverse_ackermann_approx(value: mp.mpf) -> mp.mpf:
 
 
 class _EvaluationFailure(Exception):
+    # Function role: Initializes the object and its validated dependencies.
+    # Context: method/helper owned by _EvaluationFailure; it is reached through that object's workflow.
+    # Same-file callers: __init__.
+    # Direct call references (conditional/branch-dependent): __init__.
     def __init__(self, code: str, message: str):
         super().__init__(message)
         self.code = code
 
 
 class _Evaluator:
+    # Function role: Initializes the object and its validated dependencies.
+    # Context: method/helper owned by _Evaluator; it is reached through that object's workflow.
+    # Same-file callers: __init__.
     def __init__(
         self,
         expression: ParsedExpression,
@@ -155,6 +175,9 @@ class _Evaluator:
         self.warnings: list[str] = []
         self.approximations: list[str] = []
 
+    # Function role: Implements the internal tick helper for evaluator.
+    # Context: method/helper owned by _Evaluator; it is reached through that object's workflow.
+    # Same-file callers: _function, visit.
     def _tick(self) -> None:
         self.operations += 1
         if self.operations > self.limits.max_operations:
@@ -163,6 +186,9 @@ class _Evaluator:
                 "Expression exceeded the evaluation operation limit.",
             )
 
+    # Function role: Implements the internal finite helper for evaluator.
+    # Context: method/helper owned by _Evaluator; it is reached through that object's workflow.
+    # Same-file callers: evaluate_complexity_expression, _power, _function, visit.
     def _finite(self, value: mp.mpf) -> mp.mpf:
         if not mp.isfinite(value):
             raise _EvaluationFailure(
@@ -171,6 +197,10 @@ class _Evaluator:
             )
         return value
 
+    # Function role: Implements the internal power helper for evaluator.
+    # Context: method/helper owned by _Evaluator; it is reached through that object's workflow.
+    # Same-file callers: visit.
+    # Direct call references (conditional/branch-dependent): _finite.
     def _power(self, base: mp.mpf, exponent: mp.mpf) -> mp.mpf:
         # A variable exponent such as 2^n must be allowed to grow with n.
         # The effective ceiling is bounded by both the configured exponent
@@ -207,6 +237,10 @@ class _Evaluator:
         except (ValueError, ZeroDivisionError, OverflowError) as exc:
             raise _EvaluationFailure("invalid_power", str(exc)) from exc
 
+    # Function role: Implements the internal function helper for evaluator.
+    # Context: method/helper owned by _Evaluator; it is reached through that object's workflow.
+    # Same-file callers: visit.
+    # Direct call references (conditional/branch-dependent): _tick, _finite, _log_star, _inverse_ackermann_approx.
     def _function(self, name: str, argument: mp.mpf) -> mp.mpf:
         self._tick()
 
@@ -273,6 +307,10 @@ class _Evaluator:
             f"Unsupported mathematical function: {name}",
         )
 
+    # Function role: Walks a validated syntax-tree node and evaluates or checks its supported children.
+    # Context: method/helper owned by _Evaluator; it is reached through that object's workflow.
+    # Same-file callers: evaluate_complexity_expression, visit.
+    # Direct call references (conditional/branch-dependent): _tick, visit, _finite, _power, _function.
     def visit(self, node: ast.AST) -> mp.mpf:
         self._tick()
 
@@ -364,6 +402,8 @@ class _Evaluator:
         )
 
 
+# Function role: Evaluates the parsed expression under explicit input, operation, and numeric limits; bounded evaluation prevents pathological expressions from consuming unbounded resources.
+# Direct call references (conditional/branch-dependent): _validate_limits, visit, _finite.
 def evaluate_complexity_expression(
     expression: ParsedExpression,
     input_size: int,

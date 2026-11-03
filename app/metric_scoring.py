@@ -1,8 +1,11 @@
 """Derive normalized grading metrics only from validated evidence."""
+# Module role: Maps determinate execution and validated AI rubric evidence to normalized score dimensions.
 
 from typing import Any
 
 
+# Function role: Implements the internal valid counts helper for metric scoring.
+# Same-file callers: _determinate_trials.
 def _valid_counts(report: Any) -> tuple[int, int] | None:
     if not isinstance(report, dict) or report.get("status") != "completed":
         return None
@@ -15,6 +18,8 @@ def _valid_counts(report: Any) -> tuple[int, int] | None:
     return passed, failed
 
 
+# Function role: Extracts student-versus-reference trials while excluding timeouts and infrastructure uncertainty.
+# Same-file callers: _determinate_trials, _comparison_rate, derive_metric_scores.
 def _comparison_trials(report: Any, suite_name: str, input_cases: list[Any] | None = None) -> list[tuple[str, bool]]:
     if not isinstance(report, dict) or not isinstance(report.get("differential_comparisons"), list):
         return []
@@ -46,6 +51,9 @@ def _comparison_trials(report: Any, suite_name: str, input_cases: list[Any] | No
     return trials
 
 
+# Function role: Collects and deduplicates only evidence with a determinate pass/fail outcome.
+# Same-file callers: derive_metric_scores.
+# Direct call references (conditional/branch-dependent): _valid_counts, _comparison_trials.
 def _determinate_trials(evidence: dict[str, Any]) -> list[tuple[str, bool]]:
     trials: list[tuple[str, bool]] = []
     tests = evidence.get("test_evaluation")
@@ -77,6 +85,8 @@ def _determinate_trials(evidence: dict[str, Any]) -> list[tuple[str, bool]]:
     return [(key, next(iter(values))) for key, values in by_input.items() if len(values) == 1]
 
 
+# Function role: Computes a percentage from a non-empty collection of determinate trials.
+# Same-file callers: derive_metric_scores.
 def _score_trials(trials: list[tuple[str, bool]]) -> float | None:
     if not trials:
         return None
@@ -84,6 +94,8 @@ def _score_trials(trials: list[tuple[str, bool]]) -> float | None:
     return round(100.0 * passed / len(trials), 2)
 
 
+# Function role: Implements the internal comparison rate helper for metric scoring.
+# Direct call references (conditional/branch-dependent): _comparison_trials.
 def _comparison_rate(report: Any) -> tuple[int, int] | None:
     trials = _comparison_trials(report, "edge")
     if not trials:
@@ -92,6 +104,8 @@ def _comparison_rate(report: Any) -> tuple[int, int] | None:
     return passed, len(trials) - passed
 
 
+# Function role: Accepts only an anchored integer rating with non-empty evidence and maps it onto the 0-100 scale.
+# Same-file callers: derive_metric_scores.
 def _rating_score(item: Any) -> float | None:
     if not isinstance(item, dict):
         return None
@@ -104,6 +118,9 @@ def _rating_score(item: Any) -> float | None:
     return float(rating * 25)
 
 
+# Function role: Apply the published mappings; AI never supplies a numeric score directly.
+# Numbered workflow order: 07.1 - convert evidence to normalized rubric dimensions; AI never returns the final score.
+# Direct call references (conditional/branch-dependent): _score_trials, _determinate_trials, _comparison_trials, _rating_score.
 def derive_metric_scores(evidence: dict[str, Any]) -> dict[str, float | None]:
     """Apply the published mappings; AI never supplies a numeric score directly."""
     scores: dict[str, float | None] = {

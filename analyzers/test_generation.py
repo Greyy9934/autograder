@@ -1,4 +1,5 @@
 """Coordinate Agent 3A and Agent 3B using a confirmed assignment."""
+# Module role: Combines schema-based random generation and source-aware adversarial planning without executing submitted code.
 
 from typing import Any
 
@@ -9,6 +10,8 @@ from analyzers.random_test_generator import generate_schema_test_batch
 from analyzers.adversarial_test_planner import plan_adversarial_tests
 
 
+# Function role: Generate random and adversarial inputs without executing student code.
+# Numbered workflow order: 05.1 - local schema generator plus source-aware adversarial plan.
 def generate_test_plans(
     source: str,
     spec: AssignmentSpec,

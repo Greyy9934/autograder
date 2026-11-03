@@ -1,6 +1,9 @@
+// Module role: Browser controller for editor, demo, instructor workflow, execution results, grading, and report downloads.
+// Normal call order: 01 submit/preflight; 02 Agent 1 schema; 03 instructor approval and Agent 2 references; 04 Agent 3 cases; 05 local execution and optional Agents 4-6; 06 grade and report. Branches can stop later stages.
 (() => {
   "use strict";
 
+  // Function role: Returns the first DOM element matching a CSS selector.
   const $ = (selector) => document.querySelector(selector);
 
   const editor = $("#source");
@@ -18,6 +21,7 @@
   const demoModeCheckbox = $("#demo-mode");
   const demoScenarioControl = $("#demo-scenario-control");
 
+  // Function role: Shows scenario controls only when demo mode is enabled.
   function updateDemoScenarioVisibility() {
     if (demoScenarioControl) {
       demoScenarioControl.hidden = !Boolean(demoModeCheckbox?.checked);
@@ -29,6 +33,7 @@
 
   let toastTimer;
 
+  // Function role: Displays a short-lived status message.
   function showToast(message) {
     if (!toast) return;
     toast.textContent = message;
@@ -37,6 +42,7 @@
     toastTimer = setTimeout(() => toast.classList.remove("show"), 2800);
   }
 
+  // Function role: Synchronizes editor line numbers and source length counters.
   function updateEditorStats() {
     if (!editor) return;
 
@@ -59,6 +65,7 @@
     }
   }
 
+  // Function role: Loads the built-in example program into the editor.
   function loadExample() {
     if (!editor) return;
 
@@ -356,6 +363,7 @@ int main(void) {
   let currentDraft = null;
   let instructorAuthenticated = false;
 
+  // Function role: Sends one workflow request, adds request tracing, and normalizes API errors.
   async function apiRequest(url, payload = {}) {
     const requestId = globalThis.crypto?.randomUUID?.() ||
       `ui-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
@@ -387,6 +395,7 @@ int main(void) {
     return data;
   }
 
+  // Function role: Converts internal values into readable labels.
   function displayLabel(value) {
     return String(value)
       .replace(/_/g, " ")
@@ -394,12 +403,14 @@ int main(void) {
       .replace(/\b\w/g, char => char.toUpperCase());
   }
 
+  // Function role: Safely renders structured agent output as text and code while omitting sensitive fields.
   function renderStructured(container, value) {
     if (!container) return;
     container.replaceChildren();
 
     const sensitive = /token|secret|password|api.?key|credential/i;
 
+    // Function role: Recursively renders one structured value as readable arrays, objects, or code.
     function renderValue(parent, key, item) {
       if (sensitive.test(key)) return;
 
@@ -484,6 +495,7 @@ int main(void) {
 
 
   // Isolated built-in demo. Sends no user submission fields.
+  // Function role: Adds a labeled text row to a demo card.
   function demoText(parent, label, value) {
     const row = document.createElement("div");
     row.className = "demo-result-row";
@@ -502,6 +514,7 @@ int main(void) {
     return row;
   }
 
+  // Function role: Adds a collapsible source-code block to a demo result.
   function demoCode(parent, label, source) {
     if (typeof source !== "string") return;
     const details = document.createElement("details");
@@ -516,6 +529,7 @@ int main(void) {
 
 
   // Shared measured-runtime chart for both normal and demo workflows.
+  // Function role: Builds an SVG chart from successful measured runtime observations.
   function renderBenchmarkChart(parent, benchmark) {
     const observations = Array.isArray(benchmark?.chart_data)
       ? benchmark.chart_data.filter(point =>
@@ -595,6 +609,7 @@ int main(void) {
       );
       svg.classList.add("runtime-chart-svg");
 
+      // Function role: Creates an SVG element, applies attributes, and optionally sets its text.
       const make = (tag, attrs, text) => {
         const node = document.createElementNS(NS, tag);
         Object.entries(attrs || {}).forEach(([key, value]) =>
@@ -612,17 +627,24 @@ int main(void) {
       const minY = Math.min(...times), maxY = Math.max(...times);
       const logX = minX > 0 && maxX / minX >= 100;
       const logY = maxY / minY >= 10;
+      // Function role: Maps an input size into the benchmark chart x-axis scale.
       const tx = value => logX ? Math.log10(Math.max(value, 1e-12)) : value;
+      // Function role: Maps a runtime into the benchmark chart y-axis scale.
       const ty = value => logY ? Math.log10(Math.max(value, 1e-12)) : value;
       const xMin = tx(minX), xMax = tx(maxX), yMin = ty(minY), yMax = ty(maxY);
+      // Function role: Converts an x-axis chart coordinate back to input size.
       const unTx = value => logX ? 10 ** value : value;
+      // Function role: Converts a y-axis chart coordinate back to runtime.
       const unTy = value => logY ? 10 ** value : value;
+      // Function role: Maps a value to a horizontal chart coordinate.
       const x = value => xMax === xMin
         ? left + width / 2
         : left + ((tx(value) - xMin) / (xMax - xMin)) * width;
+      // Function role: Maps a value to a vertical chart coordinate.
       const y = value => yMax === yMin
         ? bottom - height / 2
         : bottom - ((ty(Math.max(value, 0.001)) - yMin) / (yMax - yMin)) * height;
+      // Function role: Formats chart tick values compactly.
       const formatAxisValue = value =>
         value >= 10000 || (value > 0 && value < 0.01)
           ? value.toExponential(1)
@@ -674,6 +696,7 @@ int main(void) {
           xTicks.push(unTx(xMin + (xMax - xMin) * i / (tickCount - 1)));
         }
       } else {
+        // Function role: Chooses a readable interval for linear chart ticks.
         const niceStep = raw => {
           if (!(raw > 0)) return 1;
           const power = Math.pow(10, Math.floor(Math.log10(raw)));
@@ -797,6 +820,7 @@ int main(void) {
     parent.append(section);
   }
 
+  // Function role: Adds one labeled workflow-stage result.
   function stageText(parent, label, value) {
     if (!parent || value == null || value === "") return;
     const row = document.createElement("p");
@@ -807,6 +831,7 @@ int main(void) {
     parent.append(row);
   }
 
+  // Function role: Summarizes compared executions and displays a capped set of failures or inconclusive examples.
   function renderDifferentialResults(parent, comparisons, label, maxExamples = 5) {
     if (!parent) return 0;
     parent.replaceChildren();
@@ -839,6 +864,7 @@ int main(void) {
         } else if (studentOut !== bruteOut) {
           kind = "student_mismatch";
           studentMismatches += 1;
+          // Function role: Extracts the final output token for output-contract-aware comparisons.
           const finalToken = value => value.split(/\s+/).filter(Boolean).at(-1) || "";
           if (finalToken(studentOut) && finalToken(studentOut) === finalToken(bruteOut)) {
             possibleFormatOnlyMismatches += 1;
@@ -916,6 +942,7 @@ int main(void) {
     return shown;
   }
 
+  // Function role: Renders structured summary data under a descriptive heading.
   function renderStructuredSummary(parent, value, heading) {
     if (!parent) return;
     parent.replaceChildren();
@@ -934,10 +961,12 @@ int main(void) {
     parent.append(content);
   }
 
+  // Function role: Displays the reviewed contract, constraints, and authoritative input schema.
   function renderAssignmentSummary(parent, data) {
     if (!parent) return;
     parent.replaceChildren();
     const spec = data?.assignment_spec || {};
+    // Function role: Adds one labeled assignment detail section.
     const addSection = (title, value) => {
       if (!value) return;
       const section = document.createElement("section");
@@ -987,6 +1016,7 @@ int main(void) {
     if (!parent.childElementCount) stageText(parent, "Problem", "Review the problem statement and confirm the intended input and output before continuing.");
   }
 
+  // Function role: Shows Agent 2 brute-force and efficient solutions in separate readable code panels.
   function renderReferenceSolutions(parent, references) {
     if (!parent) return;
     parent.replaceChildren();
@@ -1010,6 +1040,7 @@ int main(void) {
     stageText(parent, "Evidence note", "Reference outputs are checked empirically; agreement is not a formal proof of correctness.");
   }
 
+  // Function role: Renders demo benchmark outcomes and issue examples.
   function renderDemoBenchmark(parent, benchmark) {
     renderBenchmarkChart(parent, benchmark);
 
@@ -1020,6 +1051,7 @@ int main(void) {
     if (issues.length) demoText(parent, "Cases to review", issues.length);
   }
 
+  // Function role: Renders one agent card from its demo response and findings.
   function renderDemoAgent(key, agent) {
     const titles = {
       agent1: "AGENT 1 — PROBLEM RECONSTRUCTION",
@@ -1057,6 +1089,7 @@ int main(void) {
       renderDemoBenchmark(card, agent.benchmark || {});
     } else if (key === "agent3b") {
       demoText(card, "Passed", `${agent.passed ?? 0} / ${agent.total ?? 0}`);
+      // Function role: Selects failing demo cases for concise display.
       const failures = (agent.cases || []).filter(item => item.passed !== true);
       demoText(card, "Failure examples shown", Math.min(5, failures.length));
       for (const item of failures.slice(0, 5)) {
@@ -1087,6 +1120,7 @@ int main(void) {
     return card;
   }
 
+  // Function role: Runs a deterministic demo scenario without calling the paid provider.
   async function runDemo() {
     const results = $("#demo-results");
     const notice = $("#demo-notice");
@@ -1171,6 +1205,7 @@ int main(void) {
     }
   });
 
+  // Function role: Displays syntax, compile, and static preflight results before Agent 1.
   function renderPreflightCard(result) {
     if (!resultsFindings) return;
     resultsFindings.querySelector(".preflight-result-card")?.remove();
@@ -1180,6 +1215,7 @@ int main(void) {
     card.className = "preflight-result-card";
     const heading = document.createElement("h3"); heading.textContent = "Preflight before problem analysis";
     const checks = document.createElement("ul"); checks.className = "preflight-check-list";
+    // Function role: Appends one labeled preflight check.
     const add = (label, detail, passed) => {
       const item = document.createElement("li");
       const state = document.createElement("strong");
@@ -1208,6 +1244,8 @@ int main(void) {
     resultsFindings.prepend(card);
   }
 
+  // Function role: Starts the instructor path after preflight: Agent 1 reconstruction, approval, then Agent 2 references.
+  // Workflow order 02: invoked after preflight; coordinates Agent 1, instructor approval, then Agent 2.
   async function runAgent1Workflow() {
     if (!instructorAuthenticated) {
       showToast("Please log in as instructor first.");
@@ -1452,6 +1490,7 @@ int main(void) {
     $("#agent3-maximum-control")
   ];
 
+  // Function role: Configures Agent 3 controls from the Agent 1 schema.
   function configureAgent3SchemaMode() {
     const schema = currentDraft?.assignment_spec?.input_schema;
     const structured = Boolean(
@@ -1490,6 +1529,7 @@ int main(void) {
       return;
     }
 
+    // Function role: Reads a numeric Agent 3 form value.
     const readNumber = id => Number($(id)?.value);
     const structuredMode = configureAgent3SchemaMode();
     const payload = {
@@ -1542,6 +1582,7 @@ int main(void) {
       // Generated inputs and nested case arrays belong in the ZIP, not the UI.
       agent3Output?.replaceChildren();
 
+      // Function role: Creates a text-only DOM element for safe result rendering.
       const addText = (parent, tag, text, className) => {
         const element = document.createElement(tag);
         element.textContent = text;
@@ -1550,6 +1591,7 @@ int main(void) {
         return element;
       };
 
+      // Function role: Searches nested data for a field matching a label pattern.
       const findValue = (obj, pattern, depth = 0) => {
         if (!obj || typeof obj !== "object" || depth > 6) return null;
         for (const [key, value] of Object.entries(obj)) {
@@ -1676,6 +1718,7 @@ int main(void) {
   });
 
 
+  // Function role: Serializes generated cases and execution outcomes into the downloadable test file.
   function buildGeneratedTestsText(result, execution = null) {
     const lines = [
       "AUTOGRADER — GENERATED TEST CASES",
@@ -1761,6 +1804,7 @@ int main(void) {
     return lines.join("\n");
   }
 
+  // Function role: Triggers a browser download of generated test cases.
   function downloadGeneratedTests(result, execution = null) {
     const blob = new Blob(
       [buildGeneratedTestsText(result, execution)],
@@ -1777,6 +1821,7 @@ int main(void) {
     showToast("Test cases downloaded as a plain-text file.");
   }
 
+  // Function role: Draws the adaptive generic complexity curve, separate from measured runtime.
   function renderComplexityCurve(parent, graph, label) {
     if (!parent || graph?.status !== "completed" || !Array.isArray(graph.points) || graph.points.length < 2) {
       stageText(parent, `${label} graph`, graph?.message || "No safe curve could be generated from this notation.");
@@ -1798,9 +1843,11 @@ int main(void) {
     const minY = Math.min(...ys);
     const maxY = Math.max(...ys);
     const left = 68, right = 695, top = 24, bottom = 245;
+    // Function role: Maps a value to a horizontal chart coordinate.
     const x = value => maxX === minX ? (left + right) / 2
       : left + (Math.log(Number(value)) - Math.log(minX)) /
         (Math.log(maxX) - Math.log(minX)) * (right - left);
+    // Function role: Maps a value to a vertical chart coordinate.
     const y = value => maxY === minY ? (top + bottom) / 2
       : bottom - (Number(value) - minY) / (maxY - minY) * (bottom - top);
     for (let index = 0; index <= 4; index++) {
@@ -1811,6 +1858,7 @@ int main(void) {
       line.setAttribute("stroke", "#ded6dc"); line.setAttribute("stroke-dasharray", "4 5");
       svg.append(line);
     }
+    // Function role: Creates an SVG element, applies attributes, and optionally sets its text.
     const make = (tag, attrs, text) => {
       const node = document.createElementNS(NS, tag);
       Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, String(value)));
@@ -1846,6 +1894,7 @@ int main(void) {
     parent.append(section);
   }
 
+  // Function role: Renders Agent 4 complexity analysis and its evidence.
   function renderAgent4(parent, analysis) {
     if (!parent) return;
     parent.replaceChildren();
@@ -1887,6 +1936,7 @@ int main(void) {
     }
   }
 
+  // Function role: Renders Agent 5 mathematical verification as advisory proof evidence.
   function renderAgent5(parent, verification) {
     if (!parent) return;
     parent.replaceChildren();
@@ -1929,6 +1979,7 @@ int main(void) {
     parent.append(note);
   }
 
+  // Function role: Renders Agent 6 source-based maintainability and readability findings.
   function renderAgent6(parent, review) {
     if (!parent) return;
     parent.replaceChildren();
@@ -1965,6 +2016,7 @@ int main(void) {
     }
   }
 
+  // Function role: Displays the final deterministic grade and score breakdown.
   function renderGrade(parent, result) {
     if (!parent) return;
     parent.replaceChildren();
@@ -2006,6 +2058,7 @@ int main(void) {
     parent.append(note);
   }
 
+  // Function role: Summarizes execution coverage, correctness comparisons, and runtime observations.
   function renderExecutionSummary(container, result) {
     if (container) {
       container.replaceChildren();
@@ -2059,6 +2112,7 @@ int main(void) {
   const agent6Card = $("#agent6-card");
   const gradingCard = $("#grading-card");
 
+  // Function role: Resets per-submission stage indicators before a new workflow.
   function resetWorkflowProgress() {
     if (agent1Panel) agent1Panel.hidden = true;
     if (agent2Panel) agent2Panel.hidden = true;
@@ -2204,6 +2258,7 @@ int main(void) {
     showToast("Instructor session cookie cleared.");
   });
 
+  // Function role: Queries the health endpoint and updates the UI status indicator.
   async function checkHealth() {
     const serviceStatus = $("#service-status");
     const healthCheck = $("#health-check");
@@ -2252,6 +2307,7 @@ int main(void) {
   checkHealth();
 
   // Magical cursor feedback: lightweight DOM particles, no external library.
+  // Function role: Creates the decorative click animation used by the themed interface.
   function createSpellBurst(x, y) {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const burst = document.createElement("span");

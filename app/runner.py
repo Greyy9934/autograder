@@ -1,4 +1,6 @@
 from __future__ import annotations
+# Module role: Compiles and executes C in a Linux Bubblewrap namespace with prlimit resource bounds and bounded output capture.
+# Core concept: Bubblewrap creates Linux namespaces and a narrow filesystem view; prlimit applies OS resource ceilings. Together these reduce access and runaway-process risk, but do not certify the worker as a secure multi-tenant sandbox.
 
 import os
 import resource
@@ -25,6 +27,7 @@ MAX_PROCESSES = 32
 MAX_OPEN_FILES = 64
 
 
+# Function role: Apply basic resource limits to GCC and its immediate process.
 def _set_compile_limits() -> None:
     """Apply basic resource limits to GCC and its immediate process."""
     resource.setrlimit(
@@ -42,6 +45,8 @@ def _set_compile_limits() -> None:
     resource.setrlimit(resource.RLIMIT_NOFILE, (MAX_OPEN_FILES, MAX_OPEN_FILES))
 
 
+# Function role: Terminate the process group, then force-kill it if necessary.
+# Same-file callers: _run_bounded.
 def _kill_process_group(process: subprocess.Popen[bytes]) -> None:
     """Terminate the process group, then force-kill it if necessary."""
     if process.poll() is not None:
@@ -65,6 +70,7 @@ def _kill_process_group(process: subprocess.Popen[bytes]) -> None:
             pass
 
 
+# Function role: Drain a pipe fully but retain at most OUTPUT_LIMIT_BYTES.
 def _capture_bounded(
     stream: Any,
     storage: bytearray,
@@ -88,6 +94,9 @@ def _capture_bounded(
         stream.close()
 
 
+# Function role: Runs one child process with a deadline, starts a separate process group, drains both pipes concurrently, caps retained output, and kills descendants on timeout or output overflow.
+# Same-file callers: compile_c_source, _run_c_program.
+# Direct call references (conditional/branch-dependent): _kill_process_group.
 def _run_bounded(
     command: list[str],
     *,
@@ -186,6 +195,8 @@ def _run_bounded(
     }
 
 
+# Function role: Ensure every worker response has consistent output fields.
+# Same-file callers: run_c_program.
 def _normalize_result(result: dict[str, Any]) -> dict[str, Any]:
     """Ensure every worker response has consistent output fields."""
     result.setdefault("stdout", "")
@@ -195,6 +206,9 @@ def _normalize_result(result: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+# Function role: Compiles C17 with GCC inside Bubblewrap: Linux namespaces isolate the job, read-only system mounts expose only required libraries, a temporary work mount holds source/binary, and prlimit bounds CPU, address space, file size, process count, and descriptors. This is defense-in-depth, not a certified hostile-code sandbox.
+# Numbered workflow order: 02.1b - compile gate; also reused before local C execution.
+# Direct call references (conditional/branch-dependent): _run_bounded.
 def compile_c_source(source: str) -> dict[str, Any]:
     """Compile C in the restricted sandbox without executing the submission."""
     if not isinstance(source, str) or not source.strip():
@@ -257,6 +271,9 @@ def compile_c_source(source: str) -> dict[str, Any]:
     }
 
 
+# Function role: Compiles and executes a submission in separate Bubblewrap namespaces, passes stdin through a file, and returns bounded stdout/stderr plus compile/run status and timing.
+# Same-file callers: run_c_program.
+# Direct call references (conditional/branch-dependent): _run_bounded.
 def _run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
     """
     Compile and execute C code using a restricted Bubblewrap workspace.
@@ -414,6 +431,8 @@ def _run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
         }
 
 
+# Function role: Public worker API with a consistent result shape.
+# Direct call references (conditional/branch-dependent): _run_c_program, _normalize_result.
 def run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
     """Public worker API with a consistent result shape."""
     result = _run_c_program(source, stdin)

@@ -1,4 +1,5 @@
 """Targeted, cautious C source-risk checks and structural counts."""
+# Module role: Implements the source risks subsystem used by the AutoGrader workflow.
 
 import re
 from typing import Any
@@ -11,6 +12,8 @@ from analyzers.complexity_estimator import (
 )
 
 
+# Function role: Report actionable source patterns; ordinary constructs are not alarms.
+# Direct call references (conditional/branch-dependent): add.
 def analyze_source_risks(source: str) -> dict[str, Any]:
     """Report actionable source patterns; ordinary constructs are not alarms."""
     if not isinstance(source, str) or not source.strip():
@@ -21,6 +24,9 @@ def analyze_source_risks(source: str) -> dict[str, Any]:
     masked_lines = masked.splitlines()
     findings: list[dict[str, Any]] = []
 
+    # Function role: Adds one validated finding/case/issue to the result being assembled by analyze_source_risks.
+    # Context: method/helper owned by analyze_source_risks; it is reached through that object's workflow.
+    # Same-file callers: analyze_source_risks.
     def add(rule_id: str, line: int, severity: str, message: str) -> None:
         evidence = original_lines[line - 1].strip()[:240] if 0 < line <= len(original_lines) else ""
         findings.append({

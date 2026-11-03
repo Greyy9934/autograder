@@ -1,4 +1,5 @@
 """Strict, deterministic schemas for whitespace-separated integer input."""
+# Module role: Parses, validates, sizes, and deterministically generates supported integer-token input grammars.
 
 from dataclasses import dataclass
 import random
@@ -11,6 +12,8 @@ class StructuredIntegerInputSchema:
     size_field: str | None = None
     version: int = 1
 
+    # Function role: Validates the constructed data object's invariants and canonicalizes supported fields.
+    # Context: method/helper owned by StructuredIntegerInputSchema; it is reached through that object's workflow.
     def __post_init__(self):
         if self.version != 1 or not isinstance(self.fields, tuple) or not self.fields:
             raise ValueError("Schema version 1 requires a non-empty fields tuple.")
@@ -49,6 +52,8 @@ class StructuredIntegerInputSchema:
             if known[self.size_field]["type"] not in {"int", "int_array"}:
                 raise ValueError("size_field must name an int or int_array field.")
 
+    # Function role: Builds a validated model from the external dictionary representation.
+    # Context: method/helper owned by StructuredIntegerInputSchema; it is reached through that object's workflow.
     @classmethod
     def from_dict(cls, data):
         if not isinstance(data, dict) or set(data) - {"version", "fields", "size_field"}:
@@ -62,6 +67,8 @@ class StructuredIntegerInputSchema:
             version=data.get("version", 1),
         )
 
+    # Function role: Serializes the internal model to the stable plain-dictionary shape used by API and persistence boundaries.
+    # Context: method/helper owned by StructuredIntegerInputSchema; it is reached through that object's workflow.
     def to_dict(self):
         return {
             "version": self.version,
@@ -69,6 +76,9 @@ class StructuredIntegerInputSchema:
             "size_field": self.size_field,
         }
 
+    # Function role: Parses input according to the declared grammar and rejects missing, extra, or out-of-range values.
+    # Context: method/helper owned by StructuredIntegerInputSchema; it is reached through that object's workflow.
+    # Same-file callers: validate, input_size.
     def parse(self, text):
         if not isinstance(text, str):
             raise ValueError("Input must be text.")
@@ -101,6 +111,10 @@ class StructuredIntegerInputSchema:
             raise ValueError("Input contains unexpected extra values.")
         return values
 
+    # Function role: Checks the supplied value against this module's explicit contract and returns a validation result.
+    # Context: method/helper owned by StructuredIntegerInputSchema; it is reached through that object's workflow.
+    # Same-file callers: generate.
+    # Direct call references (conditional/branch-dependent): parse.
     def validate(self, text):
         try:
             self.parse(text)
@@ -108,6 +122,9 @@ class StructuredIntegerInputSchema:
         except (TypeError, ValueError):
             return False
 
+    # Function role: Implements input size for structured input schema using this module's input and result contracts.
+    # Context: method/helper owned by StructuredIntegerInputSchema; it is reached through that object's workflow.
+    # Direct call references (conditional/branch-dependent): parse.
     def input_size(self, text):
         values = self.parse(text)
         if self.size_field:
@@ -118,6 +135,9 @@ class StructuredIntegerInputSchema:
             for field in self.fields
         )
 
+    # Function role: Produces cases from the supplied schema, random seed, and selected distribution.
+    # Context: method/helper owned by StructuredIntegerInputSchema; it is reached through that object's workflow.
+    # Direct call references (conditional/branch-dependent): validate.
     def generate(
         self,
         rng: random.Random,

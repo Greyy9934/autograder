@@ -1,4 +1,5 @@
 """Per-agent DeepSeek completion budgets for one standard grading workflow."""
+# Module role: Defines per-task completion ceilings and reasoning settings; ceilings are maxima, not token reservations.
 
 from types import MappingProxyType
 
@@ -50,6 +51,7 @@ if any(
     raise RuntimeError("An agent output cap is outside the provider limit.")
 
 
+# Function role: Return the deliberately selected DeepSeek reasoning mode for a task.
 def reasoning_effort_for_task(task: str) -> str:
     """Return the deliberately selected DeepSeek reasoning mode for a task."""
     try:
@@ -61,6 +63,7 @@ def reasoning_effort_for_task(task: str) -> str:
         ) from exc
 
 
+# Function role: Return the cap for a known task; reject unmapped calls rather than guess.
 def output_token_cap_for_task(task: str) -> int:
     """Return the cap for a known task; reject unmapped calls rather than guess."""
     try:

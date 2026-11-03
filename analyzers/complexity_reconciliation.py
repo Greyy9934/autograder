@@ -3,11 +3,14 @@
 Static analysis and empirical measurements are supporting evidence only.
 They can trigger review, but never silently replace the AI assessment.
 """
+# Module role: Implements the complexity reconciliation subsystem used by the AutoGrader workflow.
 
 import math
 from typing import Any
 
 
+# Function role: Returns whether constant complexity holds under this module's rules.
+# Same-file callers: _static_review_flags.
 def _is_constant_complexity(expression: Any) -> bool:
     if not isinstance(expression, str):
         return False
@@ -15,6 +18,9 @@ def _is_constant_complexity(expression: Any) -> bool:
     return normalized in {"o(1)", "theta(1)", "Θ(1)"}
 
 
+# Function role: Implements the internal static review flags helper for complexity reconciliation.
+# Same-file callers: reconcile_complexity_evidence.
+# Direct call references (conditional/branch-dependent): _is_constant_complexity.
 def _static_review_flags(
     ai_analysis: dict, static_analysis: dict | None
 ) -> list[dict[str, str]]:
@@ -75,6 +81,8 @@ def _static_review_flags(
     return flags
 
 
+# Function role: Implements the internal benchmark summary helper for complexity reconciliation.
+# Same-file callers: reconcile_complexity_evidence.
 def _benchmark_summary(benchmark: dict | None) -> dict[str, Any]:
     if not isinstance(benchmark, dict):
         return {
@@ -158,6 +166,8 @@ def _benchmark_summary(benchmark: dict | None) -> dict[str, Any]:
     }
 
 
+# Function role: Preserve AI conclusions and attach reviewable supporting evidence.
+# Direct call references (conditional/branch-dependent): _benchmark_summary, _static_review_flags.
 def reconcile_complexity_evidence(
     ai_result: dict,
     *,

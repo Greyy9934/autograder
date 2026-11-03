@@ -1,4 +1,5 @@
 """Source-informed adversarial test planning; does not execute or grade tests."""
+# Module role: Implements the adversarial test planner subsystem used by the AutoGrader workflow.
 
 import hashlib
 import random
@@ -14,6 +15,8 @@ from analyzers.workload_limits import (
 )
 
 
+# Function role: Implements plan adversarial tests for adversarial test planner using this module's input and result contracts.
+# Direct call references (conditional/branch-dependent): add.
 def plan_adversarial_tests(
     source: str,
     spec: AssignmentSpec,
@@ -61,6 +64,10 @@ def plan_adversarial_tests(
     candidates: list[dict[str, Any]] = []
     seen: set[str] = set()
 
+    # Function role: Adds one validated finding/case/issue to the result being assembled by plan_adversarial_tests.
+    # Context: method/helper owned by plan_adversarial_tests; it is reached through that object's workflow.
+    # Same-file callers: plan_adversarial_tests, add.
+    # Direct call references (conditional/branch-dependent): add.
     def add(text: str, reason: str, priority: str, trigger: str):
         if (
             len(candidates) >= max_cases

@@ -1,3 +1,4 @@
+# Module role: Implements the set instructor password subsystem used by the AutoGrader workflow.
 from pathlib import Path
 from getpass import getpass
 from hashlib import pbkdf2_hmac

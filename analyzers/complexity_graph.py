@@ -3,6 +3,8 @@
 Presets are reference metadata only. Every expression is parsed and evaluated
 through complexity_math; no AI-provided expression is executed as Python.
 """
+# Module role: Chooses adaptive sample sizes and plots generic mathematical growth curves, separate from measured program timings.
+# Core concept: The adaptive graph samples generic growth curves over a function-dependent domain; it illustrates curvature and is distinct from measured runtime observations.
 
 from __future__ import annotations
 
@@ -46,6 +48,8 @@ PRESET_NOTATIONS = (
 )
 
 
+# Function role: Create dense small-input samples followed by bounded geometric samples.
+# Same-file callers: generate_complexity_graph.
 def _candidate_sizes(max_input_size: int) -> list[int]:
     """Create dense small-input samples followed by bounded geometric samples."""
     dense_end = min(16, max_input_size)
@@ -59,6 +63,8 @@ def _candidate_sizes(max_input_size: int) -> list[int]:
     return values
 
 
+# Function role: Check metadata equivalence without restricting accepted expressions.
+# Same-file callers: generate_complexity_graph.
 def _preset_match(normalized_expression: str) -> bool:
     """Check metadata equivalence without restricting accepted expressions."""
     for notation in PRESET_NOTATIONS:
@@ -72,6 +78,8 @@ def _preset_match(normalized_expression: str) -> bool:
     return False
 
 
+# Function role: Builds a consistent failure result when validation or computation cannot continue.
+# Same-file callers: generate_complexity_graph.
 def _failure(
     notation: Any,
     status: str = "invalid_expression",
@@ -88,6 +96,8 @@ def _failure(
     }
 
 
+# Function role: Chooses an adaptive x-range and samples a generic complexity expression so explosive functions reveal curvature early while slow growth remains visible; these are illustrative mathematical points, not measured C runtimes.
+# Direct call references (conditional/branch-dependent): _failure, _candidate_sizes, _preset_match.
 def generate_complexity_graph(
     notation: str,
     *,
@@ -433,6 +443,7 @@ def generate_complexity_graph(
     }
 
 
+# Function role: Return the reference notation-pattern library.
 def list_preset_notations() -> list[str]:
     """Return the reference notation-pattern library."""
     return list(PRESET_NOTATIONS)

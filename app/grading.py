@@ -1,4 +1,5 @@
 """Deterministic, rule-driven grading with explicit evidence eligibility."""
+# Module role: Applies versioned deterministic grading rules to validated metric evidence and constructs reproducibility metadata.
 
 import json
 import hashlib
@@ -15,6 +16,8 @@ class GradingRulesError(ValueError):
     """Raised when grading rules are invalid."""
 
 
+# Function role: Load and validate external grading rules.
+# Same-file callers: grade_submission.
 def load_grading_rules(path: str | Path = DEFAULT_GRADING_RULES) -> dict[str, Any]:
     """Load and validate external grading rules."""
     try:
@@ -72,6 +75,8 @@ def load_grading_rules(path: str | Path = DEFAULT_GRADING_RULES) -> dict[str, An
     return rules
 
 
+# Function role: Implements the internal eligible correctness helper for grading.
+# Same-file callers: grade_submission.
 def _eligible_correctness(
     evidence: dict[str, Any],
     policy: dict[str, Any],
@@ -115,6 +120,8 @@ def _eligible_correctness(
     return True, "Required correctness evidence is available."
 
 
+# Function role: Fingerprint the stable inputs that determine a grade, excluding timings.
+# Same-file callers: grade_submission.
 def _reproducibility_metadata(
     evidence: dict[str, Any],
     metric_scores: dict[str, Any],
@@ -201,6 +208,9 @@ def _reproducibility_metadata(
     return {"fingerprint": fingerprint, **stable_inputs}
 
 
+# Function role: Compute a weighted score from externally supplied metric scores.
+# Numbered workflow order: 07.2 - apply weights, eligibility, unavailable-metric policy, rounding, and grade band.
+# Direct call references (conditional/branch-dependent): load_grading_rules, _reproducibility_metadata, _eligible_correctness.
 def grade_submission(
     evidence: dict[str, Any],
     metric_scores: dict[str, float | int | None],

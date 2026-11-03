@@ -1,4 +1,5 @@
 """Execute generated random inputs using one compilation per batch."""
+# Module role: Implements the random test execution subsystem used by the AutoGrader workflow.
 
 import hashlib
 from typing import Any
@@ -6,6 +7,7 @@ from typing import Any
 from analyzers.batch_execution import run_c_batch
 
 
+# Function role: Implements execute random test inputs for random test execution using this module's input and result contracts.
 def execute_random_test_inputs(source: str, inputs: list[str]) -> dict[str, Any]:
     if not isinstance(source, str) or not source.strip():
         return {"status": "invalid_request", "results": []}

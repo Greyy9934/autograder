@@ -3,6 +3,7 @@
 This module does not parse the full C language and never claims to prove
 asymptotic complexity.
 """
+# Module role: Implements the complexity estimator subsystem used by the AutoGrader workflow.
 
 import re
 from typing import Any
@@ -17,6 +18,8 @@ FUNCTION_PATTERN = re.compile(
 ALLOCATION_PATTERN = re.compile(r"\b(malloc|calloc|realloc)\s*\(")
 
 
+# Function role: Classify common loop forms without claiming full C semantics.
+# Same-file callers: estimate_complexity.
 def _loop_model(kind: str, header: str, body: str = "") -> dict[str, Any]:
     """Classify common loop forms without claiming full C semantics."""
     if kind == "for":
@@ -68,6 +71,8 @@ def _loop_model(kind: str, header: str, body: str = "") -> dict[str, Any]:
     return {"model": model, "variable": variable, "bound": None}
 
 
+# Function role: Return a brace-delimited loop body, if one is present.
+# Same-file callers: estimate_complexity.
 def _brace_body(source: str, opening: int) -> str:
     """Return a brace-delimited loop body, if one is present."""
     brace = source.find("{", opening)
@@ -85,6 +90,8 @@ def _brace_body(source: str, opening: int) -> str:
     return source[brace + 1:]
 
 
+# Function role: Replace comments and string/character contents while preserving lines.
+# Same-file callers: estimate_complexity.
 def _mask_comments_and_strings(source: str) -> str:
     """Replace comments and string/character contents while preserving lines."""
     result = []
@@ -156,6 +163,8 @@ def _mask_comments_and_strings(source: str) -> str:
     return "".join(result)
 
 
+# Function role: Implements the internal invalid result helper for complexity estimator.
+# Same-file callers: estimate_complexity.
 def _invalid_result() -> dict[str, Any]:
     return {
         "status": "invalid_request",
@@ -173,6 +182,8 @@ def _invalid_result() -> dict[str, Any]:
     }
 
 
+# Function role: Estimate complexity from source patterns; not a semantic proof.
+# Direct call references (conditional/branch-dependent): _invalid_result, _mask_comments_and_strings, _brace_body, _loop_model.
 def estimate_complexity(source: str) -> dict[str, Any]:
     """Estimate complexity from source patterns; not a semantic proof."""
     if not isinstance(source, str) or not source.strip():

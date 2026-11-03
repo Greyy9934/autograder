@@ -1,4 +1,5 @@
 """AI-first algorithm complexity analysis with deterministic validation."""
+# Module role: Implements the complexity analysis subsystem used by the AutoGrader workflow.
 
 from typing import Any
 
@@ -83,10 +84,15 @@ COMPLEXITY_ANALYSIS_SCHEMA = {
 }
 
 
+# Function role: Implements the internal nonempty text helper for complexity analysis.
+# Same-file callers: _validate_complexity_expression, _validate_response.
 def _nonempty_text(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
+# Function role: Implements the internal validate complexity expression helper for complexity analysis.
+# Same-file callers: _validate_response.
+# Direct call references (conditional/branch-dependent): _nonempty_text.
 def _validate_complexity_expression(value: Any, field: str, errors: list[str]):
     if value is None:
         return
@@ -101,6 +107,9 @@ def _validate_complexity_expression(value: Any, field: str, errors: list[str]):
         )
 
 
+# Function role: Validate structure, complexity notation, and source-line references.
+# Same-file callers: analyze_complexity.
+# Direct call references (conditional/branch-dependent): _nonempty_text, _validate_complexity_expression.
 def _validate_response(response: Any, source: str) -> tuple[dict | None, list[str]]:
     """Validate structure, complexity notation, and source-line references."""
     errors: list[str] = []
@@ -212,6 +221,9 @@ def _validate_response(response: Any, source: str) -> tuple[dict | None, list[st
     return response, []
 
 
+# Function role: Use AI as the primary analyst; static and empirical data are supporting evidence.
+# Numbered workflow order: 06.2a - Agent 4 complexity claim; parsed and evidence-checked afterwards.
+# Direct call references (conditional/branch-dependent): _validate_response.
 def analyze_complexity(
     source: str,
     provider: AIProvider,

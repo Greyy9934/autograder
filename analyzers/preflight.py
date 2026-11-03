@@ -1,4 +1,5 @@
 """Deterministic, source-only preflight checks for C submissions."""
+# Module role: Implements the preflight subsystem used by the AutoGrader workflow.
 
 import json
 from pathlib import Path
@@ -8,6 +9,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RULES_PATH = PROJECT_ROOT / "rules" / "preflight.json"
 
 
+# Function role: Load and validate the source limits from preflight configuration.
+# Same-file callers: preflight.
 def load_rules(path: str | Path = DEFAULT_RULES_PATH) -> dict[str, Any]:
     """Load and validate the source limits from preflight configuration."""
     rules_path = Path(path)
@@ -26,6 +29,9 @@ def load_rules(path: str | Path = DEFAULT_RULES_PATH) -> dict[str, Any]:
     return rules
 
 
+# Function role: Validate submitted source without compiling or executing it.
+# Numbered workflow order: 02.1a - deterministic source-size/non-empty gate.
+# Direct call references (conditional/branch-dependent): load_rules.
 def preflight(
     source: str,
     rules_path: str | Path = DEFAULT_RULES_PATH,

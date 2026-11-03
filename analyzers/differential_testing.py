@@ -1,4 +1,5 @@
 """Compare candidate programs on identical inputs."""
+# Module role: Implements the differential testing subsystem used by the AutoGrader workflow.
 
 import random
 from typing import Any
@@ -6,6 +7,7 @@ from typing import Any
 from app.runner import run_c_program
 
 
+# Function role: Compare two programs; disagreements are evidence, not a verdict.
 def compare_programs(
     first_source: str,
     second_source: str,
@@ -115,6 +117,7 @@ def compare_programs(
     }
 
 
+# Function role: Generate reproducible inputs formatted as n followed by n integers.
 def generate_integer_list_inputs(
     *,
     seed: int,
@@ -157,6 +160,7 @@ def generate_integer_list_inputs(
     }
 
 
+# Function role: Generate deterministic boundary cases for n followed by n integers.
 def generate_integer_list_edge_cases(
     *,
     min_length: int = 1,

@@ -1,4 +1,5 @@
 """Optional memory diagnostics; findings are evidence, not proof of safety."""
+# Module role: Runs diagnostic builds with sanitizers and optional Valgrind on bounded representative inputs.
 
 import os
 import shutil
@@ -22,6 +23,8 @@ from app.runner import (
 )
 
 
+# Function role: Implements the internal tool result helper for memory safety.
+# Same-file callers: _compile_and_run, run_asan, run_valgrind.
 def _tool_result(status: str, message: str, **extra: Any) -> dict[str, Any]:
     return {
         "status": status,
@@ -31,6 +34,9 @@ def _tool_result(status: str, message: str, **extra: Any) -> dict[str, Any]:
     }
 
 
+# Function role: Compile a temporary diagnostic binary and run it with bounded resources.
+# Same-file callers: run_asan, run_valgrind.
+# Direct call references (conditional/branch-dependent): _tool_result.
 def _compile_and_run(
     source: str,
     stdin: str,
@@ -152,6 +158,8 @@ def _compile_and_run(
         }
 
 
+# Function role: Run GCC AddressSanitizer and UndefinedBehaviorSanitizer diagnostics.
+# Direct call references (conditional/branch-dependent): _tool_result, _compile_and_run.
 def run_asan(source: str, stdin: str = "") -> dict[str, Any]:
     """Run GCC AddressSanitizer and UndefinedBehaviorSanitizer diagnostics."""
     if not isinstance(source, str) or not source.strip() or not isinstance(stdin, str):
@@ -190,6 +198,8 @@ def run_asan(source: str, stdin: str = "") -> dict[str, Any]:
     return result
 
 
+# Function role: Run Valgrind Memcheck when available.
+# Direct call references (conditional/branch-dependent): _tool_result, _compile_and_run.
 def run_valgrind(source: str, stdin: str = "") -> dict[str, Any]:
     """Run Valgrind Memcheck when available."""
     if not isinstance(source, str) or not source.strip() or not isinstance(stdin, str):
@@ -240,6 +250,7 @@ def run_valgrind(source: str, stdin: str = "") -> dict[str, Any]:
     return result
 
 
+# Function role: Run explicitly selected memory diagnostics independently.
 def analyze_memory_safety(
     source: str,
     stdin: str = "",

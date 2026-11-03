@@ -3,6 +3,8 @@
 SQLite is retained only for local development and tests. Production refuses to use
 a local file and requires Neon through NEON_DATABASE_URL or DATABASE_URL.
 """
+# Module role: Persists transient UI state, session revocations, AI usage, and immutable grading snapshots in Neon PostgreSQL (SQLite for local development).
+# Core concept: Neon PostgreSQL is production persistence; SQLite is intentionally a local-development fallback. Grade snapshots use insert-on-conflict-do-nothing so concurrent first writers cannot silently replace a grade.
 
 import hmac
 import json
@@ -16,11 +18,15 @@ class UIStorageError(RuntimeError):
     """Raised when persistent UI storage is missing or unavailable."""
 
 
+# Function role: Implements the internal neon database url helper for ui storage.
+# Same-file callers: grading_snapshot_backend, _connect.
 def _neon_database_url() -> str | None:
     value = os.getenv("NEON_DATABASE_URL", "").strip() or os.getenv("DATABASE_URL", "").strip()
     return value or None
 
 
+# Function role: Implements grading snapshot backend for ui storage using this module's input and result contracts.
+# Direct call references (conditional/branch-dependent): _neon_database_url.
 def grading_snapshot_backend() -> str:
     if _neon_database_url():
         return "neon_postgresql"
@@ -29,6 +35,8 @@ def grading_snapshot_backend() -> str:
     return "unconfigured"
 
 
+# Function role: Implements the internal database path helper for ui storage.
+# Same-file callers: _connect.
 def _database_path() -> str:
     configured = os.getenv("AUTOGRADER_STATE_DB", "").strip()
     if not configured:
@@ -43,28 +51,53 @@ def _database_path() -> str:
 class _Connection:
     """Small SQL compatibility wrapper for PostgreSQL and explicit local SQLite."""
 
+    # Function role: Initializes the object and its validated dependencies.
+    # Context: method/helper owned by _Connection; it is reached through that object's workflow.
     def __init__(self, raw, *, postgres: bool):
         self.raw = raw
         self.postgres = postgres
 
+    # Function role: Implements execute for ui storage using this module's input and result contracts.
+    # Context: method/helper owned by _Connection; it is reached through that object's workflow.
+    # Same-file callers: _connect, verify_storage, _initialize, revoke_session, is_session_revoked and other helpers.
+    # Direct call references (conditional/branch-dependent): execute.
     def execute(self, statement: str, parameters=()):
         if self.postgres:
             statement = statement.replace("?", "%s")
         return self.raw.execute(statement, parameters)
 
+    # Function role: Implements commit for ui storage using this module's input and result contracts.
+    # Context: method/helper owned by _Connection; it is reached through that object's workflow.
+    # Same-file callers: verify_storage, _initialize, revoke_session, is_session_revoked, save_submission and other helpers.
+    # Direct call references (conditional/branch-dependent): commit.
     def commit(self):
         self.raw.commit()
 
+    # Function role: Implements rollback for ui storage using this module's input and result contracts.
+    # Context: method/helper owned by _Connection; it is reached through that object's workflow.
+    # Same-file callers: revoke_session, save_submission, clear_submissions, save_grading_metric_snapshot, reserve_ai_request_credits and other helpers.
+    # Direct call references (conditional/branch-dependent): rollback.
     def rollback(self):
         self.raw.rollback()
 
+    # Function role: Implements close for ui storage using this module's input and result contracts.
+    # Context: method/helper owned by _Connection; it is reached through that object's workflow.
+    # Same-file callers: verify_storage, revoke_session, is_session_revoked, save_submission, clear_submissions and other helpers.
+    # Direct call references (conditional/branch-dependent): close.
     def close(self):
         self.raw.close()
 
+    # Function role: Implements begin write for ui storage using this module's input and result contracts.
+    # Context: method/helper owned by _Connection; it is reached through that object's workflow.
+    # Same-file callers: revoke_session, save_submission, save_grading_metric_snapshot, reserve_ai_request_credits.
+    # Direct call references (conditional/branch-dependent): execute.
     def begin_write(self):
         self.execute("BEGIN" if self.postgres else "BEGIN IMMEDIATE")
 
 
+# Function role: Uses psycopg for Neon/PostgreSQL when a database URL is configured; local SQLite is allowed only outside production. Production fails closed rather than silently writing to ephemeral disk.
+# Same-file callers: verify_storage, revoke_session, is_session_revoked, save_submission, clear_submissions and other helpers.
+# Direct call references (conditional/branch-dependent): _neon_database_url, _database_path, execute.
 def _connect() -> _Connection:
     database_url = _neon_database_url()
     try:
@@ -85,6 +118,8 @@ def _connect() -> _Connection:
         raise UIStorageError("Persistent Postgres storage is unavailable.") from exc
 
 
+# Function role: Connect to the configured store and verify its schema/query path.
+# Direct call references (conditional/branch-dependent): _connect, _initialize, execute, commit, close.
 def verify_storage() -> None:
     """Connect to the configured store and verify its schema/query path."""
     connection = _connect()
@@ -102,6 +137,9 @@ def verify_storage() -> None:
         connection.close()
 
 
+# Function role: Creates required tables and indexes idempotently before storage operations.
+# Same-file callers: verify_storage, revoke_session, is_session_revoked, save_submission, clear_submissions and other helpers.
+# Direct call references (conditional/branch-dependent): execute, commit.
 def _initialize(connection: _Connection) -> None:
     connection.execute("""
         CREATE TABLE IF NOT EXISTS ui_submissions (
@@ -152,6 +190,8 @@ def _initialize(connection: _Connection) -> None:
     connection.commit()
 
 
+# Function role: Implements revoke session for ui storage using this module's input and result contracts.
+# Direct call references (conditional/branch-dependent): _connect, _initialize, begin_write, execute, commit, rollback, close.
 def revoke_session(token_digest: str, ttl_seconds: int = 1800) -> None:
     now = time.time()
     connection = _connect()
@@ -174,6 +214,8 @@ def revoke_session(token_digest: str, ttl_seconds: int = 1800) -> None:
         connection.close()
 
 
+# Function role: Returns whether session revoked holds under this module's rules.
+# Direct call references (conditional/branch-dependent): _connect, _initialize, execute, commit, close.
 def is_session_revoked(token_digest: str) -> bool:
     connection = _connect()
     try:
@@ -200,6 +242,8 @@ def is_session_revoked(token_digest: str) -> bool:
         connection.close()
 
 
+# Function role: Persists submission through the module's storage boundary.
+# Direct call references (conditional/branch-dependent): _connect, _initialize, begin_write, execute, commit, rollback, close.
 def save_submission(
     submission_id: str,
     session_id: str,
@@ -251,6 +295,8 @@ def save_submission(
         connection.close()
 
 
+# Function role: Clears submissions from the relevant state container.
+# Direct call references (conditional/branch-dependent): _connect, _initialize, execute, commit, rollback, close.
 def clear_submissions(session_id: str) -> None:
     connection = _connect()
     try:
@@ -266,6 +312,8 @@ def clear_submissions(session_id: str) -> None:
         connection.close()
 
 
+# Function role: Retrieves submission from the validated workflow or configured storage.
+# Direct call references (conditional/branch-dependent): _connect, _initialize, execute, commit, close.
 def get_submission(session_id: str, submission_id: str) -> dict | None:
     now = time.time()
     connection = _connect()
@@ -293,6 +341,8 @@ def get_submission(session_id: str, submission_id: str) -> dict | None:
         connection.close()
 
 
+# Function role: Return the immutable complete metric snapshot for a stable evaluation key.
+# Direct call references (conditional/branch-dependent): _connect, _initialize, execute, close.
 def get_grading_metric_snapshot(snapshot_key: str) -> dict | None:
     """Return the immutable complete metric snapshot for a stable evaluation key."""
     connection = _connect()
@@ -313,6 +363,9 @@ def get_grading_metric_snapshot(snapshot_key: str) -> dict | None:
         connection.close()
 
 
+# Function role: Uses insert-on-conflict-do-nothing so concurrent workers preserve the first complete grade vector; that first-writer-wins rule is the reproducibility anchor.
+# Numbered workflow order: 07.3 - persist the first complete metric vector for the stable evaluation identity.
+# Direct call references (conditional/branch-dependent): _connect, _initialize, begin_write, execute, commit, rollback, close.
 def save_grading_metric_snapshot(snapshot_key: str, scores: dict) -> dict:
     """Persist the first complete metric snapshot; concurrent first writer wins."""
     try:
@@ -354,6 +407,8 @@ def save_grading_metric_snapshot(snapshot_key: str, scores: dict) -> dict:
         connection.close()
 
 
+# Function role: Atomically reserve shared daily AI credits; None means the cap is reached.
+# Direct call references (conditional/branch-dependent): _connect, _initialize, begin_write, execute, rollback, commit, close.
 def reserve_ai_request_credits(credits: int, daily_limit: int) -> int | None:
     """Atomically reserve shared daily AI credits; None means the cap is reached."""
     for name, value in (("credits", credits), ("daily_limit", daily_limit)):
@@ -394,6 +449,8 @@ def reserve_ai_request_credits(credits: int, daily_limit: int) -> int | None:
         connection.close()
 
 
+# Function role: Add provider-reported token totals to today's shared usage row.
+# Direct call references (conditional/branch-dependent): _connect, _initialize, execute, commit, rollback, close.
 def record_ai_token_usage(
     prompt_tokens: int,
     completion_tokens: int,
@@ -426,6 +483,8 @@ def record_ai_token_usage(
         connection.close()
 
 
+# Function role: Read aggregate AI request and token usage for a UTC date (today by default).
+# Direct call references (conditional/branch-dependent): _connect, _initialize, execute, close.
 def get_ai_request_usage(usage_date: str | None = None) -> dict | None:
     """Read aggregate AI request and token usage for a UTC date (today by default)."""
     from datetime import datetime, timezone

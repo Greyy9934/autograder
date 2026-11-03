@@ -1,4 +1,5 @@
 """Immutable, explicitly confirmed assignment specifications."""
+# Module role: Models the instructor-reviewed assignment contract and canonical fingerprint passed between stages.
 
 from dataclasses import asdict, dataclass
 import hashlib
@@ -22,6 +23,9 @@ class AssignmentSpec:
     version: int = 1
     confirmed: bool = False
 
+    # Function role: Validates the constructed data object's invariants and canonicalizes supported fields.
+    # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
+    # Direct call references (conditional/branch-dependent): to_dict.
     def __post_init__(self):
         for field in (
             "problem_id",
@@ -75,6 +79,8 @@ class AssignmentSpec:
         if not isinstance(self.confirmed, bool):
             raise ValueError("confirmed must be boolean.")
 
+    # Function role: Constructs draft with the module's required invariants.
+    # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
     @classmethod
     def create_draft(cls, candidate: dict[str, Any], **formats):
         if not isinstance(candidate, dict):
@@ -92,6 +98,9 @@ class AssignmentSpec:
             confirmed=False,
         )
 
+    # Function role: Returns a confirmed immutable specification only after explicit instructor approval.
+    # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
+    # Direct call references (conditional/branch-dependent): to_dict.
     def confirm(self, *, instructor_approved: bool):
         if instructor_approved is not True:
             raise ValueError("Explicit instructor approval is required.")
@@ -100,6 +109,10 @@ class AssignmentSpec:
         values["confirmed"] = True
         return AssignmentSpec(**values)
 
+    # Function role: Produces deterministic JSON with stable key ordering for identity and comparison.
+    # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
+    # Same-file callers: fingerprint.
+    # Direct call references (conditional/branch-dependent): to_dict.
     def canonical_json(self) -> str:
         return json.dumps(
             self.to_dict(),
@@ -107,9 +120,15 @@ class AssignmentSpec:
             separators=(",", ":"),
         )
 
+    # Function role: Hashes the canonical representation so downstream steps can detect specification changes.
+    # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
+    # Direct call references (conditional/branch-dependent): canonical_json.
     def fingerprint(self) -> str:
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
 
+    # Function role: Serializes the internal model to the stable plain-dictionary shape used by API and persistence boundaries.
+    # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
+    # Same-file callers: __post_init__, confirm, canonical_json.
     def to_dict(self) -> dict[str, Any]:
         values = asdict(self)
         if values["input_schema"] is not None:

@@ -1,4 +1,5 @@
 """Generate candidate reference solutions; never assume they are correct."""
+# Module role: Requests Agent 2's brute-force and efficient C candidates; generated code starts untrusted.
 
 from typing import Any
 
@@ -44,6 +45,8 @@ REFERENCE_SCHEMA = {
 }
 
 
+# Function role: Check shape and essential content, not algorithmic correctness.
+# Same-file callers: generate_reference_solutions.
 def _validate_reference(result: Any) -> dict[str, Any]:
     """Check shape and essential content, not algorithmic correctness."""
     if not isinstance(result, dict):
@@ -80,6 +83,9 @@ def _validate_reference(result: Any) -> dict[str, Any]:
     return result
 
 
+# Function role: Generate candidate references for a selected, unambiguous problem.
+# Numbered workflow order: 04.2 - ask for brute-force and efficient C reference candidates.
+# Direct call references (conditional/branch-dependent): _validate_reference.
 def generate_reference_solutions(
     problem: dict[str, Any],
     provider: AIProvider,

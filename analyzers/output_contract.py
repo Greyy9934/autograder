@@ -1,4 +1,5 @@
 """Canonical output-format contract and stdout normalization policy."""
+# Module role: Implements the output contract subsystem used by the AutoGrader workflow.
 
 OUTPUT_COMPARISON_RULE = (
     "Normalize CRLF to LF; ignore trailing spaces on each line and final newline; "
@@ -6,6 +7,7 @@ OUTPUT_COMPARISON_RULE = (
 )
 
 
+# Function role: Implements output contract for output contract using this module's input and result contracts.
 def output_contract(output_format: str) -> dict:
     if not isinstance(output_format, str) or not output_format.strip():
         raise ValueError("A non-empty approved output_format is required.")
@@ -17,6 +19,7 @@ def output_contract(output_format: str) -> dict:
     }
 
 
+# Function role: Canonicalizes only the allowed output differences (CRLF and trailing spaces/newline) while preserving line order, count, leading spaces, and internal spacing.
 def normalize_stdout(value: str) -> str:
     if not isinstance(value, str):
         raise TypeError("stdout must be text.")

@@ -1,8 +1,11 @@
 """Propose edge cases without assuming undocumented input constraints."""
+# Module role: Implements the edge cases subsystem used by the AutoGrader workflow.
 
 from typing import Any
 
 
+# Function role: Return test ideas classified by how strongly constraints support them.
+# Direct call references (conditional/branch-dependent): add.
 def analyze_edge_cases(problem: dict[str, Any]) -> dict[str, Any]:
     """Return test ideas classified by how strongly constraints support them."""
     if not isinstance(problem, dict):
@@ -32,6 +35,9 @@ def analyze_edge_cases(problem: dict[str, Any]) -> dict[str, Any]:
 
     cases = []
 
+    # Function role: Adds one validated finding/case/issue to the result being assembled by analyze_edge_cases.
+    # Context: method/helper owned by analyze_edge_cases; it is reached through that object's workflow.
+    # Same-file callers: analyze_edge_cases.
     def add(case_id: str, idea: str, condition: str, category: str) -> None:
         cases.append({
             "id": case_id,

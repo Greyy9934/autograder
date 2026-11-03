@@ -1,4 +1,5 @@
 """AI provider configuration and construction."""
+# Module role: Implements the config subsystem used by the AutoGrader workflow.
 
 import os
 from pathlib import Path
@@ -13,6 +14,8 @@ from app.ai.guardrails import GuardedProvider
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
+# Function role: Return whether explicit offline mock mode is enabled.
+# Same-file callers: create_ai_provider.
 def mock_mode_enabled() -> bool:
     """Return whether explicit offline mock mode is enabled."""
     return os.getenv("AUTOGRADER_MOCK_MODE", "").strip().lower() in {
@@ -20,6 +23,8 @@ def mock_mode_enabled() -> bool:
     }
 
 
+# Function role: Create the explicitly selected offline mock or configured AI provider.
+# Direct call references (conditional/branch-dependent): mock_mode_enabled.
 def create_ai_provider():
     """Create the explicitly selected offline mock or configured AI provider."""
     load_dotenv(PROJECT_ROOT / ".env", override=False)

@@ -1,5 +1,7 @@
 """AI-authored Agent 3A generator and Agent 3B edge-case analysis."""
 from __future__ import annotations
+# Module role: Builds Agent 3A/3B AI requests, runs the generated Python generator under Bubblewrap, and validates every concrete case.
+# Core concept: AI-generated test-generator code is untrusted. Bubblewrap/prlimit limits its process, then server-side parsing and the approved schema validate its output before C programs see it.
 
 import json
 import signal
@@ -66,6 +68,8 @@ EDGE_SCHEMA = {
 }
 
 
+# Function role: Calls the shared provider with an agent task and response schema, converting provider exceptions into a stage result.
+# Same-file callers: generate_agent3a_program, analyze_agent3b_edges.
 def _ask(provider: AIProvider, task: str, payload: dict, schema: dict) -> dict:
     try:
         result = provider.generate_json(
@@ -80,6 +84,9 @@ def _ask(provider: AIProvider, task: str, payload: dict, schema: dict) -> dict:
     return result
 
 
+# Function role: Ask AI for a complete problem-specific executable test generator.
+# Numbered workflow order: 05.2a - Agent 3A generator-program request with the approved schema and all implementations.
+# Direct call references (conditional/branch-dependent): _approved_execution_contract, _ask.
 def generate_agent3a_program(
     provider: AIProvider,
     *,
@@ -201,6 +208,8 @@ def generate_agent3a_program(
     }
 
 
+# Function role: Return semantic size; never trust a generator-supplied size label.
+# Same-file callers: execute_agent3a_program.
 def _schema_input_size(schema, text: str) -> int:
     """Return semantic size; never trust a generator-supplied size label."""
     if isinstance(schema, StructuredIntegerInputSchema):
@@ -210,10 +219,14 @@ def _schema_input_size(schema, text: str) -> int:
     raise ValueError("Unsupported input schema.")
 
 
+# Function role: Checks that the schema belongs to the explicitly supported integer grammar implementation.
+# Same-file callers: execute_agent3a_program, validate_agent3b_edges.
 def _supported_input_schema(schema) -> bool:
     return isinstance(schema, (IntegerInputSchema, StructuredIntegerInputSchema))
 
 
+# Function role: Explain a rejected stdin without exposing its contents in the UI.
+# Same-file callers: execute_agent3a_program.
 def _input_schema_error(schema, text: str) -> str:
     """Explain a rejected stdin without exposing its contents in the UI."""
     if isinstance(schema, StructuredIntegerInputSchema):
@@ -234,6 +247,8 @@ def _input_schema_error(schema, text: str) -> str:
     return "input does not match the declared grammar"
 
 
+# Function role: Create the canonical Agent 3 I/O contract and reject any missing or drifting term.
+# Same-file callers: generate_agent3a_program, analyze_agent3b_edges.
 def _approved_execution_contract(problem: dict, schema: dict) -> dict:
     """Create the canonical Agent 3 I/O contract and reject any missing or drifting term."""
     approved_schema = problem.get("input_schema")
@@ -267,6 +282,9 @@ def _approved_execution_contract(problem: dict, schema: dict) -> dict:
     }
 
 
+# Function role: Runs AI-authored Python generator code through Bubblewrap with no network namespace, a read-only runtime, temporary storage, and CPU/address-space/file/output limits. Generated text is still treated as untrusted and schema-validated after the process exits.
+# Numbered workflow order: 05.2b - run the generator in a restricted sandbox, then validate returned cases.
+# Direct call references (conditional/branch-dependent): _supported_input_schema, _input_schema_error, _schema_input_size.
 def execute_agent3a_program(
     program: dict,
     *,
@@ -424,6 +442,9 @@ def execute_agent3a_program(
         },
     }
 
+# Function role: Ask AI for concrete, implementation-aware edge cases.
+# Numbered workflow order: 05.3a - Agent 3B targeted-edge-case request.
+# Direct call references (conditional/branch-dependent): _approved_execution_contract, _ask.
 def analyze_agent3b_edges(
     provider: AIProvider,
     *,
@@ -503,6 +524,9 @@ def analyze_agent3b_edges(
     }
 
 
+# Function role: Validate concrete Agent 3B inputs before they reach C execution.
+# Numbered workflow order: 05.3b - enforce the same approved input schema on proposed edge cases.
+# Direct call references (conditional/branch-dependent): _supported_input_schema.
 def validate_agent3b_edges(
     proposal: dict,
     *,

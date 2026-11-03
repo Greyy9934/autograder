@@ -1,4 +1,5 @@
 """Summarize execution observations without assigning correctness scores."""
+# Module role: Implements the execution summary subsystem used by the AutoGrader workflow.
 
 from typing import Any
 
@@ -14,6 +15,8 @@ OUTCOME_KEYS = (
 )
 
 
+# Function role: Normalizes one execution result into the compact status/count fields used in summaries.
+# Same-file callers: summarize_execution_evidence.
 def _summarize_one(result: Any) -> dict[str, Any]:
     if not isinstance(result, dict):
         result = {}
@@ -40,6 +43,8 @@ def _summarize_one(result: Any) -> dict[str, Any]:
     }
 
 
+# Function role: Combine random/adversarial observations; never derive correctness.
+# Direct call references (conditional/branch-dependent): _summarize_one.
 def summarize_execution_evidence(evidence: dict[str, Any]) -> dict[str, Any]:
     """Combine random/adversarial observations; never derive correctness."""
     random_result = evidence.get("random_test_execution")

@@ -3,6 +3,8 @@
 This module never evaluates Python code. It converts mathematical notation
 into a validated AST with strict syntax, symbol, depth and size limits.
 """
+# Module role: Parses a deliberately limited asymptotic-expression grammar into a validated representation rather than evaluating arbitrary input text.
+# Core concept: Complexity text is parsed as a small allow-listed expression language; it is never passed to Python eval or treated as arbitrary executable code.
 
 from __future__ import annotations
 
@@ -27,6 +29,8 @@ RESERVED_NAMES = frozenset({"O", "Theta", "Omega", "BigO", "BigTheta", "BigOmega
 DEFAULT_LIMITS = ExpressionLimits()
 
 
+# Function role: Reject invalid or unsafe parser resource configurations.
+# Same-file callers: parse_complexity_expression.
 def _validate_limits(limits: ExpressionLimits) -> None:
     """Reject invalid or unsafe parser resource configurations."""
     if not isinstance(limits, ExpressionLimits):
@@ -68,11 +72,17 @@ def _validate_limits(limits: ExpressionLimits) -> None:
 
 
 class ExpressionParseError(ValueError):
+    # Function role: Initializes the object and its validated dependencies.
+    # Context: method/helper owned by ExpressionParseError; it is reached through that object's workflow.
+    # Same-file callers: __init__.
+    # Direct call references (conditional/branch-dependent): __init__.
     def __init__(self, code: str, message: str):
         super().__init__(message)
         self.code = code
 
 
+# Function role: Strip one balanced outer asymptotic wrapper.
+# Same-file callers: _normalize, parse_complexity_expression.
 def _strip_asymptotic_wrapper(text: str) -> tuple[str, str]:
     """Strip one balanced outer asymptotic wrapper.
 
@@ -152,6 +162,9 @@ def _strip_asymptotic_wrapper(text: str) -> tuple[str, str]:
     return inner, family
 
 
+# Function role: Normalize mathematical notation without corrupting function names.
+# Same-file callers: parse_complexity_expression.
+# Direct call references (conditional/branch-dependent): _strip_asymptotic_wrapper.
 def _normalize(text: str) -> str:
     """Normalize mathematical notation without corrupting function names."""
     text = text.strip()
@@ -182,6 +195,8 @@ def _normalize(text: str) -> str:
         flags=re.IGNORECASE,
     )
 
+    # Function role: Implements expand log chain for parser using this module's input and result contracts.
+    # Context: method/helper owned by _normalize; it is reached through that object's workflow.
     def expand_log_chain(match: re.Match[str]) -> str:
         functions = re.findall(log_token, match.group(1), flags=re.IGNORECASE)
         expression = match.group(2)
@@ -245,6 +260,9 @@ def _normalize(text: str) -> str:
     return text
 
 
+# Function role: Implements the internal walk and validate helper for parser.
+# Same-file callers: parse_complexity_expression.
+# Direct call references (conditional/branch-dependent): visit.
 def _walk_and_validate(
     root: ast.AST,
     limits: ExpressionLimits,
@@ -260,6 +278,10 @@ def _walk_and_validate(
     allowed_binary = (ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.Mod)
     allowed_unary = (ast.UAdd, ast.USub)
 
+    # Function role: Walks a validated syntax-tree node and evaluates or checks its supported children.
+    # Context: method/helper owned by _walk_and_validate; it is reached through that object's workflow.
+    # Same-file callers: _walk_and_validate, visit.
+    # Direct call references (conditional/branch-dependent): visit.
     def visit(node: ast.AST, depth: int = 0) -> None:
         if depth > limits.max_ast_depth:
             raise ExpressionParseError("too_deep", "Expression nesting exceeds the permitted depth.")
@@ -327,6 +349,8 @@ def _walk_and_validate(
     return frozenset(symbols), frozenset(functions), frozenset(parameters)
 
 
+# Function role: Accepts only the supported asymptotic notation grammar, validates names/operators and AST depth, and returns a typed parse result instead of evaluating arbitrary user code.
+# Direct call references (conditional/branch-dependent): _validate_limits, _strip_asymptotic_wrapper, _normalize, _walk_and_validate.
 def parse_complexity_expression(
     notation: str,
     *,

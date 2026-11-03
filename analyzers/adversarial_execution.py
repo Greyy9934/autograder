@@ -1,4 +1,5 @@
 """Execute adversarial candidates using one compilation per batch."""
+# Module role: Implements the adversarial execution subsystem used by the AutoGrader workflow.
 
 import hashlib
 from typing import Any
@@ -6,6 +7,7 @@ from typing import Any
 from analyzers.batch_execution import run_c_batch
 
 
+# Function role: Implements execute adversarial candidates for adversarial execution using this module's input and result contracts.
 def execute_adversarial_candidates(
     source: str,
     plan: dict[str, Any],

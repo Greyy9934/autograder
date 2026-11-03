@@ -1,4 +1,5 @@
 """Gemini implementation of the provider-independent AI interface."""
+# Module role: Implements the shared AI protocol with Gemini's JSON response mode and categorized provider errors.
 
 import json
 import os
@@ -10,6 +11,8 @@ from app.ai.base import AIProviderError
 _RETRYABLE_CODES = {429, 500, 502, 503, 504}
 
 
+# Function role: Convert SDK exceptions into safe, stable application error categories.
+# Same-file callers: generate_json.
 def _classify_error(exc: Exception) -> AIProviderError:
     """Convert SDK exceptions into safe, stable application error categories."""
     code = getattr(exc, "code", None)
@@ -54,6 +57,8 @@ def _classify_error(exc: Exception) -> AIProviderError:
 class GeminiProvider:
     """Generate schema-constrained JSON using the Gemini Developer API."""
 
+    # Function role: Initializes the object and its validated dependencies.
+    # Context: method/helper owned by GeminiProvider; it is reached through that object's workflow.
     def __init__(
         self,
         api_key: str | None = None,
@@ -92,6 +97,9 @@ class GeminiProvider:
 
         self.client = client
 
+    # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
+    # Context: method/helper owned by GeminiProvider; it is reached through that object's workflow.
+    # Direct call references (conditional/branch-dependent): _classify_error.
     def generate_json(
         self,
         task: str,

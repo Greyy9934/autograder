@@ -1,4 +1,5 @@
 """Hard resource limits for schema-valid local test generation."""
+# Module role: Implements the workload limits subsystem used by the AutoGrader workflow.
 
 MAX_GENERATED_CASE_INPUT_BYTES = 16 * 1024
 MAX_GENERATED_BATCH_INPUT_BYTES = 512 * 1024
@@ -6,6 +7,7 @@ MAX_AGENT3A_GENERATOR_OUTPUT_BYTES = 1024 * 1024
 MAX_GENERATED_ARRAY_LENGTH = 512
 
 
+# Function role: Return a conservative per-length-field cap for a schema's arrays.
 def max_generated_array_length(schema) -> int | None:
     """Return a conservative per-length-field cap for a schema's arrays."""
     fields = getattr(schema, "fields", ())

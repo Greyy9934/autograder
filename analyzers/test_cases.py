@@ -1,4 +1,5 @@
 """Deterministic input/output test-case analyzer."""
+# Module role: Implements the test cases subsystem used by the AutoGrader workflow.
 
 from typing import Any
 
@@ -8,6 +9,7 @@ from analyzers.batch_execution import run_c_batch
 from analyzers.output_contract import normalize_stdout as normalize_output
 
 
+# Function role: Run explicit input/output cases using one compilation per batch.
 def analyze_test_cases(
     source: str,
     test_cases: list[dict[str, Any]],

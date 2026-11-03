@@ -4,6 +4,7 @@ AI-shaped responses are deterministic simulations. Compilation, schema
 validation, generated-input execution, benchmarking, and C execution remain real.
 '''
 from __future__ import annotations
+# Module role: Implements the mock workflow provider subsystem used by the AutoGrader workflow.
 
 import json
 import random
@@ -22,6 +23,8 @@ from app.ai.output_budget import (
 )
 
 
+# Function role: Implements the internal sample input helper for mock workflow provider.
+# Same-file callers: _generate_json_unchecked.
 def _sample_input(schema: dict[str, Any], seed: int = 0) -> str:
     rng = random.Random(seed)
     if "fields" not in schema:
@@ -48,6 +51,8 @@ def _sample_input(schema: dict[str, Any], seed: int = 0) -> str:
     return "\n".join(output) + "\n"
 
 
+# Function role: Implements the internal generator program helper for mock workflow provider.
+# Same-file callers: _generate_json_unchecked.
 def _generator_program(schema: dict[str, Any]) -> str:
     encoded = json.dumps(schema, separators=(",", ":"))
     return (
@@ -90,16 +95,28 @@ class MockWorkflowProvider:
     mock_mode = True
     provider_name = "offline_mock"
 
+    # Function role: Initializes the object and its validated dependencies.
+    # Context: method/helper owned by MockWorkflowProvider; it is reached through that object's workflow.
     def __init__(self):
         self.calls: list[dict[str, Any]] = []
 
+    # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
+    # Context: method/helper owned by MockWorkflowProvider; it is reached through that object's workflow.
+    # Same-file callers: generate_json.
+    # Direct call references (conditional/branch-dependent): generate_json.
     def generate_json(self, task: str, payload: dict, schema: dict) -> dict:
         from app.ai.guardrails import GuardedProvider
 
         class _MockAdapter:
+            # Function role: Initializes the object and its validated dependencies.
+            # Context: method/helper owned by _MockAdapter; it is reached through that object's workflow.
             def __init__(self, owner):
                 self.owner = owner
 
+            # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
+            # Context: method/helper owned by _MockAdapter; it is reached through that object's workflow.
+            # Same-file callers: generate_json.
+            # Direct call references (conditional/branch-dependent): _generate_json_unchecked.
             def generate_json(self, inner_task, inner_payload, inner_schema):
                 return self.owner._generate_json_unchecked(
                     inner_task, inner_payload, inner_schema
@@ -109,6 +126,10 @@ class MockWorkflowProvider:
             task, payload, schema
         )
 
+    # Function role: Implements the internal generate json unchecked helper for mock workflow provider.
+    # Context: method/helper owned by MockWorkflowProvider; it is reached through that object's workflow.
+    # Same-file callers: generate_json.
+    # Direct call references (conditional/branch-dependent): _generator_program, _sample_input.
     def _generate_json_unchecked(self, task: str, payload: dict, schema: dict) -> dict:
         self.calls.append({"task": task, "payload": deepcopy(payload), "schema": deepcopy(schema)})
         if task == TASK_RECONSTRUCTION:

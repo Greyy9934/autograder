@@ -1,4 +1,6 @@
 """Persistent, concurrency-safe AI request budget."""
+# Module role: Reserves one shared daily request credit before a provider call and records provider-reported token usage afterwards.
+# Core concept: A request credit is reserved before each provider call. Token ceilings only cap possible output; actual billing follows provider usage, and hidden automatic retries are avoided for paid calls.
 
 import logging
 import os
@@ -17,6 +19,9 @@ from app.ai.output_budget import (
 
 
 class RequestBudget:
+    # Function role: Initializes the object and its validated dependencies.
+    # Context: method/helper owned by RequestBudget; it is reached through that object's workflow.
+    # Direct call references (conditional/branch-dependent): _connect.
     def __init__(
         self,
         database_path: str | Path,
@@ -65,6 +70,9 @@ class RequestBudget:
                 category="budget_storage_error",
             ) from exc
 
+    # Function role: Opens the configured persistent or local-development database connection.
+    # Context: method/helper owned by RequestBudget; it is reached through that object's workflow.
+    # Same-file callers: __init__, reserve, record_usage.
     def _connect(self):
         connection = sqlite3.connect(
             self.database_path,
@@ -74,6 +82,10 @@ class RequestBudget:
         connection.execute("PRAGMA busy_timeout = 10000")
         return connection
 
+    # Function role: Atomically reserve credits before an AI operation.
+    # Context: method/helper owned by RequestBudget; it is reached through that object's workflow.
+    # Same-file callers: generate_json.
+    # Direct call references (conditional/branch-dependent): _connect.
     def reserve(self, credits: int = 1) -> int:
         """Atomically reserve credits before an AI operation."""
         from datetime import datetime, timezone
@@ -143,6 +155,10 @@ class RequestBudget:
                 category="budget_storage_error",
             ) from exc
 
+    # Function role: Persist provider-reported token counts without storing prompts or code.
+    # Context: method/helper owned by RequestBudget; it is reached through that object's workflow.
+    # Same-file callers: _record_provider_usage.
+    # Direct call references (conditional/branch-dependent): _connect.
     def record_usage(self, usage: dict) -> None:
         """Persist provider-reported token counts without storing prompts or code."""
         values = (
@@ -195,6 +211,8 @@ class RequestBudget:
 class BudgetedProvider:
     """Reserve budget credits before delegating to an AI provider."""
 
+    # Function role: Initializes the object and its validated dependencies.
+    # Context: method/helper owned by BudgetedProvider; it is reached through that object's workflow.
     def __init__(self, provider, budget: RequestBudget, credits_per_call: int = 1):
         if (
             isinstance(credits_per_call, bool)
@@ -207,6 +225,10 @@ class BudgetedProvider:
         self.budget = budget
         self.credits_per_call = credits_per_call
 
+    # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
+    # Context: method/helper owned by BudgetedProvider; it is reached through that object's workflow.
+    # Same-file callers: generate_json.
+    # Direct call references (conditional/branch-dependent): reserve, generate_json, _record_provider_usage.
     def generate_json(self, task, payload, schema):
         # Keep the concrete provider object intact for existing integrations.
         # Enforce the same request/response contract at the shared call boundary.
@@ -304,6 +326,10 @@ class BudgetedProvider:
         )
         return result
 
+    # Function role: Implements the internal record provider usage helper for budget.
+    # Context: method/helper owned by BudgetedProvider; it is reached through that object's workflow.
+    # Same-file callers: generate_json.
+    # Direct call references (conditional/branch-dependent): record_usage.
     def _record_provider_usage(self) -> None:
         usage = getattr(self.provider, "last_usage", None)
         if not isinstance(usage, dict):
@@ -320,6 +346,7 @@ class BudgetedProvider:
             )
 
 
+# Function role: Constructs request budget with the module's required invariants.
 def create_request_budget() -> RequestBudget:
     default_path = Path.home() / ".local" / "share" / "autograder" / "ai-budget.sqlite3"
     path = os.getenv("AI_BUDGET_DB", str(default_path)).strip()

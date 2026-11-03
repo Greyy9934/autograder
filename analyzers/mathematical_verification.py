@@ -3,6 +3,7 @@
 The result is an AI-generated mathematical argument, not a mechanically
 verified formal proof.
 """
+# Module role: Implements the mathematical verification subsystem used by the AutoGrader workflow.
 
 from typing import Any
 
@@ -61,6 +62,8 @@ VERIFICATION_SCHEMA = {
 }
 
 
+# Function role: Returns the module's standard invalid-input result without running analysis.
+# Same-file callers: verify_algorithm.
 def _invalid(message: str) -> dict[str, Any]:
     return {
         "status": "invalid_request",
@@ -69,6 +72,9 @@ def _invalid(message: str) -> dict[str, Any]:
     }
 
 
+# Function role: Ask an AI reviewer for a rigorous, problem-specific correctness proof.
+# Numbered workflow order: 06.2b - Agent 5 advisory proof sketch/counterexample request.
+# Direct call references (conditional/branch-dependent): _invalid.
 def verify_algorithm(
     problem: dict[str, Any],
     algorithm: dict[str, Any],

@@ -1,5 +1,6 @@
 """Pinned, task-routed AI responses for the authenticated Demo workflow."""
 from __future__ import annotations
+# Module role: Implements the demo scenarios subsystem used by the AutoGrader workflow.
 
 from copy import deepcopy
 import secrets
@@ -124,6 +125,7 @@ for i in range(count):
 print(json.dumps({"inputs":cases}))'''
 
 
+# Function role: Implements the internal edge helper for demo scenarios.
 def _edge(name: str, text: str, expected: str, rationale: str) -> dict[str, Any]:
     return {"name": name, "input": text, "expected_output": expected + "\n",
             "target": ["student", "brute_force", "efficient"], "rationale": rationale,
@@ -162,10 +164,12 @@ SUBSET_EDGES = [
 ]
 
 
+# Function role: Implements the internal refs helper for demo scenarios.
 def _refs(alg: str, code: str, time: str, space: str) -> dict[str, str]:
     return {"algorithm": alg, "code": code, "time_complexity": time, "space_complexity": space}
 
 
+# Function role: Implements the internal agent4 helper for demo scenarios.
 def _agent4(name: str, desc: str, model: str, best: str, avg: str, worst: str,
             aux: str, total: str, derivation: str, line: int) -> dict[str, Any]:
     # The scenario-specific source is available through the associated reference.
@@ -179,6 +183,7 @@ def _agent4(name: str, desc: str, model: str, best: str, avg: str, worst: str,
             "limitations": ["Predefined simulated analysis; timings come from the real benchmark."], "unresolved_questions": []}
 
 
+# Function role: Implements the internal proof helper for demo scenarios.
 def _proof(theorem: str, strategy: str, steps: list[dict[str, str]]) -> dict[str, Any]:
     return {"outcome": "proof_sketch", "theorem": theorem,
             "preconditions": ["Inputs satisfy the scenario's stated bounds and contract."],
@@ -188,10 +193,12 @@ def _proof(theorem: str, strategy: str, steps: list[dict[str, str]]) -> dict[str
             "counterexample": None, "limitations": ["Predefined simulated proof sketch; not mechanically checked."]}
 
 
+# Function role: Implements the internal step helper for demo scenarios.
 def _step(claim: str, justification: str, equation: str) -> dict[str, str]:
     return {"claim": claim, "justification": justification, "equation": equation}
 
 
+# Function role: Implements the internal quality helper for demo scenarios.
 def _quality(summary: str, strengths: list[str], source: str, ratings: tuple[int, int, int] = (3, 3, 3)) -> dict[str, Any]:
     lines = source.splitlines() or [""]
     chosen = {
@@ -436,6 +443,7 @@ for i in range(count):
  cases.append({"input_size":n,"input":text,"distribution":"seeded_small_medium_complete_graph" if i < medium_end else "sparse_upper_growth_probe"})
 print(json.dumps({"inputs":cases}))'''
 
+# Function role: Implements the internal tsp input helper for demo scenarios.
 def _tsp_input(matrix: list[list[int]]) -> str:
     n = len(matrix)
     flat = " ".join(str(value) for row in matrix for value in row)
@@ -473,6 +481,7 @@ TSP = {
     },
 }
 
+# Function role: Implements the internal bind complexity rubric evidence helper for demo scenarios.
 def _bind_complexity_rubric_evidence(scenario: dict[str, Any]) -> None:
     response = scenario["agent_responses"]["agent4"]
     lines = scenario["student"].splitlines()
@@ -502,6 +511,8 @@ TASK_TO_AGENT = {
 }
 
 
+# Function role: Retrieves demo scenario from the validated workflow or configured storage.
+# Same-file callers: select_demo_scenario.
 def get_demo_scenario(scenario_id: str) -> dict[str, Any]:
     try:
         return deepcopy(DEMO_SCENARIOS[scenario_id])
@@ -509,11 +520,14 @@ def get_demo_scenario(scenario_id: str) -> dict[str, Any]:
         raise ValueError(f"Unknown Demo scenario: {scenario_id!r}") from exc
 
 
+# Function role: Pin a requested scenario, or select one for the whole submission.
+# Direct call references (conditional/branch-dependent): get_demo_scenario.
 def select_demo_scenario(scenario_id: str | None = None) -> dict[str, Any]:
     """Pin a requested scenario, or select one for the whole submission."""
     return get_demo_scenario(scenario_id or secrets.choice(SCENARIO_IDS))
 
 
+# Function role: Implements validate demo input for demo scenarios using this module's input and result contracts.
 def validate_demo_input(scenario_id: str, text: str) -> bool:
     try:
         schema = StructuredIntegerInputSchema.from_dict(DEMO_SCENARIOS[scenario_id]["input_schema"])
@@ -540,9 +554,15 @@ def validate_demo_input(scenario_id: str, text: str) -> bool:
 
 
 class _ResponseAdapter:
+    # Function role: Initializes the object and its validated dependencies.
+    # Context: method/helper owned by _ResponseAdapter; it is reached through that object's workflow.
     def __init__(self, provider: "DemoScenarioProvider") -> None:
         self.provider = provider
 
+    # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
+    # Context: method/helper owned by _ResponseAdapter; it is reached through that object's workflow.
+    # Same-file callers: generate_json.
+    # Direct call references (conditional/branch-dependent): _response.
     def generate_json(self, task: str, payload: dict, schema: dict) -> dict:
         return self.provider._response(task)
 
@@ -552,6 +572,8 @@ class DemoScenarioProvider:
     mock_mode = True
     provider_name = "demo_scenario"
 
+    # Function role: Initializes the object and its validated dependencies.
+    # Context: method/helper owned by DemoScenarioProvider; it is reached through that object's workflow.
     def __init__(self, scenario_id: str) -> None:
         if scenario_id not in DEMO_SCENARIOS:
             raise AIProviderError(f"Unknown Demo scenario: {scenario_id!r}", category="demo_scenario_not_found")
@@ -560,6 +582,9 @@ class DemoScenarioProvider:
         self.calls: list[str] = []
         self._guarded = GuardedProvider(_ResponseAdapter(self))
 
+    # Function role: Implements the internal response helper for demo scenarios.
+    # Context: method/helper owned by DemoScenarioProvider; it is reached through that object's workflow.
+    # Same-file callers: generate_json.
     def _response(self, task: str) -> dict[str, Any]:
         agent = TASK_TO_AGENT.get(task)
         if agent is None:
@@ -573,5 +598,9 @@ class DemoScenarioProvider:
             response["cases"] = response.get("cases", [])[:8]
         return response
 
+    # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
+    # Context: method/helper owned by DemoScenarioProvider; it is reached through that object's workflow.
+    # Same-file callers: generate_json.
+    # Direct call references (conditional/branch-dependent): generate_json.
     def generate_json(self, task: str, payload: dict, schema: dict) -> dict:
         return self._guarded.generate_json(task, payload, schema)
