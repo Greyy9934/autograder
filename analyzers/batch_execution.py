@@ -1,5 +1,5 @@
 """Compile a C submission once, then execute a bounded batch of inputs."""
-# Module role: Compiles once per program and compares bounded C executions under shared deadlines.
+# In plain terms: This file runs the student and reference programs on the same inputs and records what happened.
 
 import math
 import subprocess
@@ -19,7 +19,6 @@ MAX_BENCHMARK_WINDOW_SECONDS = 10.0
 BENCHMARK_SECONDS_PER_CASE = 0.1
 
 
-# Function role: Scale the shared benchmark window with process-per-case overhead.
 def benchmark_time_budget_for_case_count(case_count: int) -> float:
     """Scale the shared benchmark window with process-per-case overhead.
 
@@ -27,11 +26,10 @@ def benchmark_time_budget_for_case_count(case_count: int) -> float:
     leaves most of a 100-case batch unverified even when the inputs are small.
     Keep the window bounded so the request remains predictable on hosted servers.
     """
-    # In-function documentation:
-    # Parameters:
-    #   - case_count: the case count value used by this operation (type annotation: int).
-    # Returns: a value of declared type float.
-    # Flow: branch on validation or workflow conditions; return the stage result.
+    # In simple terms: Scale the shared benchmark window with process-per-case overhead.
+    # What the inputs mean:
+    # - case_count: the case count used for this step.
+    # What it gives back: It returns the float result.
     if isinstance(case_count, bool) or not isinstance(case_count, int) or case_count < 1:
         raise ValueError("case_count must be a positive integer.")
     return round(min(
@@ -40,15 +38,12 @@ def benchmark_time_budget_for_case_count(case_count: int) -> float:
     ), 1)
 
 
-# Function role: Classify execution outcomes without confusing infrastructure with student errors.
-# Same-file callers: _classify_benchmark_run.
 def _classify_execution(run: dict[str, Any]) -> str:
     """Classify execution outcomes without confusing infrastructure with student errors."""
-    # In-function documentation:
-    # Parameters:
-    #   - run: the run value used by this operation (type annotation: dict[str, Any]).
-    # Returns: a value of declared type str.
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Classify execution outcomes without confusing infrastructure with student errors.
+    # What the inputs mean:
+    # - run: the run used for this step.
+    # What it gives back: It returns text.
     status = run.get("status")
 
     if status == "launch_error":
@@ -69,35 +64,28 @@ def _classify_execution(run: dict[str, Any]) -> str:
     return "execution_unknown"
 
 
-# Function role: Separate a global benchmark cutoff from a program's own time limit.
-# Same-file callers: run_c_batch.
-# Direct call references (conditional/branch-dependent): _classify_execution.
 def _classify_benchmark_run(
     run: dict[str, Any],
     *,
     shared_budget_limited: bool,
 ) -> str:
     """Separate a global benchmark cutoff from a program's own time limit."""
-    # In-function documentation:
-    # Parameters:
-    #   - run: the run value used by this operation (type annotation: dict[str, Any]).
-    #   - shared_budget_limited: the shared budget limited value used by this operation (type annotation: bool).
-    # Returns: a value of declared type str; alternate return paths may produce the result of the final transformation or check.
-    # Flow: branch on validation or workflow conditions; return the stage result.
+    # In simple terms: Separate a global benchmark cutoff from a program's own time limit.
+    # What the inputs mean:
+    # - run: the run used for this step.
+    # - shared_budget_limited: the shared budget limited used for this step.
+    # What it gives back: It returns text.
     if run.get("status") == "timeout" and shared_budget_limited:
         return "benchmark_time_budget_exhausted"
     return _classify_execution(run)
 
 
-# Function role: Count each execution category for deterministic downstream reporting.
-# Same-file callers: run_c_batch.
 def _summarize_results(results: list[dict[str, Any]]) -> dict[str, int]:
     """Count each execution category for deterministic downstream reporting."""
-    # In-function documentation:
-    # Parameters:
-    #   - results: collected outputs, statuses, or evidence produced by an earlier stage (type annotation: list[dict[str, Any]]).
-    # Returns: a value of declared type dict[str, int].
-    # Flow: derive or store intermediate values; return the stage result.
+    # In simple terms: Count each execution category for deterministic downstream reporting.
+    # What the inputs mean:
+    # - results: the outcomes from an earlier step.
+    # What it gives back: It returns a set of named results for the next step.
     categories = (
         "program_success",
         "runtime_error",
@@ -120,16 +108,13 @@ def _summarize_results(results: list[dict[str, Any]]) -> dict[str, int]:
 class _SharedExecutionGate:
     """Start all benchmark workers against one wall-clock deadline."""
 
-    # Function role: Initializes the object and its validated dependencies.
-    # Context: method/helper owned by _SharedExecutionGate; it is reached through that object's workflow.
     def __init__(self, workers: int, budget_seconds: float):
-        # In-function documentation:
-        # Parameters:
-        #   - workers: the workers value used by this operation (type annotation: int).
-        #   - budget_seconds: the budget seconds value used by this operation (type annotation: float).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the operation result consumed by its caller.
-        # Flow: derive or store intermediate values.
+        # In simple terms: Sets up .
+        # What the inputs mean:
+        # - workers: the workers used for this step.
+        # - budget_seconds: the budget seconds used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         self.workers = workers
         self.budget_seconds = budget_seconds
         self.condition = threading.Condition()
@@ -138,28 +123,20 @@ class _SharedExecutionGate:
         self.deadline = None
         self.aborted = False
 
-    # Function role: Implements abort for batch execution using this module's input and result contracts.
-    # Context: method/helper owned by _SharedExecutionGate; it is reached through that object's workflow.
-    # Same-file callers: run_c_batch.
     def abort(self):
-        # In-function documentation:
-        # Parameters: none.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the operation result consumed by its caller.
-        # Flow: manage a scoped resource.
+        # In simple terms: Sets up this object with the information it needs.
+        # This function takes no named inputs.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         with self.condition:
             self.aborted = True
             self.condition.notify_all()
 
-    # Function role: Implements wait until all ready for batch execution using this module's input and result contracts.
-    # Context: method/helper owned by _SharedExecutionGate; it is reached through that object's workflow.
-    # Same-file callers: run_c_batch.
     def wait_until_all_ready(self):
-        # In-function documentation:
-        # Parameters: none.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: a tuple containing the operation results.
-        # Flow: manage a scoped resource.
+        # In simple terms: Helps with wait until all ready.
+        # This function takes no named inputs.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         with self.condition:
             self.ready += 1
             if self.ready == self.workers:
@@ -181,8 +158,6 @@ class _SharedExecutionGate:
             return self.started_at, self.deadline
 
 
-# Function role: Implements run c batch for batch execution using this module's input and result contracts.
-# Direct call references (conditional/branch-dependent): abort, wait_until_all_ready, _classify_benchmark_run, _summarize_results.
 def run_c_batch(
     source: str,
     inputs: list[str],
@@ -193,16 +168,15 @@ def run_c_batch(
     per_case_timeout_seconds: float | None = None,
 ) -> dict[str, Any]:
 
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - inputs: values supplied to the current parser or program (type annotation: list[str]).
-    #   - time_budget_seconds: the time budget seconds value used by this operation (type annotation: float | None).
-    #   - _shared_gate: the shared gate value used by this operation (type annotation: _SharedExecutionGate | None).
-    #   - stop_after_timeout: the stop after timeout value used by this operation (type annotation: bool).
-    #   - per_case_timeout_seconds: the per case timeout seconds value used by this operation (type annotation: float | None).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions.
+    # In simple terms: Runs c batch.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - inputs: the inputs used for this step.
+    # - time_budget_seconds: the shared time allowance for comparing the programs.
+    # - _shared_gate: the shared gate used for this step.
+    # - stop_after_timeout: the stop after timeout used for this step.
+    # - per_case_timeout_seconds: the per case timeout seconds used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(source, str) or not source.strip():
         return {"status": "invalid_request", "results": []}
 
@@ -437,8 +411,6 @@ def run_c_batch(
 
 
 
-# Function role: Prioritize one validated case per geometrically spaced workload size.
-# Same-file callers: benchmark_three_programs_parallel.
 def _adaptive_benchmark_case_order(
     generated_cases: list[dict[str, Any]],
     *,
@@ -450,12 +422,11 @@ def _adaptive_benchmark_case_order(
     set of additional low-size cases, before the upper probes and remaining
     cases. The brute-force worker may stop after an actual per-case timeout.
     """
-    # In-function documentation:
-    # Parameters:
-    #   - generated_cases: the generated cases value used by this operation (type annotation: list[dict[str, Any]]).
-    #   - max_ladder_points: the max ladder points value used by this operation (type annotation: int).
-    # Returns: a value of declared type tuple[list[int], list[int]].
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Chooses an order that tries small and medium inputs before spending time on the largest cases.
+    # What the inputs mean:
+    # - generated_cases: the test inputs produced for this run.
+    # - max_ladder_points: the max ladder points used for this step.
+    # What it gives back: It returns a small group of related values.
     sizes = [case["input_size"] for case in generated_cases]
     unique_sizes = sorted(set(sizes))
     if not unique_sizes:
@@ -529,9 +500,6 @@ def _adaptive_benchmark_case_order(
     return prioritized + remaining, ladder_sizes
 
 
-# Function role: Compile three programs, then execute them concurrently on one clock.
-# Numbered workflow order: 06.1 - same-case student/brute-force/efficient empirical comparison.
-# Direct call references (conditional/branch-dependent): _adaptive_benchmark_case_order.
 def benchmark_three_programs_parallel(
     student_source: str,
     brute_force_source: str,
@@ -541,15 +509,14 @@ def benchmark_three_programs_parallel(
     time_budget_seconds: float = 2.0,
 ) -> dict[str, Any]:
     """Compile three programs, then execute them concurrently on one clock."""
-    # In-function documentation:
-    # Parameters:
-    #   - student_source: the student program source used as the comparison candidate (type annotation: str).
-    #   - brute_force_source: the brute-force reference source used to check correctness (type annotation: str).
-    #   - efficient_source: the efficient reference source used to check correctness and performance (type annotation: str).
-    #   - generated_cases: the generated cases value used by this operation (type annotation: list[dict[str, Any]]).
-    #   - time_budget_seconds: the time budget seconds value used by this operation (type annotation: float).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Runs the student and both reference programs on the same inputs within one shared time limit.
+    # What the inputs mean:
+    # - student_source: the student’s C code.
+    # - brute_force_source: the slow reference C code used on small cases.
+    # - efficient_source: the faster reference C code.
+    # - generated_cases: the test inputs produced for this run.
+    # - time_budget_seconds: the shared time allowance for comparing the programs.
+    # What it gives back: It returns a set of named results for the next step.
     from concurrent.futures import ThreadPoolExecutor
 
     if not isinstance(generated_cases, list) or not 1 <= len(generated_cases) <= 200:

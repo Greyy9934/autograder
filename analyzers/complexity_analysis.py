@@ -1,5 +1,5 @@
 """AI-first algorithm complexity analysis with deterministic validation."""
-# Module role: Implements the complexity analysis subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles complexity analysis, one part of the AutoGrader’s workflow.
 
 from typing import Any
 
@@ -84,28 +84,21 @@ COMPLEXITY_ANALYSIS_SCHEMA = {
 }
 
 
-# Function role: Implements the internal nonempty text helper for complexity analysis.
-# Same-file callers: _validate_complexity_expression, _validate_response.
 def _nonempty_text(value: Any) -> bool:
-    # In-function documentation:
-    # Parameters:
-    #   - value: single value being parsed, validated, normalized, scored, or formatted (type annotation: Any).
-    # Returns: a value of declared type bool.
-    # Flow: return the stage result.
+    # In simple terms: Helps with nonempty text.
+    # What the inputs mean:
+    # - value: the particular value being checked or changed.
+    # What it gives back: It returns yes or no.
     return isinstance(value, str) and bool(value.strip())
 
 
-# Function role: Implements the internal validate complexity expression helper for complexity analysis.
-# Same-file callers: _validate_response.
-# Direct call references (conditional/branch-dependent): _nonempty_text.
 def _validate_complexity_expression(value: Any, field: str, errors: list[str]):
-    # In-function documentation:
-    # Parameters:
-    #   - value: single value being parsed, validated, normalized, scored, or formatted (type annotation: Any).
-    #   - field: declared input or mapping field (type annotation: str).
-    #   - errors: the errors value used by this operation (type annotation: list[str]).
-    # Returns: no value (None); work is performed through side effects or validation.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Helps with validate complexity expression.
+    # What the inputs mean:
+    # - value: the particular value being checked or changed.
+    # - field: one input value and its rules.
+    # - errors: the errors used for this step.
+    # What it gives back: It returns the result that the next step needs.
     if value is None:
         return
     if not _nonempty_text(value):
@@ -119,17 +112,13 @@ def _validate_complexity_expression(value: Any, field: str, errors: list[str]):
         )
 
 
-# Function role: Validate structure, complexity notation, and source-line references.
-# Same-file callers: analyze_complexity.
-# Direct call references (conditional/branch-dependent): _nonempty_text, _validate_complexity_expression.
 def _validate_response(response: Any, source: str) -> tuple[dict | None, list[str]]:
     """Validate structure, complexity notation, and source-line references."""
-    # In-function documentation:
-    # Parameters:
-    #   - response: structured provider or HTTP response being checked or converted (type annotation: Any).
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    # Returns: a value of declared type tuple[dict | None, list[str]].
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Validate structure, complexity notation, and source-line references.
+    # What the inputs mean:
+    # - response: the reply received from the AI service or web request.
+    # - source: the C code being checked.
+    # What it gives back: It returns a small group of related values.
     errors: list[str] = []
 
     if not isinstance(response, dict):
@@ -239,9 +228,6 @@ def _validate_response(response: Any, source: str) -> tuple[dict | None, list[st
     return response, []
 
 
-# Function role: Use AI as the primary analyst; static and empirical data are supporting evidence.
-# Numbered workflow order: 06.2a - Agent 4 complexity claim; parsed and evidence-checked afterwards.
-# Direct call references (conditional/branch-dependent): _validate_response.
 def analyze_complexity(
     source: str,
     provider: AIProvider,
@@ -251,15 +237,14 @@ def analyze_complexity(
     problem_context: dict | None = None,
 ) -> dict[str, Any]:
     """Use AI as the primary analyst; static and empirical data are supporting evidence."""
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - provider: the configured AI provider implementation used for one request (type annotation: AIProvider).
-    #   - static_analysis: the static analysis value used by this operation (type annotation: dict | None).
-    #   - benchmark: the benchmark value used by this operation (type annotation: dict | None).
-    #   - problem_context: the problem context value used by this operation (type annotation: dict | None).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions.
+    # In simple terms: Use AI as the primary analyst; static and empirical data are supporting evidence.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - provider: the selected AI service.
+    # - static_analysis: the static analysis used for this step.
+    # - benchmark: the benchmark used for this step.
+    # - problem_context: the problem context used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(source, str) or not source.strip():
         return {
             "status": "invalid_request",

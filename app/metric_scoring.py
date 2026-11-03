@@ -1,17 +1,14 @@
 """Derive normalized grading metrics only from validated evidence."""
-# Module role: Maps determinate execution and validated AI rubric evidence to normalized score dimensions.
+# In plain terms: This file turns test results and reviewed agent feedback into the score parts used by grading.
 
 from typing import Any
 
 
-# Function role: Implements the internal valid counts helper for metric scoring.
-# Same-file callers: _determinate_trials.
 def _valid_counts(report: Any) -> tuple[int, int] | None:
-    # In-function documentation:
-    # Parameters:
-    #   - report: the report value used by this operation (type annotation: Any).
-    # Returns: a value of declared type tuple[int, int] | None.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Helps with valid counts.
+    # What the inputs mean:
+    # - report: the report used for this step.
+    # What it gives back: It returns a small group of related values.
     if not isinstance(report, dict) or report.get("status") != "completed":
         return None
     passed, failed, inconclusive = report.get("passed"), report.get("failed"), report.get("inconclusive", 0)
@@ -23,16 +20,13 @@ def _valid_counts(report: Any) -> tuple[int, int] | None:
     return passed, failed
 
 
-# Function role: Extracts student-versus-reference trials while excluding timeouts and infrastructure uncertainty.
-# Same-file callers: _determinate_trials, _comparison_rate, derive_metric_scores.
 def _comparison_trials(report: Any, suite_name: str, input_cases: list[Any] | None = None) -> list[tuple[str, bool]]:
-    # In-function documentation:
-    # Parameters:
-    #   - report: the report value used by this operation (type annotation: Any).
-    #   - suite_name: the suite name value used by this operation (type annotation: str).
-    #   - input_cases: the input cases value used by this operation (type annotation: list[Any] | None); defaults to None when omitted.
-    # Returns: a value of declared type list[tuple[str, bool]]; alternate return paths may produce a list of collected or generated values.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values; iterate through input or evidence items.
+    # In simple terms: Helps with comparison trials.
+    # What the inputs mean:
+    # - report: the report used for this step.
+    # - suite_name: the suite name used for this step.
+    # - input_cases: the input cases used for this step.
+    # What it gives back: It returns a list of the items it found or made.
     if not isinstance(report, dict) or not isinstance(report.get("differential_comparisons"), list):
         return []
     trials = []
@@ -63,15 +57,11 @@ def _comparison_trials(report: Any, suite_name: str, input_cases: list[Any] | No
     return trials
 
 
-# Function role: Collects and deduplicates only evidence with a determinate pass/fail outcome.
-# Same-file callers: derive_metric_scores.
-# Direct call references (conditional/branch-dependent): _valid_counts, _comparison_trials.
 def _determinate_trials(evidence: dict[str, Any]) -> list[tuple[str, bool]]:
-    # In-function documentation:
-    # Parameters:
-    #   - evidence: validated execution or analysis facts used downstream (type annotation: dict[str, Any]).
-    # Returns: a value of declared type list[tuple[str, bool]].
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Helps with determinate trials.
+    # What the inputs mean:
+    # - evidence: the test and review results used to make a decision.
+    # What it gives back: It returns a list of the items it found or made.
     trials: list[tuple[str, bool]] = []
     tests = evidence.get("test_evaluation")
     if isinstance(tests, dict) and tests.get("status") == "completed":
@@ -102,28 +92,22 @@ def _determinate_trials(evidence: dict[str, Any]) -> list[tuple[str, bool]]:
     return [(key, next(iter(values))) for key, values in by_input.items() if len(values) == 1]
 
 
-# Function role: Computes a percentage from a non-empty collection of determinate trials.
-# Same-file callers: derive_metric_scores.
 def _score_trials(trials: list[tuple[str, bool]]) -> float | None:
-    # In-function documentation:
-    # Parameters:
-    #   - trials: the trials value used by this operation (type annotation: list[tuple[str, bool]]).
-    # Returns: a value of declared type float | None.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values; return the stage result.
+    # In simple terms: Helps with score trials.
+    # What the inputs mean:
+    # - trials: the trials used for this step.
+    # What it gives back: It returns the float | None result.
     if not trials:
         return None
     passed = sum(result for _, result in trials)
     return round(100.0 * passed / len(trials), 2)
 
 
-# Function role: Implements the internal comparison rate helper for metric scoring.
-# Direct call references (conditional/branch-dependent): _comparison_trials.
 def _comparison_rate(report: Any) -> tuple[int, int] | None:
-    # In-function documentation:
-    # Parameters:
-    #   - report: the report value used by this operation (type annotation: Any).
-    # Returns: a value of declared type tuple[int, int] | None.
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions; return the stage result.
+    # In simple terms: Works out the percent of usable cases that passed.
+    # What the inputs mean:
+    # - report: the report used for this step.
+    # What it gives back: It returns a small group of related values.
     trials = _comparison_trials(report, "edge")
     if not trials:
         return None
@@ -131,14 +115,11 @@ def _comparison_rate(report: Any) -> tuple[int, int] | None:
     return passed, len(trials) - passed
 
 
-# Function role: Accepts only an anchored integer rating with non-empty evidence and maps it onto the 0-100 scale.
-# Same-file callers: derive_metric_scores.
 def _rating_score(item: Any) -> float | None:
-    # In-function documentation:
-    # Parameters:
-    #   - item: the item value used by this operation (type annotation: Any).
-    # Returns: a value of declared type float | None.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Helps with rating score.
+    # What the inputs mean:
+    # - item: the item used for this step.
+    # What it gives back: It returns the float | None result.
     if not isinstance(item, dict):
         return None
     rating = item.get("rating")
@@ -150,16 +131,12 @@ def _rating_score(item: Any) -> float | None:
     return float(rating * 25)
 
 
-# Function role: Apply the published mappings; AI never supplies a numeric score directly.
-# Numbered workflow order: 07.1 - convert evidence to normalized rubric dimensions; AI never returns the final score.
-# Direct call references (conditional/branch-dependent): _score_trials, _determinate_trials, _comparison_trials, _rating_score.
 def derive_metric_scores(evidence: dict[str, Any]) -> dict[str, float | None]:
     """Apply the published mappings; AI never supplies a numeric score directly."""
-    # In-function documentation:
-    # Parameters:
-    #   - evidence: validated execution or analysis facts used downstream (type annotation: dict[str, Any]).
-    # Returns: a value of declared type dict[str, float | None].
-    # Flow: derive or store intermediate values.
+    # In simple terms: Turns test and review evidence into the individual score parts.
+    # What the inputs mean:
+    # - evidence: the test and review results used to make a decision.
+    # What it gives back: It returns a set of named results for the next step.
     scores: dict[str, float | None] = {
         "correctness": None, "edge_cases": None, "mathematical_correctness": None,
         "complexity": None, "readability": None, "modularity": None,

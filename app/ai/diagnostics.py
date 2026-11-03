@@ -1,5 +1,5 @@
 """Request-scoped diagnostic context shared by workflow and provider logs."""
-# Module role: Implements the diagnostics subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles diagnostics, one part of the AutoGrader’s workflow.
 
 from contextvars import ContextVar
 

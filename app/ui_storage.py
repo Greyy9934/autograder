@@ -3,8 +3,8 @@
 SQLite is retained only for local development and tests. Production refuses to use
 a local file and requires Neon through NEON_DATABASE_URL or DATABASE_URL.
 """
-# Module role: Persists transient UI state, session revocations, AI usage, and immutable grading snapshots in Neon PostgreSQL (SQLite for local development).
-# Core concept: Neon PostgreSQL is production persistence; SQLite is intentionally a local-development fallback. Grade snapshots use insert-on-conflict-do-nothing so concurrent first writers cannot silently replace a grade.
+# In plain terms: This file saves workflow data and grades. It uses Neon in production and a local database during development.
+# Why it matters: A saved grade snapshot keeps a later repeat from changing the first complete score. Neon is the shared production database; local SQLite is for development.
 
 import hmac
 import json
@@ -18,24 +18,18 @@ class UIStorageError(RuntimeError):
     """Raised when persistent UI storage is missing or unavailable."""
 
 
-# Function role: Implements the internal neon database url helper for ui storage.
-# Same-file callers: grading_snapshot_backend, _connect.
 def _neon_database_url() -> str | None:
-    # In-function documentation:
-    # Parameters: none.
-    # Returns: a value of declared type str | None.
-    # Flow: derive or store intermediate values; return the stage result.
+    # In simple terms: Helps with neon database url.
+    # This function takes no named inputs.
+    # What it gives back: It returns text or nothing if unavailable.
     value = os.getenv("NEON_DATABASE_URL", "").strip() or os.getenv("DATABASE_URL", "").strip()
     return value or None
 
 
-# Function role: Implements grading snapshot backend for ui storage using this module's input and result contracts.
-# Direct call references (conditional/branch-dependent): _neon_database_url.
 def grading_snapshot_backend() -> str:
-    # In-function documentation:
-    # Parameters: none.
-    # Returns: a value of declared type str.
-    # Flow: branch on validation or workflow conditions; return the stage result.
+    # In simple terms: Helps with grading snapshot backend.
+    # This function takes no named inputs.
+    # What it gives back: It returns text.
     if _neon_database_url():
         return "neon_postgresql"
     if os.getenv("APP_ENV", "").strip().lower() != "production":
@@ -43,13 +37,10 @@ def grading_snapshot_backend() -> str:
     return "unconfigured"
 
 
-# Function role: Implements the internal database path helper for ui storage.
-# Same-file callers: _connect.
 def _database_path() -> str:
-    # In-function documentation:
-    # Parameters: none.
-    # Returns: a value of declared type str.
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions; delegate work to a helper or external boundary.
+    # In simple terms: Helps with database path.
+    # This function takes no named inputs.
+    # What it gives back: It returns text.
     configured = os.getenv("AUTOGRADER_STATE_DB", "").strip()
     if not configured:
         configured = str(
@@ -63,92 +54,60 @@ def _database_path() -> str:
 class _Connection:
     """Small SQL compatibility wrapper for PostgreSQL and explicit local SQLite."""
 
-    # Function role: Initializes the object and its validated dependencies.
-    # Context: method/helper owned by _Connection; it is reached through that object's workflow.
     def __init__(self, raw, *, postgres: bool):
-        # In-function documentation:
-        # Parameters:
-        #   - raw: the raw value used by this operation.
-        #   - postgres: the postgres value used by this operation (type annotation: bool).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the operation result consumed by its caller.
-        # Flow: derive or store intermediate values.
+        # In simple terms: Sets up .
+        # What the inputs mean:
+        # - raw: the raw used for this step.
+        # - postgres: the postgres used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         self.raw = raw
         self.postgres = postgres
 
-    # Function role: Implements execute for ui storage using this module's input and result contracts.
-    # Context: method/helper owned by _Connection; it is reached through that object's workflow.
-    # Same-file callers: _connect, verify_storage, _initialize, revoke_session, is_session_revoked and other helpers.
-    # Direct call references (conditional/branch-dependent): execute.
     def execute(self, statement: str, parameters=()):
-        # In-function documentation:
-        # Parameters:
-        #   - statement: the statement value used by this operation (type annotation: str).
-        #   - parameters: the parameters value used by this operation; defaults to () when omitted.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the result produced by the delegated helper.
-        # Flow: branch on validation or workflow conditions; return the stage result.
+        # In simple terms: Sets up this object with the information it needs.
+        # What the inputs mean:
+        # - statement: the statement used for this step.
+        # - parameters: the named number values used in a formula.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         if self.postgres:
             statement = statement.replace("?", "%s")
         return self.raw.execute(statement, parameters)
 
-    # Function role: Implements commit for ui storage using this module's input and result contracts.
-    # Context: method/helper owned by _Connection; it is reached through that object's workflow.
-    # Same-file callers: verify_storage, _initialize, revoke_session, is_session_revoked, save_submission and other helpers.
-    # Direct call references (conditional/branch-dependent): commit.
     def commit(self):
-        # In-function documentation:
-        # Parameters: none.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the operation result consumed by its caller.
-        # Flow: delegate work to a helper or external boundary.
+        # In simple terms: Helps with commit.
+        # This function takes no named inputs.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         self.raw.commit()
 
-    # Function role: Implements rollback for ui storage using this module's input and result contracts.
-    # Context: method/helper owned by _Connection; it is reached through that object's workflow.
-    # Same-file callers: revoke_session, save_submission, clear_submissions, save_grading_metric_snapshot, reserve_ai_request_credits and other helpers.
-    # Direct call references (conditional/branch-dependent): rollback.
     def rollback(self):
-        # In-function documentation:
-        # Parameters: none.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the operation result consumed by its caller.
-        # Flow: delegate work to a helper or external boundary.
+        # In simple terms: Helps with rollback.
+        # This function takes no named inputs.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         self.raw.rollback()
 
-    # Function role: Implements close for ui storage using this module's input and result contracts.
-    # Context: method/helper owned by _Connection; it is reached through that object's workflow.
-    # Same-file callers: verify_storage, revoke_session, is_session_revoked, save_submission, clear_submissions and other helpers.
-    # Direct call references (conditional/branch-dependent): close.
     def close(self):
-        # In-function documentation:
-        # Parameters: none.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the operation result consumed by its caller.
-        # Flow: delegate work to a helper or external boundary.
+        # In simple terms: Helps with close.
+        # This function takes no named inputs.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         self.raw.close()
 
-    # Function role: Implements begin write for ui storage using this module's input and result contracts.
-    # Context: method/helper owned by _Connection; it is reached through that object's workflow.
-    # Same-file callers: revoke_session, save_submission, save_grading_metric_snapshot, reserve_ai_request_credits.
-    # Direct call references (conditional/branch-dependent): execute.
     def begin_write(self):
-        # In-function documentation:
-        # Parameters: none.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the operation result consumed by its caller.
-        # Flow: delegate work to a helper or external boundary.
+        # In simple terms: Closes the file, connection, or other resource when the work is done.
+        # This function takes no named inputs.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         self.execute("BEGIN" if self.postgres else "BEGIN IMMEDIATE")
 
 
-# Function role: Uses psycopg for Neon/PostgreSQL when a database URL is configured; local SQLite is allowed only outside production. Production fails closed rather than silently writing to ephemeral disk.
-# Same-file callers: verify_storage, revoke_session, is_session_revoked, save_submission, clear_submissions and other helpers.
-# Direct call references (conditional/branch-dependent): _neon_database_url, _database_path, execute.
 def _connect() -> _Connection:
-    # In-function documentation:
-    # Parameters: none.
-    # Returns: a value of declared type _Connection.
-    # Flow: derive or store intermediate values; convert expected failures into controlled results.
+    # In simple terms: Helps with connect.
+    # This function takes no named inputs.
+    # What it gives back: It returns the Connection result.
     database_url = _neon_database_url()
     try:
         if database_url:
@@ -168,14 +127,11 @@ def _connect() -> _Connection:
         raise UIStorageError("Persistent Postgres storage is unavailable.") from exc
 
 
-# Function role: Connect to the configured store and verify its schema/query path.
-# Direct call references (conditional/branch-dependent): _connect, _initialize, execute, commit, close.
 def verify_storage() -> None:
     """Connect to the configured store and verify its schema/query path."""
-    # In-function documentation:
-    # Parameters: none.
-    # Returns: no value (None); work is performed through side effects or validation.
-    # Flow: derive or store intermediate values; convert expected failures into controlled results.
+    # In simple terms: Connect to the configured store and verify its schema/query path.
+    # This function takes no named inputs.
+    # What it gives back: It does its work and does not return a value.
     connection = _connect()
     try:
         _initialize(connection)
@@ -191,15 +147,11 @@ def verify_storage() -> None:
         connection.close()
 
 
-# Function role: Creates required tables and indexes idempotently before storage operations.
-# Same-file callers: verify_storage, revoke_session, is_session_revoked, save_submission, clear_submissions and other helpers.
-# Direct call references (conditional/branch-dependent): execute, commit.
 def _initialize(connection: _Connection) -> None:
-    # In-function documentation:
-    # Parameters:
-    #   - connection: the connection value used by this operation (type annotation: _Connection).
-    # Returns: no value (None); work is performed through side effects or validation.
-    # Flow: delegate work to a helper or external boundary.
+    # In simple terms: Helps with initialize.
+    # What the inputs mean:
+    # - connection: the connection used for this step.
+    # What it gives back: It does its work and does not return a value.
     connection.execute("""
         CREATE TABLE IF NOT EXISTS ui_submissions (
             submission_id TEXT PRIMARY KEY,
@@ -249,15 +201,12 @@ def _initialize(connection: _Connection) -> None:
     connection.commit()
 
 
-# Function role: Implements revoke session for ui storage using this module's input and result contracts.
-# Direct call references (conditional/branch-dependent): _connect, _initialize, begin_write, execute, commit, rollback, close.
 def revoke_session(token_digest: str, ttl_seconds: int = 1800) -> None:
-    # In-function documentation:
-    # Parameters:
-    #   - token_digest: the token digest value used by this operation (type annotation: str).
-    #   - ttl_seconds: the ttl seconds value used by this operation (type annotation: int); defaults to 1800 when omitted.
-    # Returns: no value (None); work is performed through side effects or validation.
-    # Flow: derive or store intermediate values; convert expected failures into controlled results.
+    # In simple terms: Revokes session.
+    # What the inputs mean:
+    # - token_digest: the token digest used for this step.
+    # - ttl_seconds: the ttl seconds used for this step.
+    # What it gives back: It does its work and does not return a value.
     now = time.time()
     connection = _connect()
     try:
@@ -279,14 +228,11 @@ def revoke_session(token_digest: str, ttl_seconds: int = 1800) -> None:
         connection.close()
 
 
-# Function role: Returns whether session revoked holds under this module's rules.
-# Direct call references (conditional/branch-dependent): _connect, _initialize, execute, commit, close.
 def is_session_revoked(token_digest: str) -> bool:
-    # In-function documentation:
-    # Parameters:
-    #   - token_digest: the token digest value used by this operation (type annotation: str).
-    # Returns: a value of declared type bool.
-    # Flow: derive or store intermediate values; convert expected failures into controlled results.
+    # In simple terms: Checks whether session revoked.
+    # What the inputs mean:
+    # - token_digest: the token digest used for this step.
+    # What it gives back: It returns yes or no.
     connection = _connect()
     try:
         _initialize(connection)
@@ -312,8 +258,6 @@ def is_session_revoked(token_digest: str) -> bool:
         connection.close()
 
 
-# Function role: Persists submission through the module's storage boundary.
-# Direct call references (conditional/branch-dependent): _connect, _initialize, begin_write, execute, commit, rollback, close.
 def save_submission(
     submission_id: str,
     session_id: str,
@@ -321,15 +265,14 @@ def save_submission(
     ttl_seconds: int = 1800,
     max_records: int = 100,
 ) -> None:
-    # In-function documentation:
-    # Parameters:
-    #   - submission_id: stable identifier for this submission/evaluation record (type annotation: str).
-    #   - session_id: authenticated session identifier that owns this workflow state (type annotation: str).
-    #   - record: the record value used by this operation (type annotation: dict).
-    #   - ttl_seconds: the ttl seconds value used by this operation (type annotation: int); defaults to 1800 when omitted.
-    #   - max_records: the max records value used by this operation (type annotation: int); defaults to 100 when omitted.
-    # Returns: no value (None); work is performed through side effects or validation.
-    # Flow: derive or store intermediate values; convert expected failures into controlled results.
+    # In simple terms: Saves submission.
+    # What the inputs mean:
+    # - submission_id: the identifier for this submission.
+    # - session_id: the instructor session that owns this submission.
+    # - record: the record used for this step.
+    # - ttl_seconds: the ttl seconds used for this step.
+    # - max_records: the max records used for this step.
+    # What it gives back: It does its work and does not return a value.
     now = time.time()
     stored = {
         **record,
@@ -374,14 +317,11 @@ def save_submission(
         connection.close()
 
 
-# Function role: Clears submissions from the relevant state container.
-# Direct call references (conditional/branch-dependent): _connect, _initialize, execute, commit, rollback, close.
 def clear_submissions(session_id: str) -> None:
-    # In-function documentation:
-    # Parameters:
-    #   - session_id: authenticated session identifier that owns this workflow state (type annotation: str).
-    # Returns: no value (None); work is performed through side effects or validation.
-    # Flow: derive or store intermediate values; convert expected failures into controlled results.
+    # In simple terms: Clears submissions.
+    # What the inputs mean:
+    # - session_id: the instructor session that owns this submission.
+    # What it gives back: It does its work and does not return a value.
     connection = _connect()
     try:
         _initialize(connection)
@@ -396,15 +336,12 @@ def clear_submissions(session_id: str) -> None:
         connection.close()
 
 
-# Function role: Retrieves submission from the validated workflow or configured storage.
-# Direct call references (conditional/branch-dependent): _connect, _initialize, execute, commit, close.
 def get_submission(session_id: str, submission_id: str) -> dict | None:
-    # In-function documentation:
-    # Parameters:
-    #   - session_id: authenticated session identifier that owns this workflow state (type annotation: str).
-    #   - submission_id: stable identifier for this submission/evaluation record (type annotation: str).
-    # Returns: a value of declared type dict | None.
-    # Flow: derive or store intermediate values; convert expected failures into controlled results.
+    # In simple terms: Gets submission.
+    # What the inputs mean:
+    # - session_id: the instructor session that owns this submission.
+    # - submission_id: the identifier for this submission.
+    # What it gives back: It returns the dict | None result.
     now = time.time()
     connection = _connect()
     try:
@@ -431,15 +368,12 @@ def get_submission(session_id: str, submission_id: str) -> dict | None:
         connection.close()
 
 
-# Function role: Return the immutable complete metric snapshot for a stable evaluation key.
-# Direct call references (conditional/branch-dependent): _connect, _initialize, execute, close.
 def get_grading_metric_snapshot(snapshot_key: str) -> dict | None:
     """Return the immutable complete metric snapshot for a stable evaluation key."""
-    # In-function documentation:
-    # Parameters:
-    #   - snapshot_key: the snapshot key value used by this operation (type annotation: str).
-    # Returns: a value of declared type dict | None.
-    # Flow: derive or store intermediate values; convert expected failures into controlled results.
+    # In simple terms: Return the immutable complete metric snapshot for a stable evaluation key.
+    # What the inputs mean:
+    # - snapshot_key: the identity used to find a saved grade.
+    # What it gives back: It returns the dict | None result.
     connection = _connect()
     try:
         _initialize(connection)
@@ -458,17 +392,13 @@ def get_grading_metric_snapshot(snapshot_key: str) -> dict | None:
         connection.close()
 
 
-# Function role: Uses insert-on-conflict-do-nothing so concurrent workers preserve the first complete grade vector; that first-writer-wins rule is the reproducibility anchor.
-# Numbered workflow order: 07.3 - persist the first complete metric vector for the stable evaluation identity.
-# Direct call references (conditional/branch-dependent): _connect, _initialize, begin_write, execute, commit, rollback, close.
 def save_grading_metric_snapshot(snapshot_key: str, scores: dict) -> dict:
     """Persist the first complete metric snapshot; concurrent first writer wins."""
-    # In-function documentation:
-    # Parameters:
-    #   - snapshot_key: the snapshot key value used by this operation (type annotation: str).
-    #   - scores: mapping of grading dimensions to normalized scores (type annotation: dict).
-    # Returns: a value of declared type dict.
-    # Flow: convert expected failures into controlled results; derive or store intermediate values.
+    # In simple terms: Saves the first complete set of scores so a repeat can reuse it.
+    # What the inputs mean:
+    # - snapshot_key: the identity used to find a saved grade.
+    # - scores: the complete set of scores to save.
+    # What it gives back: It returns the dict result.
     try:
         encoded = json.dumps(scores, sort_keys=True, separators=(",", ":"), allow_nan=False)
     except (TypeError, ValueError) as exc:
@@ -508,16 +438,13 @@ def save_grading_metric_snapshot(snapshot_key: str, scores: dict) -> dict:
         connection.close()
 
 
-# Function role: Atomically reserve shared daily AI credits; None means the cap is reached.
-# Direct call references (conditional/branch-dependent): _connect, _initialize, begin_write, execute, rollback, commit, close.
 def reserve_ai_request_credits(credits: int, daily_limit: int) -> int | None:
     """Atomically reserve shared daily AI credits; None means the cap is reached."""
-    # In-function documentation:
-    # Parameters:
-    #   - credits: the credits value used by this operation (type annotation: int).
-    #   - daily_limit: the daily limit value used by this operation (type annotation: int).
-    # Returns: a value of declared type int | None.
-    # Flow: iterate through input or evidence items; derive or store intermediate values; convert expected failures into controlled results.
+    # In simple terms: Atomically reserve shared daily AI credits; None means the cap is reached.
+    # What the inputs mean:
+    # - credits: the credits used for this step.
+    # - daily_limit: the daily limit used for this step.
+    # What it gives back: It returns the int | None result.
     for name, value in (("credits", credits), ("daily_limit", daily_limit)):
         if isinstance(value, bool) or not isinstance(value, int) or value < 1:
             raise ValueError(f"{name} must be a positive integer.")
@@ -556,21 +483,18 @@ def reserve_ai_request_credits(credits: int, daily_limit: int) -> int | None:
         connection.close()
 
 
-# Function role: Add provider-reported token totals to today's shared usage row.
-# Direct call references (conditional/branch-dependent): _connect, _initialize, execute, commit, rollback, close.
 def record_ai_token_usage(
     prompt_tokens: int,
     completion_tokens: int,
     total_tokens: int,
 ) -> None:
     """Add provider-reported token totals to today's shared usage row."""
-    # In-function documentation:
-    # Parameters:
-    #   - prompt_tokens: the prompt tokens value used by this operation (type annotation: int).
-    #   - completion_tokens: the completion tokens value used by this operation (type annotation: int).
-    #   - total_tokens: the total tokens value used by this operation (type annotation: int).
-    # Returns: no value (None); work is performed through side effects or validation.
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Add provider-reported token totals to today's shared usage row.
+    # What the inputs mean:
+    # - prompt_tokens: the prompt tokens used for this step.
+    # - completion_tokens: the completion tokens used for this step.
+    # - total_tokens: the total tokens used for this step.
+    # What it gives back: It does its work and does not return a value.
     values = (prompt_tokens, completion_tokens, total_tokens)
     if any(isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in values):
         raise ValueError("Provider token usage must contain non-negative integers.")
@@ -597,15 +521,12 @@ def record_ai_token_usage(
         connection.close()
 
 
-# Function role: Read aggregate AI request and token usage for a UTC date (today by default).
-# Direct call references (conditional/branch-dependent): _connect, _initialize, execute, close.
 def get_ai_request_usage(usage_date: str | None = None) -> dict | None:
     """Read aggregate AI request and token usage for a UTC date (today by default)."""
-    # In-function documentation:
-    # Parameters:
-    #   - usage_date: the usage date value used by this operation (type annotation: str | None); defaults to None when omitted.
-    # Returns: a value of declared type dict | None.
-    # Flow: derive or store intermediate values; convert expected failures into controlled results.
+    # In simple terms: Read aggregate AI request and token usage for a UTC date (today by default).
+    # What the inputs mean:
+    # - usage_date: the usage date used for this step.
+    # What it gives back: It returns the dict | None result.
     from datetime import datetime, timezone
 
     date = usage_date or datetime.now(timezone.utc).date().isoformat()

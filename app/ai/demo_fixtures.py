@@ -3,7 +3,7 @@
 These examples are synthetic. They never inspect submissions, invoke an AI
 provider, compile code, or execute programs.
 """
-# Module role: Implements the demo fixtures subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles demo fixtures, one part of the AutoGrader’s workflow.
 from copy import deepcopy
 from random import SystemRandom
 
@@ -126,13 +126,11 @@ _FIXTURES = {
 }
 
 
-# Function role: Return independent random fixtures; never accepts user input.
 def build_demo_payload():
     """Return independent random fixtures; never accepts user input."""
-    # In-function documentation:
-    # Parameters: none.
-    # Returns: a structured mapping assembled for the caller.
-    # Flow: derive or store intermediate values; return the stage result.
+    # In simple terms: Return independent random fixtures; never accepts user input.
+    # This function takes no named inputs.
+    # What it gives back: It returns the result that the next step needs.
     selected = {
         agent: deepcopy(_rng.choice(variants))
         for agent, variants in _FIXTURES.items()

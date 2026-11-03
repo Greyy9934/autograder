@@ -1,5 +1,5 @@
 """General mathematical engine for Agent 4 complexity graphs."""
-# Module role: Implements the   init   subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles init, one part of the AutoGrader’s workflow.
 
 from .models import ExpressionLimits, ParsedExpression, ParseResult
 from .parser import parse_complexity_expression

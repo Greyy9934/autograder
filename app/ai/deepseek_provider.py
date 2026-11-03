@@ -1,5 +1,5 @@
 """DeepSeek provider using its OpenAI-compatible chat completions API."""
-# Module role: Calls DeepSeek's OpenAI-compatible JSON endpoint and turns provider errors, truncation, and usage into stable application results.
+# In plain terms: This file sends requests to DeepSeek and turns its replies and errors into results the app can handle.
 
 import json
 import os
@@ -20,8 +20,6 @@ from jsonschema import Draft202012Validator, SchemaError, ValidationError
 
 
 class DeepSeekProvider:
-    # Function role: Initializes the object and its validated dependencies.
-    # Context: method/helper owned by DeepSeekProvider; it is reached through that object's workflow.
     def __init__(
         self,
         api_key: str,
@@ -35,20 +33,19 @@ class DeepSeekProvider:
         sleep=time.sleep,
         max_response_bytes: int = 1048576,
     ):
-        # In-function documentation:
-        # Parameters:
-        #   - api_key: the api key value used by this operation (type annotation: str).
-        #   - model: AI model identifier selected by configuration (type annotation: str); defaults to 'deepseek-flash' when omitted.
-        #   - endpoint: the endpoint value used by this operation (type annotation: str).
-        #   - timeout: maximum wall-clock duration allowed for this operation (type annotation: float).
-        #   - max_retries: the max retries value used by this operation (type annotation: int).
-        #   - max_tokens: maximum output tokens requested for this provider task (type annotation: int).
-        #   - opener: the opener value used by this operation.
-        #   - sleep: the sleep value used by this operation.
-        #   - max_response_bytes: the max response bytes value used by this operation (type annotation: int).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the operation result consumed by its caller.
-        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+        # In simple terms: Sets up .
+        # What the inputs mean:
+        # - api_key: the private key used to contact the AI service.
+        # - model: the AI model selected in settings.
+        # - endpoint: the endpoint used for this step.
+        # - timeout: how long the operation may run before it is stopped.
+        # - max_retries: the max retries used for this step.
+        # - max_tokens: the max tokens used for this step.
+        # - opener: the opener used for this step.
+        # - sleep: the sleep used for this step.
+        # - max_response_bytes: the max response bytes used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         if not api_key.strip():
             raise ValueError("DeepSeek API key must not be empty.")
         if not model.strip():
@@ -93,23 +90,19 @@ class DeepSeekProvider:
         self.opener = opener
         self.sleep = sleep
 
-    # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
-    # Context: method/helper owned by DeepSeekProvider; it is reached through that object's workflow.
-    # Direct call references (conditional/branch-dependent): _extract_usage, _extract_finish_reason, _parse_response.
     def generate_json(
         self,
         task: str,
         payload: dict[str, Any],
         schema: dict[str, Any],
     ) -> dict[str, Any]:
-        # In-function documentation:
-        # Parameters:
-        #   - task: the task value used by this operation (type annotation: str).
-        #   - payload: the request data being sent across an API/provider boundary (type annotation: dict[str, Any]).
-        #   - schema: declared data contract inputs or results must satisfy (type annotation: dict[str, Any]).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: a value of declared type dict[str, Any].
-        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+        # In simple terms: Creates json.
+        # What the inputs mean:
+        # - task: the task used for this step.
+        # - payload: the information being sent to an AI service.
+        # - schema: the schema used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns a set of named results for the next step.
         if not isinstance(task, str) or not task.strip():
             raise AIProviderError("Task must not be empty.", category="invalid_request")
         task_cap = output_token_cap_for_task(task)
@@ -236,16 +229,12 @@ class DeepSeekProvider:
             category="provider_error",
         )
 
-    # Function role: Implements the internal extract usage helper for deepseek provider.
-    # Context: method/helper owned by DeepSeekProvider; it is reached through that object's workflow.
-    # Same-file callers: generate_json.
     @staticmethod
     def _extract_usage(raw: bytes) -> dict[str, int] | None:
-        # In-function documentation:
-        # Parameters:
-        #   - raw: the raw value used by this operation (type annotation: bytes).
-        # Returns: a value of declared type dict[str, int] | None.
-        # Flow: convert expected failures into controlled results; branch on validation or workflow conditions; derive or store intermediate values.
+        # In simple terms: Helps with extract usage.
+        # What the inputs mean:
+        # - raw: the raw used for this step.
+        # What it gives back: It returns a set of named results for the next step.
         try:
             envelope = json.loads(raw.decode("utf-8"))
             raw_usage = envelope.get("usage")
@@ -273,16 +262,12 @@ class DeepSeekProvider:
         )
         return usage
 
-    # Function role: Implements the internal extract finish reason helper for deepseek provider.
-    # Context: method/helper owned by DeepSeekProvider; it is reached through that object's workflow.
-    # Same-file callers: generate_json.
     @staticmethod
     def _extract_finish_reason(raw: bytes) -> str | None:
-        # In-function documentation:
-        # Parameters:
-        #   - raw: the raw value used by this operation (type annotation: bytes).
-        # Returns: a value of declared type str | None.
-        # Flow: convert expected failures into controlled results; return the stage result.
+        # In simple terms: Helps with extract finish reason.
+        # What the inputs mean:
+        # - raw: the raw used for this step.
+        # What it gives back: It returns text or nothing if unavailable.
         try:
             envelope = json.loads(raw.decode("utf-8"))
             choice = envelope["choices"][0]
@@ -291,16 +276,12 @@ class DeepSeekProvider:
             return None
         return value if isinstance(value, str) else None
 
-    # Function role: Checks DeepSeek's response envelope and finish_reason before parsing JSON; finish_reason=length becomes an explicit truncation error instead of a partial result entering grading.
-    # Context: method/helper owned by DeepSeekProvider; it is reached through that object's workflow.
-    # Same-file callers: generate_json.
     @staticmethod
     def _parse_response(raw: bytes) -> tuple[dict[str, Any], dict[str, int] | None]:
-        # In-function documentation:
-        # Parameters:
-        #   - raw: the raw value used by this operation (type annotation: bytes).
-        # Returns: a value of declared type tuple[dict[str, Any], dict[str, int] | None].
-        # Flow: convert expected failures into controlled results; branch on validation or workflow conditions.
+        # In simple terms: Helps with parse response.
+        # What the inputs mean:
+        # - raw: the raw used for this step.
+        # What it gives back: It returns a small group of related values.
         try:
             envelope = json.loads(raw.decode("utf-8"))
             choice = envelope["choices"][0]

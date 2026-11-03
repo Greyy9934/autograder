@@ -1,5 +1,5 @@
 """Per-agent DeepSeek completion budgets for one standard grading workflow."""
-# Module role: Defines per-task completion ceilings and reasoning settings; ceilings are maxima, not token reservations.
+# In plain terms: This file sets a reasonable maximum answer size for each agent. The limits are ceilings, not a bill or a promise to use every token.
 
 from types import MappingProxyType
 
@@ -51,14 +51,12 @@ if any(
     raise RuntimeError("An agent output cap is outside the provider limit.")
 
 
-# Function role: Return the deliberately selected DeepSeek reasoning mode for a task.
 def reasoning_effort_for_task(task: str) -> str:
     """Return the deliberately selected DeepSeek reasoning mode for a task."""
-    # In-function documentation:
-    # Parameters:
-    #   - task: the task value used by this operation (type annotation: str).
-    # Returns: a value of declared type str.
-    # Flow: convert expected failures into controlled results.
+    # In simple terms: Return the deliberately selected DeepSeek reasoning mode for a task.
+    # What the inputs mean:
+    # - task: the task used for this step.
+    # What it gives back: It returns text.
     try:
         return TASK_REASONING_EFFORT[task]
     except (KeyError, TypeError) as exc:
@@ -68,14 +66,12 @@ def reasoning_effort_for_task(task: str) -> str:
         ) from exc
 
 
-# Function role: Return the cap for a known task; reject unmapped calls rather than guess.
 def output_token_cap_for_task(task: str) -> int:
     """Return the cap for a known task; reject unmapped calls rather than guess."""
-    # In-function documentation:
-    # Parameters:
-    #   - task: the task value used by this operation (type annotation: str).
-    # Returns: a value of declared type int.
-    # Flow: convert expected failures into controlled results.
+    # In simple terms: Return the cap for a known task; reject unmapped calls rather than guess.
+    # What the inputs mean:
+    # - task: the task used for this step.
+    # What it gives back: It returns the int result.
     try:
         return AGENT_OUTPUT_TOKEN_CAPS[task]
     except (KeyError, TypeError) as exc:

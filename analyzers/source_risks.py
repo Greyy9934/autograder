@@ -1,5 +1,5 @@
 """Targeted, cautious C source-risk checks and structural counts."""
-# Module role: Implements the source risks subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles source risks, one part of the AutoGrader’s workflow.
 
 import re
 from typing import Any
@@ -12,15 +12,12 @@ from analyzers.complexity_estimator import (
 )
 
 
-# Function role: Report actionable source patterns; ordinary constructs are not alarms.
-# Direct call references (conditional/branch-dependent): add.
 def analyze_source_risks(source: str) -> dict[str, Any]:
     """Report actionable source patterns; ordinary constructs are not alarms."""
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Report actionable source patterns; ordinary constructs are not alarms.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(source, str) or not source.strip():
         return {"status": "invalid_request", "findings": [], "count": 0, "metrics": {}}
 
@@ -29,18 +26,14 @@ def analyze_source_risks(source: str) -> dict[str, Any]:
     masked_lines = masked.splitlines()
     findings: list[dict[str, Any]] = []
 
-    # Function role: Adds one validated finding/case/issue to the result being assembled by analyze_source_risks.
-    # Context: method/helper owned by analyze_source_risks; it is reached through that object's workflow.
-    # Same-file callers: analyze_source_risks.
     def add(rule_id: str, line: int, severity: str, message: str) -> None:
-        # In-function documentation:
-        # Parameters:
-        #   - rule_id: the rule id value used by this operation (type annotation: str).
-        #   - line: source line associated with the current finding (type annotation: int).
-        #   - severity: classification level assigned to the finding (type annotation: str).
-        #   - message: the message value used by this operation (type annotation: str).
-        # Returns: no value (None); work is performed through side effects or validation.
-        # Flow: derive or store intermediate values; delegate work to a helper or external boundary.
+        # In simple terms: Helps with add.
+        # What the inputs mean:
+        # - rule_id: the rule id used for this step.
+        # - line: the line used for this step.
+        # - severity: the severity used for this step.
+        # - message: the message used for this step.
+        # What it gives back: It does its work and does not return a value.
         evidence = original_lines[line - 1].strip()[:240] if 0 < line <= len(original_lines) else ""
         findings.append({
             "rule_id": rule_id,

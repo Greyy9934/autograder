@@ -1,6 +1,6 @@
 """Pinned, task-routed AI responses for the authenticated Demo workflow."""
 from __future__ import annotations
-# Module role: Implements the demo scenarios subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles demo scenarios, one part of the AutoGrader’s workflow.
 
 from copy import deepcopy
 import secrets
@@ -125,16 +125,14 @@ for i in range(count):
 print(json.dumps({"inputs":cases}))'''
 
 
-# Function role: Implements the internal edge helper for demo scenarios.
 def _edge(name: str, text: str, expected: str, rationale: str) -> dict[str, Any]:
-    # In-function documentation:
-    # Parameters:
-    #   - name: the name value used by this operation (type annotation: str).
-    #   - text: source or display text being parsed or rendered (type annotation: str).
-    #   - expected: reference output expected for the current case (type annotation: str).
-    #   - rationale: the rationale value used by this operation (type annotation: str).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: return the stage result.
+    # In simple terms: Helps with edge.
+    # What the inputs mean:
+    # - name: the name used to identify this item.
+    # - text: the text being parsed or shown.
+    # - expected: the expected answer.
+    # - rationale: the rationale used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     return {"name": name, "input": text, "expected_output": expected + "\n",
             "target": ["student", "brute_force", "efficient"], "rationale": rationale,
             "failure_hypothesis": "Exercise this contract boundary; actual execution determines the outcome.",
@@ -172,37 +170,33 @@ SUBSET_EDGES = [
 ]
 
 
-# Function role: Implements the internal refs helper for demo scenarios.
 def _refs(alg: str, code: str, time: str, space: str) -> dict[str, str]:
-    # In-function documentation:
-    # Parameters:
-    #   - alg: the alg value used by this operation (type annotation: str).
-    #   - code: the code value used by this operation (type annotation: str).
-    #   - time: the time value used by this operation (type annotation: str).
-    #   - space: the space value used by this operation (type annotation: str).
-    # Returns: a value of declared type dict[str, str].
-    # Flow: return the stage result.
+    # In simple terms: Helps with refs.
+    # What the inputs mean:
+    # - alg: the alg used for this step.
+    # - code: the code used for this step.
+    # - time: the time used for this step.
+    # - space: the space used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     return {"algorithm": alg, "code": code, "time_complexity": time, "space_complexity": space}
 
 
-# Function role: Implements the internal agent4 helper for demo scenarios.
 def _agent4(name: str, desc: str, model: str, best: str, avg: str, worst: str,
             aux: str, total: str, derivation: str, line: int) -> dict[str, Any]:
     # The scenario-specific source is available through the associated reference.
-    # In-function documentation:
-    # Parameters:
-    #   - name: the name value used by this operation (type annotation: str).
-    #   - desc: the desc value used by this operation (type annotation: str).
-    #   - model: AI model identifier selected by configuration (type annotation: str).
-    #   - best: the best value used by this operation (type annotation: str).
-    #   - avg: the avg value used by this operation (type annotation: str).
-    #   - worst: the worst value used by this operation (type annotation: str).
-    #   - aux: the aux value used by this operation (type annotation: str).
-    #   - total: the total value used by this operation (type annotation: str).
-    #   - derivation: the derivation value used by this operation (type annotation: str).
-    #   - line: source line associated with the current finding (type annotation: int).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: derive or store intermediate values; return the stage result.
+    # In simple terms: Helps with agent4.
+    # What the inputs mean:
+    # - name: the name used to identify this item.
+    # - desc: the desc used for this step.
+    # - model: the AI model selected in settings.
+    # - best: the best used for this step.
+    # - avg: the avg used for this step.
+    # - worst: the worst used for this step.
+    # - aux: the aux used for this step.
+    # - total: the total used for this step.
+    # - derivation: the derivation used for this step.
+    # - line: the line used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     quote_line, quote = line, ""
     return {"status": "analyzed", "algorithm": {"name": name, "description": desc, "input_size_model": model},
             "time_complexity": {"best_case": best, "average_case": avg, "worst_case": worst, "derivation": derivation},
@@ -213,15 +207,13 @@ def _agent4(name: str, desc: str, model: str, best: str, avg: str, worst: str,
             "limitations": ["Predefined simulated analysis; timings come from the real benchmark."], "unresolved_questions": []}
 
 
-# Function role: Implements the internal proof helper for demo scenarios.
 def _proof(theorem: str, strategy: str, steps: list[dict[str, str]]) -> dict[str, Any]:
-    # In-function documentation:
-    # Parameters:
-    #   - theorem: the theorem value used by this operation (type annotation: str).
-    #   - strategy: the strategy value used by this operation (type annotation: str).
-    #   - steps: the steps value used by this operation (type annotation: list[dict[str, str]]).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: return the stage result.
+    # In simple terms: Helps with proof.
+    # What the inputs mean:
+    # - theorem: the theorem used for this step.
+    # - strategy: the strategy used for this step.
+    # - steps: the steps used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     return {"outcome": "proof_sketch", "theorem": theorem,
             "preconditions": ["Inputs satisfy the scenario's stated bounds and contract."],
             "postconditions": ["Output matches the scenario's specified behavior."],
@@ -230,28 +222,24 @@ def _proof(theorem: str, strategy: str, steps: list[dict[str, str]]) -> dict[str
             "counterexample": None, "limitations": ["Predefined simulated proof sketch; not mechanically checked."]}
 
 
-# Function role: Implements the internal step helper for demo scenarios.
 def _step(claim: str, justification: str, equation: str) -> dict[str, str]:
-    # In-function documentation:
-    # Parameters:
-    #   - claim: the claim value used by this operation (type annotation: str).
-    #   - justification: the justification value used by this operation (type annotation: str).
-    #   - equation: the equation value used by this operation (type annotation: str).
-    # Returns: a value of declared type dict[str, str].
-    # Flow: return the stage result.
+    # In simple terms: Helps with step.
+    # What the inputs mean:
+    # - claim: the claim used for this step.
+    # - justification: the justification used for this step.
+    # - equation: the equation used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     return {"claim": claim, "justification": justification, "equation": equation}
 
 
-# Function role: Implements the internal quality helper for demo scenarios.
 def _quality(summary: str, strengths: list[str], source: str, ratings: tuple[int, int, int] = (3, 3, 3)) -> dict[str, Any]:
-    # In-function documentation:
-    # Parameters:
-    #   - summary: the summary value used by this operation (type annotation: str).
-    #   - strengths: the strengths value used by this operation (type annotation: list[str]).
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - ratings: the ratings value used by this operation (type annotation: tuple[int, int, int]); defaults to (3, 3, 3) when omitted.
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: derive or store intermediate values.
+    # In simple terms: Helps with quality.
+    # What the inputs mean:
+    # - summary: the summary used for this step.
+    # - strengths: the strengths used for this step.
+    # - source: the C code being checked.
+    # - ratings: the ratings used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     lines = source.splitlines() or [""]
     chosen = {
         "readability": next((i for i, text in enumerate(lines, 1) if "printf" in text or "scanf" in text), 1),
@@ -495,13 +483,11 @@ for i in range(count):
  cases.append({"input_size":n,"input":text,"distribution":"seeded_small_medium_complete_graph" if i < medium_end else "sparse_upper_growth_probe"})
 print(json.dumps({"inputs":cases}))'''
 
-# Function role: Implements the internal tsp input helper for demo scenarios.
 def _tsp_input(matrix: list[list[int]]) -> str:
-    # In-function documentation:
-    # Parameters:
-    #   - matrix: the matrix value used by this operation (type annotation: list[list[int]]).
-    # Returns: a value of declared type str.
-    # Flow: derive or store intermediate values; return the stage result.
+    # In simple terms: Helps with tsp input.
+    # What the inputs mean:
+    # - matrix: the matrix used for this step.
+    # What it gives back: It returns text.
     n = len(matrix)
     flat = " ".join(str(value) for row in matrix for value in row)
     return f"{n} {n*n}" + chr(10) + flat + chr(10)
@@ -538,13 +524,11 @@ TSP = {
     },
 }
 
-# Function role: Implements the internal bind complexity rubric evidence helper for demo scenarios.
 def _bind_complexity_rubric_evidence(scenario: dict[str, Any]) -> None:
-    # In-function documentation:
-    # Parameters:
-    #   - scenario: the scenario value used by this operation (type annotation: dict[str, Any]).
-    # Returns: no value (None); work is performed through side effects or validation.
-    # Flow: derive or store intermediate values.
+    # In simple terms: Helps with bind complexity rubric evidence.
+    # What the inputs mean:
+    # - scenario: the scenario used for this step.
+    # What it gives back: It does its work and does not return a value.
     response = scenario["agent_responses"]["agent4"]
     lines = scenario["student"].splitlines()
     line = next((i for i, text in enumerate(lines, 1) if "for (" in text or "while (" in text or "search(" in text or "dp[" in text), 1)
@@ -573,40 +557,32 @@ TASK_TO_AGENT = {
 }
 
 
-# Function role: Retrieves demo scenario from the validated workflow or configured storage.
-# Same-file callers: select_demo_scenario.
 def get_demo_scenario(scenario_id: str) -> dict[str, Any]:
-    # In-function documentation:
-    # Parameters:
-    #   - scenario_id: the scenario id value used by this operation (type annotation: str).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: convert expected failures into controlled results.
+    # In simple terms: Gets demo scenario.
+    # What the inputs mean:
+    # - scenario_id: the scenario id used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     try:
         return deepcopy(DEMO_SCENARIOS[scenario_id])
     except (KeyError, TypeError) as exc:
         raise ValueError(f"Unknown Demo scenario: {scenario_id!r}") from exc
 
 
-# Function role: Pin a requested scenario, or select one for the whole submission.
-# Direct call references (conditional/branch-dependent): get_demo_scenario.
 def select_demo_scenario(scenario_id: str | None = None) -> dict[str, Any]:
     """Pin a requested scenario, or select one for the whole submission."""
-    # In-function documentation:
-    # Parameters:
-    #   - scenario_id: the scenario id value used by this operation (type annotation: str | None); defaults to None when omitted.
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: return the stage result.
+    # In simple terms: Pin a requested scenario, or select one for the whole submission.
+    # What the inputs mean:
+    # - scenario_id: the scenario id used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     return get_demo_scenario(scenario_id or secrets.choice(SCENARIO_IDS))
 
 
-# Function role: Implements validate demo input for demo scenarios using this module's input and result contracts.
 def validate_demo_input(scenario_id: str, text: str) -> bool:
-    # In-function documentation:
-    # Parameters:
-    #   - scenario_id: the scenario id value used by this operation (type annotation: str).
-    #   - text: source or display text being parsed or rendered (type annotation: str).
-    # Returns: a value of declared type bool; alternate return paths may produce the result of the final transformation or check, the result produced by the delegated helper, a boolean indicating whether the condition passed.
-    # Flow: convert expected failures into controlled results; branch on validation or workflow conditions; return the stage result.
+    # In simple terms: Checks demo input.
+    # What the inputs mean:
+    # - scenario_id: the scenario id used for this step.
+    # - text: the text being parsed or shown.
+    # What it gives back: It returns yes or no.
     try:
         schema = StructuredIntegerInputSchema.from_dict(DEMO_SCENARIOS[scenario_id]["input_schema"])
         values = schema.parse(text)
@@ -632,30 +608,22 @@ def validate_demo_input(scenario_id: str, text: str) -> bool:
 
 
 class _ResponseAdapter:
-    # Function role: Initializes the object and its validated dependencies.
-    # Context: method/helper owned by _ResponseAdapter; it is reached through that object's workflow.
     def __init__(self, provider: "DemoScenarioProvider") -> None:
-        # In-function documentation:
-        # Parameters:
-        #   - provider: the configured AI provider implementation used for one request (type annotation: 'DemoScenarioProvider').
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: no value (None); work is performed through side effects or validation.
-        # Flow: derive or store intermediate values.
+        # In simple terms: Sets up .
+        # What the inputs mean:
+        # - provider: the selected AI service.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It does its work and does not return a value.
         self.provider = provider
 
-    # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
-    # Context: method/helper owned by _ResponseAdapter; it is reached through that object's workflow.
-    # Same-file callers: generate_json.
-    # Direct call references (conditional/branch-dependent): _response.
     def generate_json(self, task: str, payload: dict, schema: dict) -> dict:
-        # In-function documentation:
-        # Parameters:
-        #   - task: the task value used by this operation (type annotation: str).
-        #   - payload: the request data being sent across an API/provider boundary (type annotation: dict).
-        #   - schema: declared data contract inputs or results must satisfy (type annotation: dict).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: a value of declared type dict.
-        # Flow: return the stage result.
+        # In simple terms: Sets up this object with the information it needs.
+        # What the inputs mean:
+        # - task: the task used for this step.
+        # - payload: the information being sent to an AI service.
+        # - schema: the schema used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the dict result.
         return self.provider._response(task)
 
 
@@ -664,15 +632,12 @@ class DemoScenarioProvider:
     mock_mode = True
     provider_name = "demo_scenario"
 
-    # Function role: Initializes the object and its validated dependencies.
-    # Context: method/helper owned by DemoScenarioProvider; it is reached through that object's workflow.
     def __init__(self, scenario_id: str) -> None:
-        # In-function documentation:
-        # Parameters:
-        #   - scenario_id: the scenario id value used by this operation (type annotation: str).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: no value (None); work is performed through side effects or validation.
-        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+        # In simple terms: Sets up .
+        # What the inputs mean:
+        # - scenario_id: the scenario id used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It does its work and does not return a value.
         if scenario_id not in DEMO_SCENARIOS:
             raise AIProviderError(f"Unknown Demo scenario: {scenario_id!r}", category="demo_scenario_not_found")
         self.scenario_id = scenario_id
@@ -680,16 +645,12 @@ class DemoScenarioProvider:
         self.calls: list[str] = []
         self._guarded = GuardedProvider(_ResponseAdapter(self))
 
-    # Function role: Implements the internal response helper for demo scenarios.
-    # Context: method/helper owned by DemoScenarioProvider; it is reached through that object's workflow.
-    # Same-file callers: generate_json.
     def _response(self, task: str) -> dict[str, Any]:
-        # In-function documentation:
-        # Parameters:
-        #   - task: the task value used by this operation (type annotation: str).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: a value of declared type dict[str, Any].
-        # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+        # In simple terms: Sets up this object with the information it needs.
+        # What the inputs mean:
+        # - task: the task used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns a set of named results for the next step.
         agent = TASK_TO_AGENT.get(task)
         if agent is None:
             raise AIProviderError(f"No Demo response is registered for task: {task}", category="demo_task_unmapped")
@@ -702,17 +663,12 @@ class DemoScenarioProvider:
             response["cases"] = response.get("cases", [])[:8]
         return response
 
-    # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
-    # Context: method/helper owned by DemoScenarioProvider; it is reached through that object's workflow.
-    # Same-file callers: generate_json.
-    # Direct call references (conditional/branch-dependent): generate_json.
     def generate_json(self, task: str, payload: dict, schema: dict) -> dict:
-        # In-function documentation:
-        # Parameters:
-        #   - task: the task value used by this operation (type annotation: str).
-        #   - payload: the request data being sent across an API/provider boundary (type annotation: dict).
-        #   - schema: declared data contract inputs or results must satisfy (type annotation: dict).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: a value of declared type dict.
-        # Flow: return the stage result.
+        # In simple terms: Creates json.
+        # What the inputs mean:
+        # - task: the task used for this step.
+        # - payload: the information being sent to an AI service.
+        # - schema: the schema used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the dict result.
         return self._guarded.generate_json(task, payload, schema)

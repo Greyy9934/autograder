@@ -1,5 +1,5 @@
 """Problem reconstruction intake and optional AI-provider integration."""
-# Module role: Requests Agent 1's inferred problem, constraints, input schema, output format, evidence, and assumptions.
+# In plain terms: This file asks Agent 1 to work out the problem, input rules, and expected output from the code and any supplied description.
 
 import logging
 from typing import Any
@@ -75,14 +75,11 @@ RECONSTRUCTION_SCHEMA = {
 }
 
 
-# Function role: Checks provider response fields, ranges, and source/schema evidence before accepting the result.
-# Same-file callers: reconstruct_problem.
 def _validate_response(result: Any) -> dict[str, Any]:
-    # In-function documentation:
-    # Parameters:
-    #   - result: the result value used by this operation (type annotation: Any).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Helps with validate response.
+    # What the inputs mean:
+    # - result: the result used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(result, dict):
         raise AIProviderError("Reconstruction response must be an object.")
     if result.get("status") not in {"ready", "needs_clarification"}:
@@ -145,9 +142,6 @@ def _validate_response(result: Any) -> dict[str, Any]:
     return result
 
 
-# Function role: Accept source-only submissions and optionally invoke an AI provider.
-# Numbered workflow order: 02.1c - Agent 1: reconstruct task and generate the authoritative I/O schema.
-# Direct call references (conditional/branch-dependent): _validate_response.
 def reconstruct_problem(
     source: str,
     problem_statement: str | None = None,
@@ -155,14 +149,13 @@ def reconstruct_problem(
     provider: AIProvider | None = None,
 ) -> dict[str, Any]:
     """Accept source-only submissions and optionally invoke an AI provider."""
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - problem_statement: the natural-language task description being reconstructed or analyzed (type annotation: str | None); defaults to None when omitted.
-    #   - test_cases: generated or supplied inputs to execute and compare (type annotation: list[dict[str, Any]] | None); defaults to None when omitted.
-    #   - provider: the configured AI provider implementation used for one request (type annotation: AIProvider | None); defaults to None when omitted.
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Uses the C code and any supplied description to work out the problem and its input/output rules.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - problem_statement: the problem description, if one was supplied.
+    # - test_cases: the example inputs used for checking programs.
+    # - provider: the selected AI service.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(source, str) or not source.strip():
         return {
             "status": "invalid_request",

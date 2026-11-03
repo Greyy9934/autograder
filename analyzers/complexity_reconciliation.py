@@ -3,38 +3,31 @@
 Static analysis and empirical measurements are supporting evidence only.
 They can trigger review, but never silently replace the AI assessment.
 """
-# Module role: Implements the complexity reconciliation subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles complexity reconciliation, one part of the AutoGrader’s workflow.
 
 import math
 from typing import Any
 
 
-# Function role: Returns whether constant complexity holds under this module's rules.
-# Same-file callers: _static_review_flags.
 def _is_constant_complexity(expression: Any) -> bool:
-    # In-function documentation:
-    # Parameters:
-    #   - expression: complexity expression parsed in the restricted grammar (type annotation: Any).
-    # Returns: a value of declared type bool; alternate return paths may produce a boolean indicating whether the condition passed.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values; return the stage result.
+    # In simple terms: Helps with is constant complexity.
+    # What the inputs mean:
+    # - expression: the math formula the graph is asked to draw.
+    # What it gives back: It returns yes or no.
     if not isinstance(expression, str):
         return False
     normalized = expression.strip().replace(" ", "").lower()
     return normalized in {"o(1)", "theta(1)", "Θ(1)"}
 
 
-# Function role: Implements the internal static review flags helper for complexity reconciliation.
-# Same-file callers: reconcile_complexity_evidence.
-# Direct call references (conditional/branch-dependent): _is_constant_complexity.
 def _static_review_flags(
     ai_analysis: dict, static_analysis: dict | None
 ) -> list[dict[str, str]]:
-    # In-function documentation:
-    # Parameters:
-    #   - ai_analysis: the ai analysis value used by this operation (type annotation: dict).
-    #   - static_analysis: the static analysis value used by this operation (type annotation: dict | None).
-    # Returns: a value of declared type list[dict[str, str]].
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Helps with static review flags.
+    # What the inputs mean:
+    # - ai_analysis: the ai analysis used for this step.
+    # - static_analysis: the static analysis used for this step.
+    # What it gives back: It returns a list of the items it found or made.
     flags: list[dict[str, str]] = []
     if not isinstance(static_analysis, dict):
         return flags
@@ -92,14 +85,11 @@ def _static_review_flags(
     return flags
 
 
-# Function role: Implements the internal benchmark summary helper for complexity reconciliation.
-# Same-file callers: reconcile_complexity_evidence.
 def _benchmark_summary(benchmark: dict | None) -> dict[str, Any]:
-    # In-function documentation:
-    # Parameters:
-    #   - benchmark: the benchmark value used by this operation (type annotation: dict | None).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Helps with benchmark summary.
+    # What the inputs mean:
+    # - benchmark: the benchmark used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(benchmark, dict):
         return {
             "status": "not_supplied",
@@ -182,8 +172,6 @@ def _benchmark_summary(benchmark: dict | None) -> dict[str, Any]:
     }
 
 
-# Function role: Preserve AI conclusions and attach reviewable supporting evidence.
-# Direct call references (conditional/branch-dependent): _benchmark_summary, _static_review_flags.
 def reconcile_complexity_evidence(
     ai_result: dict,
     *,
@@ -191,13 +179,12 @@ def reconcile_complexity_evidence(
     benchmark: dict | None = None,
 ) -> dict[str, Any]:
     """Preserve AI conclusions and attach reviewable supporting evidence."""
-    # In-function documentation:
-    # Parameters:
-    #   - ai_result: the ai result value used by this operation (type annotation: dict).
-    #   - static_analysis: the static analysis value used by this operation (type annotation: dict | None).
-    #   - benchmark: the benchmark value used by this operation (type annotation: dict | None).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Preserve AI conclusions and attach reviewable supporting evidence.
+    # What the inputs mean:
+    # - ai_result: the ai result used for this step.
+    # - static_analysis: the static analysis used for this step.
+    # - benchmark: the benchmark used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(ai_result, dict):
         return {
             "status": "invalid_request",

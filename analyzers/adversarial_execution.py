@@ -1,5 +1,5 @@
 """Execute adversarial candidates using one compilation per batch."""
-# Module role: Implements the adversarial execution subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles adversarial execution, one part of the AutoGrader’s workflow.
 
 import hashlib
 from typing import Any
@@ -7,17 +7,15 @@ from typing import Any
 from analyzers.batch_execution import run_c_batch
 
 
-# Function role: Implements execute adversarial candidates for adversarial execution using this module's input and result contracts.
 def execute_adversarial_candidates(
     source: str,
     plan: dict[str, Any],
 ) -> dict[str, Any]:
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - plan: the plan value used by this operation (type annotation: dict[str, Any]).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Runs adversarial candidates.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - plan: the plan used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(source, str) or not source.strip():
         return {"status": "invalid_request", "results": []}
 

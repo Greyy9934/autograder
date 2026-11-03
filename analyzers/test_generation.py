@@ -1,5 +1,5 @@
 """Coordinate Agent 3A and Agent 3B using a confirmed assignment."""
-# Module role: Combines schema-based random generation and source-aware adversarial planning without executing submitted code.
+# In plain terms: This file prepares random and targeted test inputs using the approved input rules.
 
 from typing import Any
 
@@ -10,8 +10,6 @@ from analyzers.random_test_generator import generate_schema_test_batch
 from analyzers.adversarial_test_planner import plan_adversarial_tests
 
 
-# Function role: Generate random and adversarial inputs without executing student code.
-# Numbered workflow order: 05.1 - local schema generator plus source-aware adversarial plan.
 def generate_test_plans(
     source: str,
     spec: AssignmentSpec,
@@ -26,20 +24,19 @@ def generate_test_plans(
     reference_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Generate random and adversarial inputs without executing student code."""
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - spec: the specification or configuration record being validated or consumed (type annotation: AssignmentSpec).
-    #   - schema: declared data contract inputs or results must satisfy (type annotation: IntegerInputSchema).
-    #   - random_seed: the random seed value used by this operation (type annotation: int).
-    #   - random_count: the random count value used by this operation (type annotation: int).
-    #   - random_distribution: the random distribution value used by this operation (type annotation: str).
-    #   - adversarial_seed: the adversarial seed value used by this operation (type annotation: int).
-    #   - adversarial_count: the adversarial count value used by this operation (type annotation: int).
-    #   - static_findings: the static findings value used by this operation (type annotation: list[dict[str, Any]] | None).
-    #   - reference_metadata: the reference metadata value used by this operation (type annotation: dict[str, Any] | None).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Makes random and targeted test plans using the instructor-approved input rules.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - spec: the settings or assignment details used here.
+    # - schema: the schema used for this step.
+    # - random_seed: the starting number for repeatable random tests.
+    # - random_count: how many random tests to request.
+    # - random_distribution: the random distribution used for this step.
+    # - adversarial_seed: the starting number for repeatable targeted tests.
+    # - adversarial_count: how many targeted tricky tests to request.
+    # - static_findings: the static findings used for this step.
+    # - reference_metadata: the reference metadata used for this step.
+    # What it gives back: It returns a set of named results for the next step.
 
     if not isinstance(spec, AssignmentSpec) or not spec.confirmed:
         return {

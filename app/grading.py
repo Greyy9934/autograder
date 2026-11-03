@@ -1,5 +1,5 @@
 """Deterministic, rule-driven grading with explicit evidence eligibility."""
-# Module role: Applies versioned deterministic grading rules to validated metric evidence and constructs reproducibility metadata.
+# In plain terms: This file turns collected evidence and the rules in grading.json into a final score.
 
 import json
 import hashlib
@@ -16,15 +16,14 @@ class GradingRulesError(ValueError):
     """Raised when grading rules are invalid."""
 
 
-# Function role: Load and validate external grading rules.
-# Same-file callers: grade_submission.
+# The numbers live in rules/grading.json so the score formula is visible and easy to review.
+# Correctness matters most; missing evidence is left out and the other weights are fairly scaled up.
 def load_grading_rules(path: str | Path = DEFAULT_GRADING_RULES) -> dict[str, Any]:
     """Load and validate external grading rules."""
-    # In-function documentation:
-    # Parameters:
-    #   - path: filesystem location read from or written to (type annotation: str | Path); defaults to DEFAULT_GRADING_RULES when omitted.
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: convert expected failures into controlled results; branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Reads the grading weights and checks that they make sense.
+    # What the inputs mean:
+    # - path: the file location being read or written.
+    # What it gives back: It returns a set of named results for the next step.
     try:
         rules = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -80,18 +79,15 @@ def load_grading_rules(path: str | Path = DEFAULT_GRADING_RULES) -> dict[str, An
     return rules
 
 
-# Function role: Implements the internal eligible correctness helper for grading.
-# Same-file callers: grade_submission.
 def _eligible_correctness(
     evidence: dict[str, Any],
     policy: dict[str, Any],
 ) -> tuple[bool, str]:
-    # In-function documentation:
-    # Parameters:
-    #   - evidence: validated execution or analysis facts used downstream (type annotation: dict[str, Any]).
-    #   - policy: the policy value used by this operation (type annotation: dict[str, Any]).
-    # Returns: a value of declared type tuple[bool, str].
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Helps with eligible correctness.
+    # What the inputs mean:
+    # - evidence: the test and review results used to make a decision.
+    # - policy: the policy used for this step.
+    # What it gives back: It returns a small group of related values.
     preflight = evidence.get("preflight")
     if policy.get("require_successful_preflight", True):
         if not isinstance(preflight, dict) or preflight.get("decision") != "continue":
@@ -131,8 +127,6 @@ def _eligible_correctness(
     return True, "Required correctness evidence is available."
 
 
-# Function role: Fingerprint the stable inputs that determine a grade, excluding timings.
-# Same-file callers: grade_submission.
 def _reproducibility_metadata(
     evidence: dict[str, Any],
     metric_scores: dict[str, Any],
@@ -140,14 +134,13 @@ def _reproducibility_metadata(
     rules: dict[str, Any],
 ) -> dict[str, Any]:
     """Fingerprint the stable inputs that determine a grade, excluding timings."""
-    # In-function documentation:
-    # Parameters:
-    #   - evidence: validated execution or analysis facts used downstream (type annotation: dict[str, Any]).
-    #   - metric_scores: the metric scores value used by this operation (type annotation: dict[str, Any]).
-    #   - rules_path: the rules path value used by this operation (type annotation: str | Path).
-    #   - rules: the rules value used by this operation (type annotation: dict[str, Any]).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: convert expected failures into controlled results; derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Records which code, rules, and test evidence were used to produce this grade.
+    # What the inputs mean:
+    # - evidence: the test and review results used to make a decision.
+    # - metric_scores: the score values calculated from available evidence.
+    # - rules_path: the location of the grading rules file.
+    # - rules: the grading settings loaded from the rules file.
+    # What it gives back: It returns a set of named results for the next step.
     try:
         rules_digest = hashlib.sha256(Path(rules_path).read_bytes()).hexdigest()
     except OSError:
@@ -227,9 +220,6 @@ def _reproducibility_metadata(
     return {"fingerprint": fingerprint, **stable_inputs}
 
 
-# Function role: Compute a weighted score from externally supplied metric scores.
-# Numbered workflow order: 07.2 - apply weights, eligibility, unavailable-metric policy, rounding, and grade band.
-# Direct call references (conditional/branch-dependent): load_grading_rules, _reproducibility_metadata, _eligible_correctness.
 def grade_submission(
     evidence: dict[str, Any],
     metric_scores: dict[str, float | int | None],
@@ -243,13 +233,12 @@ def grade_submission(
     Missing metrics are excluded and remaining weights are renormalized.
     This function does not invent metric scores from AI opinions.
     """
-    # In-function documentation:
-    # Parameters:
-    #   - evidence: validated execution or analysis facts used downstream (type annotation: dict[str, Any]).
-    #   - metric_scores: the metric scores value used by this operation (type annotation: dict[str, float | int | None]).
-    #   - rules_path: the rules path value used by this operation (type annotation: str | Path).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Combines the available scores using the published grading weights.
+    # What the inputs mean:
+    # - evidence: the test and review results used to make a decision.
+    # - metric_scores: the score values calculated from available evidence.
+    # - rules_path: the location of the grading rules file.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(evidence, dict) or not isinstance(metric_scores, dict):
         raise ValueError("Evidence and metric scores must be objects.")
 

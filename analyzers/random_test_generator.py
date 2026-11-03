@@ -1,5 +1,5 @@
 """Reproducible random test generation bound to confirmed specifications."""
-# Module role: Implements the random test generator subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles random test generator, one part of the AutoGrader’s workflow.
 
 import random
 from typing import Any, Callable
@@ -16,8 +16,6 @@ InputGenerator = Callable[[random.Random, AssignmentSpec, str], str]
 InputValidator = Callable[[str, AssignmentSpec], bool]
 
 
-# Function role: Generate and validate a deterministic batch using an explicit format adapter.
-# Same-file callers: generate_schema_test_batch.
 def generate_random_test_batch(
     spec: AssignmentSpec,
     *,
@@ -29,17 +27,16 @@ def generate_random_test_batch(
     distribution: str = "uniform",
 ) -> dict[str, Any]:
     """Generate and validate a deterministic batch using an explicit format adapter."""
-    # In-function documentation:
-    # Parameters:
-    #   - spec: the specification or configuration record being validated or consumed (type annotation: AssignmentSpec).
-    #   - seed: deterministic random seed used to make generated cases repeatable (type annotation: int).
-    #   - count: requested or measured number of items or runs (type annotation: int).
-    #   - input_generator: the input generator value used by this operation (type annotation: InputGenerator).
-    #   - input_validator: the input validator value used by this operation (type annotation: InputValidator).
-    #   - schema: declared data contract inputs or results must satisfy.
-    #   - distribution: sampling strategy used to generate values (type annotation: str).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions.
+    # In simple terms: Generate and validate a deterministic batch using an explicit format adapter.
+    # What the inputs mean:
+    # - spec: the settings or assignment details used here.
+    # - seed: the starting number that makes random test generation repeatable.
+    # - count: how many items or runs are requested.
+    # - input_generator: the input generator used for this step.
+    # - input_validator: the input validator used for this step.
+    # - schema: the schema used for this step.
+    # - distribution: the way random values should be chosen.
+    # What it gives back: It returns a set of named results for the next step.
 
     if not isinstance(spec, AssignmentSpec) or not spec.confirmed:
         return {
@@ -137,8 +134,6 @@ def generate_random_test_batch(
     }
 
 
-# Function role: Generate tests using an explicit integer input schema.
-# Direct call references (conditional/branch-dependent): generate_random_test_batch.
 def generate_schema_test_batch(
     spec: AssignmentSpec,
     *,
@@ -148,15 +143,14 @@ def generate_schema_test_batch(
     distribution: str = "uniform",
 ) -> dict[str, Any]:
     """Generate tests using an explicit integer input schema."""
-    # In-function documentation:
-    # Parameters:
-    #   - spec: the specification or configuration record being validated or consumed (type annotation: AssignmentSpec).
-    #   - schema: declared data contract inputs or results must satisfy.
-    #   - seed: deterministic random seed used to make generated cases repeatable (type annotation: int).
-    #   - count: requested or measured number of items or runs (type annotation: int).
-    #   - distribution: sampling strategy used to generate values (type annotation: str).
-    # Returns: a value of declared type dict[str, Any]; alternate return paths may produce a structured mapping assembled for the caller.
-    # Flow: branch on validation or workflow conditions; return the stage result.
+    # In simple terms: Generate tests using an explicit integer input schema.
+    # What the inputs mean:
+    # - spec: the settings or assignment details used here.
+    # - schema: the schema used for this step.
+    # - seed: the starting number that makes random test generation repeatable.
+    # - count: how many items or runs are requested.
+    # - distribution: the way random values should be chosen.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(spec, AssignmentSpec) or not spec.confirmed:
         return {
             "status": "rejected",

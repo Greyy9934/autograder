@@ -1,5 +1,5 @@
 """Immutable, explicitly confirmed assignment specifications."""
-# Module role: Models the instructor-reviewed assignment contract and canonical fingerprint passed between stages.
+# In plain terms: This file holds the version of the assignment that the instructor reviewed and approved.
 
 from dataclasses import asdict, dataclass
 import hashlib
@@ -23,15 +23,11 @@ class AssignmentSpec:
     version: int = 1
     confirmed: bool = False
 
-    # Function role: Validates the constructed data object's invariants and canonicalizes supported fields.
-    # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
-    # Direct call references (conditional/branch-dependent): to_dict.
     def __post_init__(self):
-        # In-function documentation:
-        # Parameters: none.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the operation result consumed by its caller.
-        # Flow: iterate through input or evidence items; branch on validation or workflow conditions.
+        # In simple terms: Checks the new object .
+        # This function takes no named inputs.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         for field in (
             "problem_id",
             "title",
@@ -84,17 +80,14 @@ class AssignmentSpec:
         if not isinstance(self.confirmed, bool):
             raise ValueError("confirmed must be boolean.")
 
-    # Function role: Constructs draft with the module's required invariants.
-    # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
     @classmethod
     def create_draft(cls, candidate: dict[str, Any], **formats):
-        # In-function documentation:
-        # Parameters:
-        #   - candidate: the candidate value used by this operation (type annotation: dict[str, Any]).
-        #   - **formats: the formats value used by this operation.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the result produced by the delegated helper.
-        # Flow: branch on validation or workflow conditions; return the stage result.
+        # In simple terms: Creates draft.
+        # What the inputs mean:
+        # - candidate: the candidate used for this step.
+        # - formats: the formats used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         if not isinstance(candidate, dict):
             raise ValueError("candidate must be an object.")
 
@@ -110,16 +103,12 @@ class AssignmentSpec:
             confirmed=False,
         )
 
-    # Function role: Returns a confirmed immutable specification only after explicit instructor approval.
-    # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
-    # Direct call references (conditional/branch-dependent): to_dict.
     def confirm(self, *, instructor_approved: bool):
-        # In-function documentation:
-        # Parameters:
-        #   - instructor_approved: the instructor approved value used by this operation (type annotation: bool).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the result produced by the delegated helper.
-        # Flow: branch on validation or workflow conditions; derive or store intermediate values; return the stage result.
+        # In simple terms: Helps with confirm.
+        # What the inputs mean:
+        # - instructor_approved: the instructor approved used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         if instructor_approved is not True:
             raise ValueError("Explicit instructor approval is required.")
 
@@ -127,42 +116,29 @@ class AssignmentSpec:
         values["confirmed"] = True
         return AssignmentSpec(**values)
 
-    # Function role: Produces deterministic JSON with stable key ordering for identity and comparison.
-    # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
-    # Same-file callers: fingerprint.
-    # Direct call references (conditional/branch-dependent): to_dict.
     def canonical_json(self) -> str:
-        # In-function documentation:
-        # Parameters: none.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: a value of declared type str.
-        # Flow: return the stage result.
+        # In simple terms: Marks the reviewed assignment as approved and returns that approved copy.
+        # This function takes no named inputs.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns text.
         return json.dumps(
             self.to_dict(),
             sort_keys=True,
             separators=(",", ":"),
         )
 
-    # Function role: Hashes the canonical representation so downstream steps can detect specification changes.
-    # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
-    # Direct call references (conditional/branch-dependent): canonical_json.
     def fingerprint(self) -> str:
-        # In-function documentation:
-        # Parameters: none.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: a value of declared type str.
-        # Flow: return the stage result.
+        # In simple terms: Writes the assignment details in one consistent order so they can be compared reliably.
+        # This function takes no named inputs.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns text.
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
 
-    # Function role: Serializes the internal model to the stable plain-dictionary shape used by API and persistence boundaries.
-    # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
-    # Same-file callers: __post_init__, confirm, canonical_json.
     def to_dict(self) -> dict[str, Any]:
-        # In-function documentation:
-        # Parameters: none.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: a value of declared type dict[str, Any].
-        # Flow: derive or store intermediate values; branch on validation or workflow conditions; return the stage result.
+        # In simple terms: Creates a short identity mark from the assignment details.
+        # This function takes no named inputs.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns a set of named results for the next step.
         values = asdict(self)
         if values["input_schema"] is not None:
             values["input_schema"] = json.loads(values["input_schema"])

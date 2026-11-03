@@ -1,5 +1,5 @@
 """Generate candidate reference solutions; never assume they are correct."""
-# Module role: Requests Agent 2's brute-force and efficient C candidates; generated code starts untrusted.
+# In plain terms: This file asks Agent 2 for a slow simple solution and a faster solution to compare against the student code.
 
 from typing import Any
 
@@ -45,15 +45,12 @@ REFERENCE_SCHEMA = {
 }
 
 
-# Function role: Check shape and essential content, not algorithmic correctness.
-# Same-file callers: generate_reference_solutions.
 def _validate_reference(result: Any) -> dict[str, Any]:
     """Check shape and essential content, not algorithmic correctness."""
-    # In-function documentation:
-    # Parameters:
-    #   - result: the result value used by this operation (type annotation: Any).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; iterate through input or evidence items.
+    # In simple terms: Check shape and essential content, not algorithmic correctness.
+    # What the inputs mean:
+    # - result: the result used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(result, dict):
         raise AIProviderError("Reference response must be a JSON object.")
 
@@ -88,20 +85,16 @@ def _validate_reference(result: Any) -> dict[str, Any]:
     return result
 
 
-# Function role: Generate candidate references for a selected, unambiguous problem.
-# Numbered workflow order: 04.2 - ask for brute-force and efficient C reference candidates.
-# Direct call references (conditional/branch-dependent): _validate_reference.
 def generate_reference_solutions(
     problem: dict[str, Any],
     provider: AIProvider,
 ) -> dict[str, Any]:
     """Generate candidate references for a selected, unambiguous problem."""
-    # In-function documentation:
-    # Parameters:
-    #   - problem: the problem description or reconstructed problem record (type annotation: dict[str, Any]).
-    #   - provider: the configured AI provider implementation used for one request (type annotation: AIProvider).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Generate candidate references for a selected, unambiguous problem.
+    # What the inputs mean:
+    # - problem: the reconstructed problem details.
+    # - provider: the selected AI service.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(problem, dict):
         return {
             "status": "invalid_request",

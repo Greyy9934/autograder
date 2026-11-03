@@ -3,8 +3,8 @@
 This module never evaluates Python code. It converts mathematical notation
 into a validated AST with strict syntax, symbol, depth and size limits.
 """
-# Module role: Parses a deliberately limited asymptotic-expression grammar into a validated representation rather than evaluating arbitrary input text.
-# Core concept: Complexity text is parsed as a small allow-listed expression language; it is never passed to Python eval or treated as arbitrary executable code.
+# In plain terms: This file accepts only the math expressions the graph knows how to understand; it never runs the expression as code.
+# Why it matters: A restricted math grammar lets the graph understand formulas without running arbitrary text as a program.
 
 from __future__ import annotations
 
@@ -29,15 +29,12 @@ RESERVED_NAMES = frozenset({"O", "Theta", "Omega", "BigO", "BigTheta", "BigOmega
 DEFAULT_LIMITS = ExpressionLimits()
 
 
-# Function role: Reject invalid or unsafe parser resource configurations.
-# Same-file callers: parse_complexity_expression.
 def _validate_limits(limits: ExpressionLimits) -> None:
     """Reject invalid or unsafe parser resource configurations."""
-    # In-function documentation:
-    # Parameters:
-    #   - limits: the limits value used by this operation (type annotation: ExpressionLimits).
-    # Returns: no value (None); work is performed through side effects or validation.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values; iterate through input or evidence items.
+    # In simple terms: Reject invalid or unsafe parser resource configurations.
+    # What the inputs mean:
+    # - limits: the limits used for this step.
+    # What it gives back: It does its work and does not return a value.
     if not isinstance(limits, ExpressionLimits):
         raise ExpressionParseError(
             "invalid_limits", "Limits must be an ExpressionLimits instance."
@@ -77,35 +74,27 @@ def _validate_limits(limits: ExpressionLimits) -> None:
 
 
 class ExpressionParseError(ValueError):
-    # Function role: Initializes the object and its validated dependencies.
-    # Context: method/helper owned by ExpressionParseError; it is reached through that object's workflow.
-    # Same-file callers: __init__.
-    # Direct call references (conditional/branch-dependent): __init__.
     def __init__(self, code: str, message: str):
-        # In-function documentation:
-        # Parameters:
-        #   - code: the code value used by this operation (type annotation: str).
-        #   - message: the message value used by this operation (type annotation: str).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the operation result consumed by its caller.
-        # Flow: delegate work to a helper or external boundary; derive or store intermediate values.
+        # In simple terms: Sets up .
+        # What the inputs mean:
+        # - code: the code used for this step.
+        # - message: the message used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         super().__init__(message)
         self.code = code
 
 
-# Function role: Strip one balanced outer asymptotic wrapper.
-# Same-file callers: _normalize, parse_complexity_expression.
 def _strip_asymptotic_wrapper(text: str) -> tuple[str, str]:
     """Strip one balanced outer asymptotic wrapper.
 
     Only a wrapper that encloses the entire expression is removed.
     Nested parentheses are checked explicitly.
     """
-    # In-function documentation:
-    # Parameters:
-    #   - text: source or display text being parsed or rendered (type annotation: str).
-    # Returns: a value of declared type tuple[str, str].
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Sets up this object with the information it needs.
+    # What the inputs mean:
+    # - text: the text being parsed or shown.
+    # What it gives back: It returns a small group of related values.
     text = text.strip()
 
     wrappers = {
@@ -179,16 +168,12 @@ def _strip_asymptotic_wrapper(text: str) -> tuple[str, str]:
     return inner, family
 
 
-# Function role: Normalize mathematical notation without corrupting function names.
-# Same-file callers: parse_complexity_expression.
-# Direct call references (conditional/branch-dependent): _strip_asymptotic_wrapper.
 def _normalize(text: str) -> str:
     """Normalize mathematical notation without corrupting function names."""
-    # In-function documentation:
-    # Parameters:
-    #   - text: source or display text being parsed or rendered (type annotation: str).
-    # Returns: a value of declared type str; alternate return paths may produce the computed expression value.
-    # Flow: derive or store intermediate values.
+    # In simple terms: Normalize mathematical notation without corrupting function names.
+    # What the inputs mean:
+    # - text: the text being parsed or shown.
+    # What it gives back: It returns text.
     text = text.strip()
     text = text.replace("−", "-").replace("×", "*").replace("·", "*")
     text = text.replace("÷", "/").replace("π", "pi")
@@ -217,14 +202,11 @@ def _normalize(text: str) -> str:
         flags=re.IGNORECASE,
     )
 
-    # Function role: Implements expand log chain for parser using this module's input and result contracts.
-    # Context: method/helper owned by _normalize; it is reached through that object's workflow.
     def expand_log_chain(match: re.Match[str]) -> str:
-        # In-function documentation:
-        # Parameters:
-        #   - match: regular-expression match extracted from the input text (type annotation: re.Match[str]).
-        # Returns: a value of declared type str.
-        # Flow: derive or store intermediate values; iterate through input or evidence items; return the stage result.
+        # In simple terms: Helps with expand log chain.
+        # What the inputs mean:
+        # - match: the match used for this step.
+        # What it gives back: It returns text.
         functions = re.findall(log_token, match.group(1), flags=re.IGNORECASE)
         expression = match.group(2)
         for function in reversed(functions):
@@ -287,21 +269,17 @@ def _normalize(text: str) -> str:
     return text
 
 
-# Function role: Implements the internal walk and validate helper for parser.
-# Same-file callers: parse_complexity_expression.
-# Direct call references (conditional/branch-dependent): visit.
 def _walk_and_validate(
     root: ast.AST,
     limits: ExpressionLimits,
     supplied_parameters: dict[str, float],
 ) -> tuple[frozenset[str], frozenset[str], frozenset[str]]:
-    # In-function documentation:
-    # Parameters:
-    #   - root: base filesystem directory used to resolve allowed paths (type annotation: ast.AST).
-    #   - limits: the limits value used by this operation (type annotation: ExpressionLimits).
-    #   - supplied_parameters: the supplied parameters value used by this operation (type annotation: dict[str, float]).
-    # Returns: a value of declared type tuple[frozenset[str], frozenset[str], frozenset[str]].
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Helps with walk and validate.
+    # What the inputs mean:
+    # - root: the root used for this step.
+    # - limits: the limits used for this step.
+    # - supplied_parameters: the supplied parameters used for this step.
+    # What it gives back: It returns a small group of related values.
     nodes = list(ast.walk(root))
     if len(nodes) > limits.max_ast_nodes:
         raise ExpressionParseError("too_many_nodes", "Expression contains too many syntax nodes.")
@@ -312,17 +290,12 @@ def _walk_and_validate(
     allowed_binary = (ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.Mod)
     allowed_unary = (ast.UAdd, ast.USub)
 
-    # Function role: Walks a validated syntax-tree node and evaluates or checks its supported children.
-    # Context: method/helper owned by _walk_and_validate; it is reached through that object's workflow.
-    # Same-file callers: _walk_and_validate, visit.
-    # Direct call references (conditional/branch-dependent): visit.
     def visit(node: ast.AST, depth: int = 0) -> None:
-        # In-function documentation:
-        # Parameters:
-        #   - node: current validated syntax-tree node handled recursively (type annotation: ast.AST).
-        #   - depth: the depth value used by this operation (type annotation: int); defaults to 0 when omitted.
-        # Returns: no value (None); work is performed through side effects or validation.
-        # Flow: branch on validation or workflow conditions.
+        # In simple terms: Helps with visit.
+        # What the inputs mean:
+        # - node: the current piece of the formula being checked.
+        # - depth: the depth used for this step.
+        # What it gives back: It does its work and does not return a value.
         if depth > limits.max_ast_depth:
             raise ExpressionParseError("too_deep", "Expression nesting exceeds the permitted depth.")
 
@@ -389,8 +362,6 @@ def _walk_and_validate(
     return frozenset(symbols), frozenset(functions), frozenset(parameters)
 
 
-# Function role: Accepts only the supported asymptotic notation grammar, validates names/operators and AST depth, and returns a typed parse result instead of evaluating arbitrary user code.
-# Direct call references (conditional/branch-dependent): _validate_limits, _strip_asymptotic_wrapper, _normalize, _walk_and_validate.
 def parse_complexity_expression(
     notation: str,
     *,
@@ -398,13 +369,12 @@ def parse_complexity_expression(
     limits: ExpressionLimits = DEFAULT_LIMITS,
 ) -> ParseResult:
     """Parse and validate an asymptotic expression without executing it."""
-    # In-function documentation:
-    # Parameters:
-    #   - notation: the notation value used by this operation (type annotation: str).
-    #   - parameters: the parameters value used by this operation (type annotation: dict[str, float] | None).
-    #   - limits: the limits value used by this operation (type annotation: ExpressionLimits).
-    # Returns: a value of declared type ParseResult.
-    # Flow: branch on validation or workflow conditions; convert expected failures into controlled results.
+    # In simple terms: Reads a complexity formula and checks that it uses only math the app supports.
+    # What the inputs mean:
+    # - notation: the complexity formula written as text.
+    # - parameters: the named number values used in a formula.
+    # - limits: the limits used for this step.
+    # What it gives back: It returns the Parse Result result.
     if not isinstance(notation, str):
         return ParseResult("invalid", None, "invalid_type", "Notation must be a string.", {})
 

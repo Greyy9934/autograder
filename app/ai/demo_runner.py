@@ -1,6 +1,6 @@
 """Real, isolated, no-AI Two Sum demonstration using trusted built-in C programs."""
 from __future__ import annotations
-# Module role: Implements the demo runner subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles demo runner, one part of the AutoGrader’s workflow.
 
 import random
 from typing import Any
@@ -93,26 +93,21 @@ int main(void) {
 """
 
 
-# Function role: Implements the internal make input helper for demo runner.
-# Same-file callers: _generate_benchmark_cases, _generate_edge_cases.
 def _make_input(values: list[int], target: int) -> str:
-    # In-function documentation:
-    # Parameters:
-    #   - values: the values value used by this operation (type annotation: list[int]).
-    #   - target: the target value used by this operation (type annotation: int).
-    # Returns: a value of declared type str.
-    # Flow: return the stage result.
+    # In simple terms: Helps with make input.
+    # What the inputs mean:
+    # - values: the values used for this step.
+    # - target: the target used for this step.
+    # What it gives back: It returns text.
     return f"{len(values)}\n{' '.join(map(str, values))}\n{target}\n"
 
 
-# Function role: Implements the internal oracle helper for demo runner.
 def _oracle(values: list[int], target: int) -> str:
-    # In-function documentation:
-    # Parameters:
-    #   - values: the values value used by this operation (type annotation: list[int]).
-    #   - target: the target value used by this operation (type annotation: int).
-    # Returns: a value of declared type str.
-    # Flow: derive or store intermediate values; iterate through input or evidence items; return the stage result.
+    # In simple terms: Helps with oracle.
+    # What the inputs mean:
+    # - values: the values used for this step.
+    # - target: the target used for this step.
+    # What it gives back: It returns text.
     seen: set[int] = set()
     for value in values:
         if target - value in seen:
@@ -121,15 +116,11 @@ def _oracle(values: list[int], target: int) -> str:
     return "NO"
 
 
-# Function role: Reproducible progressive-size, no-solution inputs (seed 20261101).
-# Same-file callers: build_real_demo_payload.
-# Direct call references (conditional/branch-dependent): _make_input.
 def _generate_benchmark_cases() -> list[dict[str, Any]]:
     """Reproducible progressive-size, no-solution inputs (seed 20261101)."""
-    # In-function documentation:
-    # Parameters: none.
-    # Returns: a value of declared type list[dict[str, Any]].
-    # Flow: derive or store intermediate values; iterate through input or evidence items; return the stage result.
+    # In simple terms: Reproducible progressive-size, no-solution inputs (seed 20261101).
+    # This function takes no named inputs.
+    # What it gives back: It returns a list of the items it found or made.
     rng = random.Random(20261101)
     cases = []
     for size in (100, 300, 600, 1000, 1800):
@@ -145,14 +136,10 @@ def _generate_benchmark_cases() -> list[dict[str, Any]]:
     return cases
 
 
-# Function role: Implements the internal generate edge cases helper for demo runner.
-# Same-file callers: build_real_demo_payload.
-# Direct call references (conditional/branch-dependent): _make_input.
 def _generate_edge_cases() -> list[dict[str, Any]]:
-    # In-function documentation:
-    # Parameters: none.
-    # Returns: a value of declared type list[dict[str, Any]].
-    # Flow: derive or store intermediate values; return the stage result.
+    # In simple terms: Helps with generate edge cases.
+    # This function takes no named inputs.
+    # What it gives back: It returns a list of the items it found or made.
     definitions = [
         ("empty_array", [], 5, "NO", "Minimum valid array length."),
         ("single_element", [5], 10, "NO", "A single position cannot be reused."),
@@ -174,14 +161,11 @@ def _generate_edge_cases() -> list[dict[str, Any]]:
     ]
 
 
-# Function role: Run only trusted demo code; accepts no user source or form data.
-# Direct call references (conditional/branch-dependent): _generate_benchmark_cases, _generate_edge_cases.
 def build_real_demo_payload() -> dict[str, Any]:
     """Run only trusted demo code; accepts no user source or form data."""
-    # In-function documentation:
-    # Parameters: none.
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: derive or store intermediate values; iterate through input or evidence items.
+    # In simple terms: Run only trusted demo code; accepts no user source or form data.
+    # This function takes no named inputs.
+    # What it gives back: It returns a set of named results for the next step.
     cases = _generate_benchmark_cases()
     edge_cases = _generate_edge_cases()
 

@@ -1,2 +1,2 @@
 """Provider-independent AI integration for AutoGrader."""
-# Module role: Implements the   init   subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles init, one part of the AutoGrader’s workflow.

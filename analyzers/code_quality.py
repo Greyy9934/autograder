@@ -1,5 +1,5 @@
 """Deterministic, heuristic code-quality analysis for C submissions."""
-# Module role: Implements the code quality subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles code quality, one part of the AutoGrader’s workflow.
 
 import re
 from typing import Any
@@ -7,14 +7,11 @@ from typing import Any
 from app.ai.output_budget import TASK_CODE_QUALITY
 
 
-# Function role: Implements analyze code quality for code quality using this module's input and result contracts.
-# Direct call references (conditional/branch-dependent): add.
 def analyze_code_quality(source: str) -> dict[str, Any]:
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Looks at code quality.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(source, str) or not source.strip():
         return {
             "status": "invalid_input",
@@ -25,17 +22,13 @@ def analyze_code_quality(source: str) -> dict[str, Any]:
 
     findings: list[dict[str, str]] = []
 
-    # Function role: Adds one validated finding/case/issue to the result being assembled by analyze_code_quality.
-    # Context: method/helper owned by analyze_code_quality; it is reached through that object's workflow.
-    # Same-file callers: analyze_code_quality.
     def add(rule: str, severity: str, message: str) -> None:
-        # In-function documentation:
-        # Parameters:
-        #   - rule: the rule value used by this operation (type annotation: str).
-        #   - severity: classification level assigned to the finding (type annotation: str).
-        #   - message: the message value used by this operation (type annotation: str).
-        # Returns: no value (None); work is performed through side effects or validation.
-        # Flow: delegate work to a helper or external boundary.
+        # In simple terms: Helps with add.
+        # What the inputs mean:
+        # - rule: the rule used for this step.
+        # - severity: the severity used for this step.
+        # - message: the message used for this step.
+        # What it gives back: It does its work and does not return a value.
         findings.append({
             "rule": rule,
             "severity": severity,
@@ -167,21 +160,18 @@ CODE_QUALITY_SCHEMA = {
 }
 
 
-# Function role: Run the AI-led final code-quality review and validate cited evidence.
-# Numbered workflow order: 06.2c - Agent 6 source-cited maintainability and readability review.
 def review_code_quality(
     source: str,
     provider: Any,
     context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run the AI-led final code-quality review and validate cited evidence."""
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - provider: the configured AI provider implementation used for one request (type annotation: Any).
-    #   - context: the context value used by this operation (type annotation: dict[str, Any] | None); defaults to None when omitted.
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Run the AI-led final code-quality review and validate cited evidence.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - provider: the selected AI service.
+    # - context: the context used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(source, str) or not source.strip():
         return {
             "status": "invalid_input",

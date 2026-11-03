@@ -1,5 +1,5 @@
 """Optional memory diagnostics; findings are evidence, not proof of safety."""
-# Module role: Runs diagnostic builds with sanitizers and optional Valgrind on bounded representative inputs.
+# In plain terms: This file runs extra checks that can help find memory mistakes in C programs.
 
 import os
 import shutil
@@ -23,16 +23,13 @@ from app.runner import (
 )
 
 
-# Function role: Implements the internal tool result helper for memory safety.
-# Same-file callers: _compile_and_run, run_asan, run_valgrind.
 def _tool_result(status: str, message: str, **extra: Any) -> dict[str, Any]:
-    # In-function documentation:
-    # Parameters:
-    #   - status: execution, provider, or workflow status being mapped or checked (type annotation: str).
-    #   - message: the message value used by this operation (type annotation: str).
-    #   - **extra: the extra value used by this operation (type annotation: Any).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: return the stage result.
+    # In simple terms: Helps with tool result.
+    # What the inputs mean:
+    # - status: the current result label.
+    # - message: the message used for this step.
+    # - extra: the extra used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     return {
         "status": status,
         "message": message,
@@ -41,9 +38,6 @@ def _tool_result(status: str, message: str, **extra: Any) -> dict[str, Any]:
     }
 
 
-# Function role: Compile a temporary diagnostic binary and run it with bounded resources.
-# Same-file callers: run_asan, run_valgrind.
-# Direct call references (conditional/branch-dependent): _tool_result.
 def _compile_and_run(
     source: str,
     stdin: str,
@@ -52,15 +46,14 @@ def _compile_and_run(
     address_space_limit_bytes: int | None = MEMORY_LIMIT_BYTES,
 ) -> dict[str, Any]:
     """Compile a temporary diagnostic binary and run it with bounded resources."""
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - stdin: the stdin value used by this operation (type annotation: str).
-    #   - compiler_flags: the compiler flags value used by this operation (type annotation: list[str]).
-    #   - runtime_command: the runtime command value used by this operation (type annotation: list[str]).
-    #   - address_space_limit_bytes: the address space limit bytes value used by this operation (type annotation: int | None); defaults to MEMORY_LIMIT_BYTES when omitted.
-    # Returns: a value of declared type dict[str, Any]; alternate return paths may produce a structured mapping assembled for the caller, the result produced by the delegated helper.
-    # Flow: manage a scoped resource.
+    # In simple terms: Compile a temporary diagnostic binary and run it with bounded resources.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - stdin: the stdin used for this step.
+    # - compiler_flags: the compiler flags used for this step.
+    # - runtime_command: the runtime command used for this step.
+    # - address_space_limit_bytes: the address space limit bytes used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     with tempfile.TemporaryDirectory(prefix="autograder-memory-") as directory:
         work = Path(directory)
         source_path = work / "submission.c"
@@ -174,16 +167,13 @@ def _compile_and_run(
         }
 
 
-# Function role: Run GCC AddressSanitizer and UndefinedBehaviorSanitizer diagnostics.
-# Direct call references (conditional/branch-dependent): _tool_result, _compile_and_run.
 def run_asan(source: str, stdin: str = "") -> dict[str, Any]:
     """Run GCC AddressSanitizer and UndefinedBehaviorSanitizer diagnostics."""
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - stdin: the stdin value used by this operation (type annotation: str); defaults to '' when omitted.
-    # Returns: a value of declared type dict[str, Any]; alternate return paths may produce the result produced by the delegated helper.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Run GCC AddressSanitizer and UndefinedBehaviorSanitizer diagnostics.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - stdin: the stdin used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(source, str) or not source.strip() or not isinstance(stdin, str):
         return _tool_result("invalid_request", "Source and input must be strings.")
 
@@ -220,16 +210,13 @@ def run_asan(source: str, stdin: str = "") -> dict[str, Any]:
     return result
 
 
-# Function role: Run Valgrind Memcheck when available.
-# Direct call references (conditional/branch-dependent): _tool_result, _compile_and_run.
 def run_valgrind(source: str, stdin: str = "") -> dict[str, Any]:
     """Run Valgrind Memcheck when available."""
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - stdin: the stdin value used by this operation (type annotation: str); defaults to '' when omitted.
-    # Returns: a value of declared type dict[str, Any]; alternate return paths may produce the result produced by the delegated helper.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Run Valgrind Memcheck when available.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - stdin: the stdin used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(source, str) or not source.strip() or not isinstance(stdin, str):
         return _tool_result("invalid_request", "Source and input must be strings.")
 
@@ -278,7 +265,6 @@ def run_valgrind(source: str, stdin: str = "") -> dict[str, Any]:
     return result
 
 
-# Function role: Run explicitly selected memory diagnostics independently.
 def analyze_memory_safety(
     source: str,
     stdin: str = "",
@@ -286,13 +272,12 @@ def analyze_memory_safety(
     tools: tuple[str, ...] = ("asan", "valgrind"),
 ) -> dict[str, Any]:
     """Run explicitly selected memory diagnostics independently."""
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - stdin: the stdin value used by this operation (type annotation: str); defaults to '' when omitted.
-    #   - tools: the tools value used by this operation (type annotation: tuple[str, ...]).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Run explicitly selected memory diagnostics independently.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - stdin: the stdin used for this step.
+    # - tools: the tools used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(source, str) or not source.strip() or not isinstance(stdin, str):
         return {
             "status": "invalid_request",

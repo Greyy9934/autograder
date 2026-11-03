@@ -1,13 +1,10 @@
-// Module role: Browser controller for editor, demo, instructor workflow, execution results, grading, and report downloads.
-// Normal call order: 01 submit/preflight; 02 Agent 1 schema; 03 instructor approval and Agent 2 references; 04 Agent 3 cases; 05 local execution and optional Agents 4-6; 06 grade and report. Branches can stop later stages.
+// In plain terms: This file makes the page buttons, forms, and result cards work together.
+// Usual journey: check the code, understand the problem, review reference answers, make tests, run the programs, then show the grade and report.
 (() => {
   "use strict";
 
   // Function role: Returns the first DOM element matching a CSS selector.
-  // Function details:
-  // Parameters:
-  //   - selector: CSS selector used to locate a DOM element.
-  // Returns: the expression immediately following =>.
+  // In everyday terms: Parameters:; selector: CSS selector used to locate a DOM element; Returns: the expression immediately following =>..
   const $ = (selector) => document.querySelector(selector);
 
   const editor = $("#source");
@@ -657,12 +654,7 @@ int main(void) {
 
       // Function role: Creates an SVG element, applies attributes, and optionally sets its text.
       const make = (tag, attrs, text) => {
-        // In-function documentation:
-        // Parameters:
-        //   - tag: element name to create.
-        //   - attrs: attributes to apply to the SVG element.
-        //   - text: plain text assigned to the created element.
-        // Returns: the computed result or no explicit value, as shown by the return statements below.
+        // In everyday terms: Parameters:; tag: element name to create; attrs: attributes to apply to the SVG element; text: plain text assigned to the created element; Returns: the computed result or no explicit value, as shown by the return statements below..
         const node = document.createElementNS(NS, tag);
         Object.entries(attrs || {}).forEach(([key, value]) =>
           node.setAttribute(key, String(value))
@@ -680,51 +672,30 @@ int main(void) {
       const logX = minX > 0 && maxX / minX >= 100;
       const logY = maxY / minY >= 10;
       // Function role: Maps an input size into the benchmark chart x-axis scale.
-      // Function details:
-      // Parameters:
-      //   - value: value transformed into chart coordinates or display text.
-      // Returns: the expression immediately following =>.
+      // In everyday terms: Parameters:; value: value transformed into chart coordinates or display text; Returns: the expression immediately following =>..
       const tx = value => logX ? Math.log10(Math.max(value, 1e-12)) : value;
       // Function role: Maps a runtime into the benchmark chart y-axis scale.
-      // Function details:
-      // Parameters:
-      //   - value: value transformed into chart coordinates or display text.
-      // Returns: the expression immediately following =>.
+      // In everyday terms: Parameters:; value: value transformed into chart coordinates or display text; Returns: the expression immediately following =>..
       const ty = value => logY ? Math.log10(Math.max(value, 1e-12)) : value;
       const xMin = tx(minX), xMax = tx(maxX), yMin = ty(minY), yMax = ty(maxY);
       // Function role: Converts an x-axis chart coordinate back to input size.
-      // Function details:
-      // Parameters:
-      //   - value: value transformed into chart coordinates or display text.
-      // Returns: the expression immediately following =>.
+      // In everyday terms: Parameters:; value: value transformed into chart coordinates or display text; Returns: the expression immediately following =>..
       const unTx = value => logX ? 10 ** value : value;
       // Function role: Converts a y-axis chart coordinate back to runtime.
-      // Function details:
-      // Parameters:
-      //   - value: value transformed into chart coordinates or display text.
-      // Returns: the expression immediately following =>.
+      // In everyday terms: Parameters:; value: value transformed into chart coordinates or display text; Returns: the expression immediately following =>..
       const unTy = value => logY ? 10 ** value : value;
       // Function role: Maps a value to a horizontal chart coordinate.
-      // Function details:
-      // Parameters:
-      //   - value: value transformed into chart coordinates or display text.
-      // Returns: the expression immediately following =>.
+      // In everyday terms: Parameters:; value: value transformed into chart coordinates or display text; Returns: the expression immediately following =>..
       const x = value => xMax === xMin
         ? left + width / 2
         : left + ((tx(value) - xMin) / (xMax - xMin)) * width;
       // Function role: Maps a value to a vertical chart coordinate.
-      // Function details:
-      // Parameters:
-      //   - value: value transformed into chart coordinates or display text.
-      // Returns: the expression immediately following =>.
+      // In everyday terms: Parameters:; value: value transformed into chart coordinates or display text; Returns: the expression immediately following =>..
       const y = value => yMax === yMin
         ? bottom - height / 2
         : bottom - ((ty(Math.max(value, 0.001)) - yMin) / (yMax - yMin)) * height;
       // Function role: Formats chart tick values compactly.
-      // Function details:
-      // Parameters:
-      //   - value: value transformed into chart coordinates or display text.
-      // Returns: the expression immediately following =>.
+      // In everyday terms: Parameters:; value: value transformed into chart coordinates or display text; Returns: the expression immediately following =>..
       const formatAxisValue = value =>
         value >= 10000 || (value > 0 && value < 0.01)
           ? value.toExponential(1)
@@ -778,10 +749,7 @@ int main(void) {
       } else {
         // Function role: Chooses a readable interval for linear chart ticks.
         const niceStep = raw => {
-          // In-function documentation:
-          // Parameters:
-          //   - raw: unscaled interval used to choose chart ticks.
-          // Returns: the computed result or no explicit value, as shown by the return statements below.
+          // In everyday terms: Parameters:; raw: unscaled interval used to choose chart ticks; Returns: the computed result or no explicit value, as shown by the return statements below..
           if (!(raw > 0)) return 1;
           const power = Math.pow(10, Math.floor(Math.log10(raw)));
           const fraction = raw / power;
@@ -960,10 +928,7 @@ int main(void) {
           kind = "student_mismatch";
           studentMismatches += 1;
           // Function role: Extracts the final output token for output-contract-aware comparisons.
-          // Function details:
-          // Parameters:
-          //   - value: value transformed into chart coordinates or display text.
-          // Returns: the expression immediately following =>.
+          // In everyday terms: Parameters:; value: value transformed into chart coordinates or display text; Returns: the expression immediately following =>..
           const finalToken = value => value.split(/\s+/).filter(Boolean).at(-1) || "";
           if (finalToken(studentOut) && finalToken(studentOut) === finalToken(bruteOut)) {
             possibleFormatOnlyMismatches += 1;
@@ -1076,11 +1041,7 @@ int main(void) {
     const spec = data?.assignment_spec || {};
     // Function role: Adds one labeled assignment detail section.
     const addSection = (title, value) => {
-      // In-function documentation:
-      // Parameters:
-      //   - title: section heading to display.
-      //   - value: value transformed into chart coordinates or display text.
-      // Returns: the computed result or no explicit value, as shown by the return statements below.
+      // In everyday terms: Parameters:; title: section heading to display; value: value transformed into chart coordinates or display text; Returns: the computed result or no explicit value, as shown by the return statements below..
       if (!value) return;
       const section = document.createElement("section");
       section.className = "result-section user-summary-section";
@@ -1348,12 +1309,7 @@ int main(void) {
     const checks = document.createElement("ul"); checks.className = "preflight-check-list";
     // Function role: Appends one labeled preflight check.
     const add = (label, detail, passed) => {
-      // In-function documentation:
-      // Parameters:
-      //   - label: value supplied to this helper as indicated by its name and call site.
-      //   - detail: value supplied to this helper as indicated by its name and call site.
-      //   - passed: value supplied to this helper as indicated by its name and call site.
-      // Returns: the computed result or no explicit value, as shown by the return statements below.
+      // In everyday terms: Parameters:; label: value supplied to this helper as indicated by its name and call site; detail: value supplied to this helper as indicated by its name and call site; passed: value supplied to this helper as indicated by its name and call site; Returns: the computed result or no explicit value, as shown by the return statements below..
       const item = document.createElement("li");
       const state = document.createElement("strong");
       state.textContent = passed ? "Passed" : "Needs attention";
@@ -1673,10 +1629,7 @@ int main(void) {
     }
 
     // Function role: Reads a numeric Agent 3 form value.
-    // Function details:
-    // Parameters:
-    //   - id: DOM id whose numeric field value is read.
-    // Returns: the expression immediately following =>.
+    // In everyday terms: Parameters:; id: DOM id whose numeric field value is read; Returns: the expression immediately following =>..
     const readNumber = id => Number($(id)?.value);
     const structuredMode = configureAgent3SchemaMode();
     const payload = {
@@ -1731,13 +1684,7 @@ int main(void) {
 
       // Function role: Creates a text-only DOM element for safe result rendering.
       const addText = (parent, tag, text, className) => {
-        // In-function documentation:
-        // Parameters:
-        //   - parent: DOM parent receiving the generated child.
-        //   - tag: element name to create.
-        //   - text: plain text assigned to the created element.
-        //   - className: value supplied to this helper as indicated by its name and call site.
-        // Returns: the computed result or no explicit value, as shown by the return statements below.
+        // In everyday terms: Parameters:; parent: DOM parent receiving the generated child; tag: element name to create; text: plain text assigned to the created element; className: value supplied to this helper as indicated by its name and call site; Returns: the computed result or no explicit value, as shown by the return statements below..
         const element = document.createElement(tag);
         element.textContent = text;
         if (className) element.className = className;
@@ -1747,12 +1694,7 @@ int main(void) {
 
       // Function role: Searches nested data for a field matching a label pattern.
       const findValue = (obj, pattern, depth = 0) => {
-        // In-function documentation:
-        // Parameters:
-        //   - obj: value supplied to this helper as indicated by its name and call site.
-        //   - pattern: pattern used to find a matching nested field.
-        //   - depth: current recursion depth, used to bound nested traversal.
-        // Returns: the computed result or no explicit value, as shown by the return statements below.
+        // In everyday terms: Parameters:; obj: value supplied to this helper as indicated by its name and call site; pattern: pattern used to find a matching nested field; depth: current recursion depth, used to bound nested traversal; Returns: the computed result or no explicit value, as shown by the return statements below..
         if (!obj || typeof obj !== "object" || depth > 6) return null;
         for (const [key, value] of Object.entries(obj)) {
           if (pattern.test(key) && value != null) return value;
@@ -2017,18 +1959,12 @@ int main(void) {
     const maxY = Math.max(...ys);
     const left = 68, right = 695, top = 24, bottom = 245;
     // Function role: Maps a value to a horizontal chart coordinate.
-    // Function details:
-    // Parameters:
-    //   - value: value transformed into chart coordinates or display text.
-    // Returns: the expression immediately following =>.
+    // In everyday terms: Parameters:; value: value transformed into chart coordinates or display text; Returns: the expression immediately following =>..
     const x = value => maxX === minX ? (left + right) / 2
       : left + (Math.log(Number(value)) - Math.log(minX)) /
         (Math.log(maxX) - Math.log(minX)) * (right - left);
     // Function role: Maps a value to a vertical chart coordinate.
-    // Function details:
-    // Parameters:
-    //   - value: value transformed into chart coordinates or display text.
-    // Returns: the expression immediately following =>.
+    // In everyday terms: Parameters:; value: value transformed into chart coordinates or display text; Returns: the expression immediately following =>..
     const y = value => maxY === minY ? (top + bottom) / 2
       : bottom - (Number(value) - minY) / (maxY - minY) * (bottom - top);
     for (let index = 0; index <= 4; index++) {
@@ -2041,12 +1977,7 @@ int main(void) {
     }
     // Function role: Creates an SVG element, applies attributes, and optionally sets its text.
     const make = (tag, attrs, text) => {
-      // In-function documentation:
-      // Parameters:
-      //   - tag: element name to create.
-      //   - attrs: attributes to apply to the SVG element.
-      //   - text: plain text assigned to the created element.
-      // Returns: the computed result or no explicit value, as shown by the return statements below.
+      // In everyday terms: Parameters:; tag: element name to create; attrs: attributes to apply to the SVG element; text: plain text assigned to the created element; Returns: the computed result or no explicit value, as shown by the return statements below..
       const node = document.createElementNS(NS, tag);
       Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, String(value)));
       if (text != null) node.textContent = text;

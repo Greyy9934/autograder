@@ -3,7 +3,7 @@
 The result is an AI-generated mathematical argument, not a mechanically
 verified formal proof.
 """
-# Module role: Implements the mathematical verification subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles mathematical verification, one part of the AutoGrader’s workflow.
 
 from typing import Any
 
@@ -62,14 +62,11 @@ VERIFICATION_SCHEMA = {
 }
 
 
-# Function role: Returns the module's standard invalid-input result without running analysis.
-# Same-file callers: verify_algorithm.
 def _invalid(message: str) -> dict[str, Any]:
-    # In-function documentation:
-    # Parameters:
-    #   - message: the message value used by this operation (type annotation: str).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: return the stage result.
+    # In simple terms: Helps with invalid.
+    # What the inputs mean:
+    # - message: the message used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     return {
         "status": "invalid_request",
         "formally_verified": False,
@@ -77,22 +74,18 @@ def _invalid(message: str) -> dict[str, Any]:
     }
 
 
-# Function role: Ask an AI reviewer for a rigorous, problem-specific correctness proof.
-# Numbered workflow order: 06.2b - Agent 5 advisory proof sketch/counterexample request.
-# Direct call references (conditional/branch-dependent): _invalid.
 def verify_algorithm(
     problem: dict[str, Any],
     algorithm: dict[str, Any],
     provider: AIProvider,
 ) -> dict[str, Any]:
     """Ask an AI reviewer for a rigorous, problem-specific correctness proof."""
-    # In-function documentation:
-    # Parameters:
-    #   - problem: the problem description or reconstructed problem record (type annotation: dict[str, Any]).
-    #   - algorithm: the algorithm value used by this operation (type annotation: dict[str, Any]).
-    #   - provider: the configured AI provider implementation used for one request (type annotation: AIProvider).
-    # Returns: a value of declared type dict[str, Any]; alternate return paths may produce the result produced by the delegated helper, a structured mapping assembled for the caller.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Ask an AI reviewer for a rigorous, problem-specific correctness proof.
+    # What the inputs mean:
+    # - problem: the reconstructed problem details.
+    # - algorithm: the algorithm used for this step.
+    # - provider: the selected AI service.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(problem, dict) or not isinstance(algorithm, dict):
         return _invalid("Problem and algorithm must be structured objects.")
 

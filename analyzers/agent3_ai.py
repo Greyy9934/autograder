@@ -1,7 +1,7 @@
 """AI-authored Agent 3A generator and Agent 3B edge-case analysis."""
 from __future__ import annotations
-# Module role: Builds Agent 3A/3B AI requests, runs the generated Python generator under Bubblewrap, and validates every concrete case.
-# Core concept: AI-generated test-generator code is untrusted. Bubblewrap/prlimit limits its process, then server-side parsing and the approved schema validate its output before C programs see it.
+# In plain terms: This file asks AI to suggest test inputs, runs the generated helper safely, and checks every input before use.
+# Why it matters: AI-written test-making code is treated as untrusted: it runs in a restricted environment, and its proposed inputs still have to pass our own checks.
 
 import json
 import signal
@@ -68,17 +68,14 @@ EDGE_SCHEMA = {
 }
 
 
-# Function role: Calls the shared provider with an agent task and response schema, converting provider exceptions into a stage result.
-# Same-file callers: generate_agent3a_program, analyze_agent3b_edges.
 def _ask(provider: AIProvider, task: str, payload: dict, schema: dict) -> dict:
-    # In-function documentation:
-    # Parameters:
-    #   - provider: the configured AI provider implementation used for one request (type annotation: AIProvider).
-    #   - task: the task value used by this operation (type annotation: str).
-    #   - payload: the request data being sent across an API/provider boundary (type annotation: dict).
-    #   - schema: declared data contract inputs or results must satisfy (type annotation: dict).
-    # Returns: a value of declared type dict; alternate return paths may produce a structured mapping assembled for the caller.
-    # Flow: convert expected failures into controlled results; branch on validation or workflow conditions; return the stage result.
+    # In simple terms: Helps with ask.
+    # What the inputs mean:
+    # - provider: the selected AI service.
+    # - task: the task used for this step.
+    # - payload: the information being sent to an AI service.
+    # - schema: the schema used for this step.
+    # What it gives back: It returns the dict result.
     try:
         result = provider.generate_json(
             task=task, payload=payload, schema=schema
@@ -92,9 +89,6 @@ def _ask(provider: AIProvider, task: str, payload: dict, schema: dict) -> dict:
     return result
 
 
-# Function role: Ask AI for a complete problem-specific executable test generator.
-# Numbered workflow order: 05.2a - Agent 3A generator-program request with the approved schema and all implementations.
-# Direct call references (conditional/branch-dependent): _approved_execution_contract, _ask.
 def generate_agent3a_program(
     provider: AIProvider,
     *,
@@ -106,17 +100,16 @@ def generate_agent3a_program(
     requested_distribution: str = "uniform",
 ) -> dict:
     """Ask AI for a complete problem-specific executable test generator."""
-    # In-function documentation:
-    # Parameters:
-    #   - provider: the configured AI provider implementation used for one request (type annotation: AIProvider).
-    #   - problem: the problem description or reconstructed problem record (type annotation: dict).
-    #   - schema: declared data contract inputs or results must satisfy (type annotation: dict).
-    #   - references: the references value used by this operation (type annotation: dict).
-    #   - student_source: the student program source used as the comparison candidate (type annotation: str).
-    #   - max_cases: the max cases value used by this operation (type annotation: int).
-    #   - requested_distribution: the requested distribution value used by this operation (type annotation: str).
-    # Returns: a value of declared type dict; alternate return paths may produce a structured mapping assembled for the caller, the computed result value.
-    # Flow: branch on validation or workflow conditions.
+    # In simple terms: Asks AI to write a small program that creates test inputs for this problem.
+    # What the inputs mean:
+    # - provider: the selected AI service.
+    # - problem: the reconstructed problem details.
+    # - schema: the schema used for this step.
+    # - references: the references used for this step.
+    # - student_source: the student’s C code.
+    # - max_cases: the most test inputs to accept.
+    # - requested_distribution: the requested distribution used for this step.
+    # What it gives back: It returns the dict result.
     if not isinstance(problem, dict) or not isinstance(schema, dict):
         return {"status": "invalid_request"}
     if not isinstance(references, dict) or not isinstance(student_source, str):
@@ -227,16 +220,13 @@ def generate_agent3a_program(
     }
 
 
-# Function role: Return semantic size; never trust a generator-supplied size label.
-# Same-file callers: execute_agent3a_program.
 def _schema_input_size(schema, text: str) -> int:
     """Return semantic size; never trust a generator-supplied size label."""
-    # In-function documentation:
-    # Parameters:
-    #   - schema: declared data contract inputs or results must satisfy.
-    #   - text: source or display text being parsed or rendered (type annotation: str).
-    # Returns: a value of declared type int.
-    # Flow: branch on validation or workflow conditions; stop with an explicit error.
+    # In simple terms: Return semantic size; never trust a generator-supplied size label.
+    # What the inputs mean:
+    # - schema: the schema used for this step.
+    # - text: the text being parsed or shown.
+    # What it gives back: It returns the int result.
     if isinstance(schema, StructuredIntegerInputSchema):
         return schema.input_size(text)
     if isinstance(schema, IntegerInputSchema):
@@ -244,27 +234,21 @@ def _schema_input_size(schema, text: str) -> int:
     raise ValueError("Unsupported input schema.")
 
 
-# Function role: Checks that the schema belongs to the explicitly supported integer grammar implementation.
-# Same-file callers: execute_agent3a_program, validate_agent3b_edges.
 def _supported_input_schema(schema) -> bool:
-    # In-function documentation:
-    # Parameters:
-    #   - schema: declared data contract inputs or results must satisfy.
-    # Returns: a value of declared type bool.
-    # Flow: return the stage result.
+    # In simple terms: Helps with supported input schema.
+    # What the inputs mean:
+    # - schema: the schema used for this step.
+    # What it gives back: It returns yes or no.
     return isinstance(schema, (IntegerInputSchema, StructuredIntegerInputSchema))
 
 
-# Function role: Explain a rejected stdin without exposing its contents in the UI.
-# Same-file callers: execute_agent3a_program.
 def _input_schema_error(schema, text: str) -> str:
     """Explain a rejected stdin without exposing its contents in the UI."""
-    # In-function documentation:
-    # Parameters:
-    #   - schema: declared data contract inputs or results must satisfy.
-    #   - text: source or display text being parsed or rendered (type annotation: str).
-    # Returns: a value of declared type str; alternate return paths may produce the result produced by the delegated helper, the result of the final transformation or check.
-    # Flow: branch on validation or workflow conditions; return the stage result.
+    # In simple terms: Explain a rejected stdin without exposing its contents in the UI.
+    # What the inputs mean:
+    # - schema: the schema used for this step.
+    # - text: the text being parsed or shown.
+    # What it gives back: It returns text.
     if isinstance(schema, StructuredIntegerInputSchema):
         try:
             schema.parse(text)
@@ -283,16 +267,13 @@ def _input_schema_error(schema, text: str) -> str:
     return "input does not match the declared grammar"
 
 
-# Function role: Create the canonical Agent 3 I/O contract and reject any missing or drifting term.
-# Same-file callers: generate_agent3a_program, analyze_agent3b_edges.
 def _approved_execution_contract(problem: dict, schema: dict) -> dict:
     """Create the canonical Agent 3 I/O contract and reject any missing or drifting term."""
-    # In-function documentation:
-    # Parameters:
-    #   - problem: the problem description or reconstructed problem record (type annotation: dict).
-    #   - schema: declared data contract inputs or results must satisfy (type annotation: dict).
-    # Returns: a value of declared type dict.
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions; convert expected failures into controlled results.
+    # In simple terms: Create the canonical Agent 3 I/O contract and reject any missing or drifting term.
+    # What the inputs mean:
+    # - problem: the reconstructed problem details.
+    # - schema: the schema used for this step.
+    # What it gives back: It returns the dict result.
     approved_schema = problem.get("input_schema")
     if not isinstance(approved_schema, dict) or not isinstance(schema, dict):
         raise ValueError("Both the confirmed assignment and execution request must include input_schema.")
@@ -324,9 +305,6 @@ def _approved_execution_contract(problem: dict, schema: dict) -> dict:
     }
 
 
-# Function role: Runs AI-authored Python generator code through Bubblewrap with no network namespace, a read-only runtime, temporary storage, and CPU/address-space/file/output limits. Generated text is still treated as untrusted and schema-validated after the process exits.
-# Numbered workflow order: 05.2b - run the generator in a restricted sandbox, then validate returned cases.
-# Direct call references (conditional/branch-dependent): _supported_input_schema, _input_schema_error, _schema_input_size.
 def execute_agent3a_program(
     program: dict,
     *,
@@ -336,15 +314,14 @@ def execute_agent3a_program(
     timeout_seconds: float = 5.0,
 ) -> dict:
     """Execute AI generator in bwrap and validate every generated stdin."""
-    # In-function documentation:
-    # Parameters:
-    #   - program: candidate executable or program record being run or analyzed (type annotation: dict).
-    #   - seed: deterministic random seed used to make generated cases repeatable (type annotation: int).
-    #   - schema: declared data contract inputs or results must satisfy (type annotation: IntegerInputSchema).
-    #   - max_cases: the max cases value used by this operation (type annotation: int).
-    #   - timeout_seconds: the timeout seconds value used by this operation (type annotation: float).
-    # Returns: a value of declared type dict.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Runs the test-making program safely and checks each input before accepting it.
+    # What the inputs mean:
+    # - program: the program being checked or run.
+    # - seed: the starting number that makes random test generation repeatable.
+    # - schema: the schema used for this step.
+    # - max_cases: the most test inputs to accept.
+    # - timeout_seconds: the maximum time allowed for this run.
+    # What it gives back: It returns the dict result.
     if not isinstance(program, dict):
         return {"status": "invalid_request", "inputs": []}
     code = program.get("generator_program")
@@ -493,9 +470,6 @@ def execute_agent3a_program(
         },
     }
 
-# Function role: Ask AI for concrete, implementation-aware edge cases.
-# Numbered workflow order: 05.3a - Agent 3B targeted-edge-case request.
-# Direct call references (conditional/branch-dependent): _approved_execution_contract, _ask.
 def analyze_agent3b_edges(
     provider: AIProvider,
     *,
@@ -505,15 +479,14 @@ def analyze_agent3b_edges(
     student_source: str,
 ) -> dict:
     """Ask AI for concrete, implementation-aware edge cases."""
-    # In-function documentation:
-    # Parameters:
-    #   - provider: the configured AI provider implementation used for one request (type annotation: AIProvider).
-    #   - problem: the problem description or reconstructed problem record (type annotation: dict).
-    #   - schema: declared data contract inputs or results must satisfy (type annotation: dict).
-    #   - references: the references value used by this operation (type annotation: dict).
-    #   - student_source: the student program source used as the comparison candidate (type annotation: str).
-    # Returns: a value of declared type dict; alternate return paths may produce a structured mapping assembled for the caller, the computed result value.
-    # Flow: branch on validation or workflow conditions; convert expected failures into controlled results; derive or store intermediate values.
+    # In simple terms: Ask AI for concrete, implementation-aware edge cases.
+    # What the inputs mean:
+    # - provider: the selected AI service.
+    # - problem: the reconstructed problem details.
+    # - schema: the schema used for this step.
+    # - references: the references used for this step.
+    # - student_source: the student’s C code.
+    # What it gives back: It returns the dict result.
     if not isinstance(problem, dict) or not isinstance(schema, dict):
         return {"status": "invalid_request"}
     if not isinstance(references, dict) or not isinstance(student_source, str):
@@ -584,21 +557,17 @@ def analyze_agent3b_edges(
     }
 
 
-# Function role: Validate concrete Agent 3B inputs before they reach C execution.
-# Numbered workflow order: 05.3b - enforce the same approved input schema on proposed edge cases.
-# Direct call references (conditional/branch-dependent): _supported_input_schema.
 def validate_agent3b_edges(
     proposal: dict,
     *,
     schema: IntegerInputSchema,
 ) -> dict:
     """Validate concrete Agent 3B inputs before they reach C execution."""
-    # In-function documentation:
-    # Parameters:
-    #   - proposal: the proposal value used by this operation (type annotation: dict).
-    #   - schema: declared data contract inputs or results must satisfy (type annotation: IntegerInputSchema).
-    # Returns: a value of declared type dict.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values; iterate through input or evidence items.
+    # In simple terms: Checks AI-suggested tricky inputs against the approved input rules.
+    # What the inputs mean:
+    # - proposal: the proposal used for this step.
+    # - schema: the schema used for this step.
+    # What it gives back: It returns the dict result.
     if not _supported_input_schema(schema):
         return {"status": "unsupported_schema", "cases": []}
     if not isinstance(proposal, dict) or not isinstance(proposal.get("cases"), list):

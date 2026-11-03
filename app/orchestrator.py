@@ -1,10 +1,5 @@
 """Application-level coordination for AutoGrader."""
-# Module role: Coordinates preparation and evidence stages; keeps the overall workflow policy out of individual analyzers.
-# Numbered call order for the normal complete workflow (branches can stop or skip stages):
-#   01 evaluate_submission: source risks and preflight -> compile -> Agent 1 reconstruction/schema.
-#   02 after instructor approval, generate_reference_solutions_for_confirmed_spec gates and calls Agent 2.
-#   03 evaluate_execution_evidence validates source/spec identity, folds execution evidence, and conditionally calls Agents 4 and 5.
-#   04 app.web.py completes Agent 6, then derives metric scores, applies grading rules, and stores a grade snapshot.
+# In plain terms: This file puts the analysis stages in the right order and combines their results.
 #   Branches may stop early; the numbered sequence describes the intended full workflow.
 
 import hashlib
@@ -27,15 +22,12 @@ from app.metric_scoring import derive_metric_scores
 from app.runner import compile_c_source
 
 
-# Function role: Attach a conservative, rule-driven grade to any evaluation result.
-# Same-file callers: evaluate_execution_evidence, evaluate_submission.
 def _attach_grading(result: dict[str, Any]) -> dict[str, Any]:
     """Attach a conservative, rule-driven grade to any evaluation result."""
-    # In-function documentation:
-    # Parameters:
-    #   - result: the result value used by this operation (type annotation: dict[str, Any]).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: convert expected failures into controlled results; return the stage result.
+    # In simple terms: Attach a conservative, rule-driven grade to any evaluation result.
+    # What the inputs mean:
+    # - result: the result used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     try:
         scores = derive_metric_scores(result)
         result["metric_scores"] = scores
@@ -52,14 +44,11 @@ def _attach_grading(result: dict[str, Any]) -> dict[str, Any]:
 
 
 
-# Function role: Implements the internal compact complexity static helper for orchestrator.
-# Same-file callers: evaluate_execution_evidence.
 def _compact_complexity_static(value: Any) -> dict[str, Any] | None:
-    # In-function documentation:
-    # Parameters:
-    #   - value: single value being parsed, validated, normalized, scored, or formatted (type annotation: Any).
-    # Returns: a value of declared type dict[str, Any] | None.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Helps with compact complexity static.
+    # What the inputs mean:
+    # - value: the particular value being checked or changed.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(value, dict):
         return None
     keys = (
@@ -77,14 +66,11 @@ def _compact_complexity_static(value: Any) -> dict[str, Any] | None:
     return compact
 
 
-# Function role: Implements the internal compact complexity benchmark helper for orchestrator.
-# Same-file callers: evaluate_execution_evidence.
 def _compact_complexity_benchmark(value: Any) -> dict[str, Any] | None:
-    # In-function documentation:
-    # Parameters:
-    #   - value: single value being parsed, validated, normalized, scored, or formatted (type annotation: Any).
-    # Returns: a value of declared type dict[str, Any] | None.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Helps with compact complexity benchmark.
+    # What the inputs mean:
+    # - value: the particular value being checked or changed.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(value, dict):
         return None
     chart = [
@@ -112,14 +98,11 @@ def _compact_complexity_benchmark(value: Any) -> dict[str, Any] | None:
     }
 
 
-# Function role: Implements the internal compact complexity analysis helper for orchestrator.
-# Same-file callers: evaluate_execution_evidence.
 def _compact_complexity_analysis(value: Any) -> dict[str, Any] | None:
-    # In-function documentation:
-    # Parameters:
-    #   - value: single value being parsed, validated, normalized, scored, or formatted (type annotation: Any).
-    # Returns: a value of declared type dict[str, Any] | None.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values; return the stage result.
+    # In simple terms: Helps with compact complexity analysis.
+    # What the inputs mean:
+    # - value: the particular value being checked or changed.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(value, dict):
         return None
     analysis = value.get("ai_analysis") if isinstance(value.get("ai_analysis"), dict) else {}
@@ -133,9 +116,6 @@ def _compact_complexity_analysis(value: Any) -> dict[str, Any] | None:
     }
 
 
-# Function role: Run execution-dependent checks after preparation is complete.
-# Numbered workflow order: 06.3 - consolidate execution evidence and attach deterministic metrics/grade.
-# Direct call references (conditional/branch-dependent): _attach_grading, _compact_complexity_static, _compact_complexity_benchmark, _compact_complexity_analysis.
 def evaluate_execution_evidence(
     source: str,
     prepared_result: dict[str, Any],
@@ -152,22 +132,21 @@ def evaluate_execution_evidence(
     complexity_benchmark: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run execution-dependent checks after preparation is complete."""
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - prepared_result: the prepared result value used by this operation (type annotation: dict[str, Any]).
-    #   - test_cases: generated or supplied inputs to execute and compare (type annotation: list[dict[str, Any]] | None); defaults to None when omitted.
-    #   - run_memory_diagnostics: the run memory diagnostics value used by this operation (type annotation: bool).
-    #   - memory_diagnostic_stdin: the memory diagnostic stdin value used by this operation (type annotation: str).
-    #   - provider: the configured AI provider implementation used for one request (type annotation: Any).
-    #   - adversarial_plan: the adversarial plan value used by this operation (type annotation: dict[str, Any] | None).
-    #   - random_test_inputs: the random test inputs value used by this operation (type annotation: list[str] | None).
-    #   - generated_test_plans: the generated test plans value used by this operation (type annotation: dict[str, Any] | None).
-    #   - run_complexity_analysis: the run complexity analysis value used by this operation (type annotation: bool).
-    #   - agent3b_execution: the agent3b execution value used by this operation (type annotation: dict[str, Any] | None).
-    #   - complexity_benchmark: the complexity benchmark value used by this operation (type annotation: dict[str, Any] | None).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Run execution-dependent checks after preparation is complete.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - prepared_result: the prepared result used for this step.
+    # - test_cases: the example inputs used for checking programs.
+    # - run_memory_diagnostics: the run memory diagnostics used for this step.
+    # - memory_diagnostic_stdin: the memory diagnostic stdin used for this step.
+    # - provider: the selected AI service.
+    # - adversarial_plan: the adversarial plan used for this step.
+    # - random_test_inputs: the random test inputs used for this step.
+    # - generated_test_plans: the generated test plans used for this step.
+    # - run_complexity_analysis: the run complexity analysis used for this step.
+    # - agent3b_execution: the agent3b execution used for this step.
+    # - complexity_benchmark: the complexity benchmark used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     import copy
 
     result = copy.deepcopy(prepared_result)
@@ -371,8 +350,6 @@ def evaluate_execution_evidence(
     return _attach_grading(result)
 
 
-# Function role: Run Agent 2 only after explicit instructor approval.
-# Numbered workflow order: 04.1 - Agent 2 orchestration and confirmation/schema gate.
 def generate_reference_solutions_for_confirmed_spec(
     spec: Any,
     provider: Any = None,
@@ -380,13 +357,12 @@ def generate_reference_solutions_for_confirmed_spec(
     user_supplied_problem_statement: str | None = None,
 ) -> dict[str, Any]:
     """Run Agent 2 only after explicit instructor approval."""
-    # In-function documentation:
-    # Parameters:
-    #   - spec: the specification or configuration record being validated or consumed (type annotation: Any).
-    #   - provider: the configured AI provider implementation used for one request (type annotation: Any); defaults to None when omitted.
-    #   - user_supplied_problem_statement: the user supplied problem statement value used by this operation (type annotation: str | None).
-    # Returns: a value of declared type dict[str, Any]; alternate return paths may produce a structured mapping assembled for the caller.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Run Agent 2 only after explicit instructor approval.
+    # What the inputs mean:
+    # - spec: the settings or assignment details used here.
+    # - provider: the selected AI service.
+    # - user_supplied_problem_statement: the user supplied problem statement used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     from analyzers.assignment_spec import AssignmentSpec
     from analyzers.reference_solutions import generate_reference_solutions
 
@@ -422,9 +398,6 @@ def generate_reference_solutions_for_confirmed_spec(
     return result
 
 
-# Function role: Run preflight and heuristic source-risk analysis, then optional.
-# Numbered workflow order: 02.1 - preparation coordinator: source analysis, preflight, compile, then Agent 1.
-# Direct call references (conditional/branch-dependent): _attach_grading.
 def evaluate_submission(
     source: str,
     problem_statement: str | None = None,
@@ -440,18 +413,17 @@ def evaluate_submission(
     Run preflight and heuristic source-risk analysis, then optional
     problem reconstruction. Source-risk findings are not confirmed bugs.
     """
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - problem_statement: the natural-language task description being reconstructed or analyzed (type annotation: str | None); defaults to None when omitted.
-    #   - test_cases: generated or supplied inputs to execute and compare (type annotation: list[dict[str, Any]] | None); defaults to None when omitted.
-    #   - provider: the configured AI provider implementation used for one request (type annotation: Any).
-    #   - rules_path: the rules path value used by this operation (type annotation: str | None).
-    #   - run_memory_diagnostics: the run memory diagnostics value used by this operation (type annotation: bool).
-    #   - generate_edge_case_inputs: the inputs used to construct or generate generate edge case inputs (type annotation: bool).
-    #   - edge_case_input_bounds: the edge case input bounds value used by this operation (type annotation: dict[str, int] | None).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Run preflight and heuristic source-risk analysis, then optional
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - problem_statement: the problem description, if one was supplied.
+    # - test_cases: the example inputs used for checking programs.
+    # - provider: the selected AI service.
+    # - rules_path: the location of the grading rules file.
+    # - run_memory_diagnostics: the run memory diagnostics used for this step.
+    # - generate_edge_case_inputs: the generate edge case inputs used for this step.
+    # - edge_case_input_bounds: the edge case input bounds used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     source_risks = analyze_source_risks(source)
 
     preflight_result = (

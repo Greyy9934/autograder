@@ -1,5 +1,5 @@
 """Provider-independent validation and safety boundary for AI agents."""
-# Module role: Validates AI input/output JSON sizes and schemas at the shared provider boundary.
+# In plain terms: This file checks that AI requests and replies are a safe size and have the fields the app expects.
 
 import json
 import os
@@ -13,15 +13,12 @@ from app.ai.base import AIProviderError
 class GuardedProvider:
     """Validate all AI inputs and outputs before they enter the application."""
 
-    # Function role: Initializes the object and its validated dependencies.
-    # Context: method/helper owned by GuardedProvider; it is reached through that object's workflow.
     def __init__(self, provider: Any) -> None:
-        # In-function documentation:
-        # Parameters:
-        #   - provider: the configured AI provider implementation used for one request (type annotation: Any).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: no value (None); work is performed through side effects or validation.
-        # Flow: derive or store intermediate values.
+        # In simple terms: Sets up .
+        # What the inputs mean:
+        # - provider: the selected AI service.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It does its work and does not return a value.
         self.provider = provider
         self.max_payload_bytes = int(
             os.getenv("AUTOGRADER_AI_MAX_PAYLOAD_BYTES", "1048576")
@@ -35,17 +32,13 @@ class GuardedProvider:
                 category="configuration_error",
             )
 
-    # Function role: Implements the internal encode helper for guardrails.
-    # Context: method/helper owned by GuardedProvider; it is reached through that object's workflow.
-    # Same-file callers: generate_json.
     @staticmethod
     def _encode(value: Any, label: str) -> bytes:
-        # In-function documentation:
-        # Parameters:
-        #   - value: single value being parsed, validated, normalized, scored, or formatted (type annotation: Any).
-        #   - label: the label value used by this operation (type annotation: str).
-        # Returns: a value of declared type bytes.
-        # Flow: convert expected failures into controlled results.
+        # In simple terms: Helps with encode.
+        # What the inputs mean:
+        # - value: the particular value being checked or changed.
+        # - label: the label used for this step.
+        # What it gives back: It returns the bytes result.
         try:
             return json.dumps(
                 value,
@@ -59,24 +52,19 @@ class GuardedProvider:
                 category="invalid_input",
             ) from exc
 
-    # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
-    # Context: method/helper owned by GuardedProvider; it is reached through that object's workflow.
-    # Same-file callers: generate_json.
-    # Direct call references (conditional/branch-dependent): _encode, generate_json.
     def generate_json(
         self,
         task: str,
         payload: dict[str, Any],
         schema: dict[str, Any],
     ) -> dict[str, Any]:
-        # In-function documentation:
-        # Parameters:
-        #   - task: the task value used by this operation (type annotation: str).
-        #   - payload: the request data being sent across an API/provider boundary (type annotation: dict[str, Any]).
-        #   - schema: declared data contract inputs or results must satisfy (type annotation: dict[str, Any]).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: a value of declared type dict[str, Any].
-        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+        # In simple terms: Creates json.
+        # What the inputs mean:
+        # - task: the task used for this step.
+        # - payload: the information being sent to an AI service.
+        # - schema: the schema used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns a set of named results for the next step.
         if not isinstance(task, str) or not task.strip():
             raise AIProviderError(
                 "AI task must be a non-empty string.",

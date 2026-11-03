@@ -1,5 +1,5 @@
 """Strict, deterministic schemas for whitespace-separated integer input."""
-# Module role: Parses, validates, sizes, and deterministically generates supported integer-token input grammars.
+# In plain terms: This file describes the allowed input fields and checks that each test case follows those rules.
 
 from dataclasses import dataclass
 import random
@@ -12,14 +12,11 @@ class StructuredIntegerInputSchema:
     size_field: str | None = None
     version: int = 1
 
-    # Function role: Validates the constructed data object's invariants and canonicalizes supported fields.
-    # Context: method/helper owned by StructuredIntegerInputSchema; it is reached through that object's workflow.
     def __post_init__(self):
-        # In-function documentation:
-        # Parameters: none.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the operation result consumed by its caller.
-        # Flow: branch on validation or workflow conditions; derive or store intermediate values; iterate through input or evidence items.
+        # In simple terms: Checks the new object .
+        # This function takes no named inputs.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         if self.version != 1 or not isinstance(self.fields, tuple) or not self.fields:
             raise ValueError("Schema version 1 requires a non-empty fields tuple.")
         if len(self.fields) > 20:
@@ -57,16 +54,13 @@ class StructuredIntegerInputSchema:
             if known[self.size_field]["type"] not in {"int", "int_array"}:
                 raise ValueError("size_field must name an int or int_array field.")
 
-    # Function role: Builds a validated model from the external dictionary representation.
-    # Context: method/helper owned by StructuredIntegerInputSchema; it is reached through that object's workflow.
     @classmethod
     def from_dict(cls, data):
-        # In-function documentation:
-        # Parameters:
-        #   - data: structured input record consumed by this operation.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the result produced by the delegated helper.
-        # Flow: branch on validation or workflow conditions; derive or store intermediate values; return the stage result.
+        # In simple terms: Helps with from dict.
+        # What the inputs mean:
+        # - data: the information this function is working with.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         if not isinstance(data, dict) or set(data) - {"version", "fields", "size_field"}:
             raise ValueError("Invalid structured input schema object.")
         fields = data.get("fields")
@@ -78,30 +72,23 @@ class StructuredIntegerInputSchema:
             version=data.get("version", 1),
         )
 
-    # Function role: Serializes the internal model to the stable plain-dictionary shape used by API and persistence boundaries.
-    # Context: method/helper owned by StructuredIntegerInputSchema; it is reached through that object's workflow.
     def to_dict(self):
-        # In-function documentation:
-        # Parameters: none.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: a structured mapping assembled for the caller.
-        # Flow: return the stage result.
+        # In simple terms: Helps with to dict.
+        # This function takes no named inputs.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         return {
             "version": self.version,
             "fields": [dict(field) for field in self.fields],
             "size_field": self.size_field,
         }
 
-    # Function role: Parses input according to the declared grammar and rejects missing, extra, or out-of-range values.
-    # Context: method/helper owned by StructuredIntegerInputSchema; it is reached through that object's workflow.
-    # Same-file callers: validate, input_size.
     def parse(self, text):
-        # In-function documentation:
-        # Parameters:
-        #   - text: source or display text being parsed or rendered.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the computed values value.
-        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+        # In simple terms: Turns the current details into a simple set of named values for the next step.
+        # What the inputs mean:
+        # - text: the text being parsed or shown.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         if not isinstance(text, str):
             raise ValueError("Input must be text.")
         tokens = text.split()
@@ -133,33 +120,24 @@ class StructuredIntegerInputSchema:
             raise ValueError("Input contains unexpected extra values.")
         return values
 
-    # Function role: Checks the supplied value against this module's explicit contract and returns a validation result.
-    # Context: method/helper owned by StructuredIntegerInputSchema; it is reached through that object's workflow.
-    # Same-file callers: generate.
-    # Direct call references (conditional/branch-dependent): parse.
     def validate(self, text):
-        # In-function documentation:
-        # Parameters:
-        #   - text: source or display text being parsed or rendered.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: a boolean indicating whether the condition passed.
-        # Flow: convert expected failures into controlled results.
+        # In simple terms: Helps with validate.
+        # What the inputs mean:
+        # - text: the text being parsed or shown.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         try:
             self.parse(text)
             return True
         except (TypeError, ValueError):
             return False
 
-    # Function role: Implements input size for structured input schema using this module's input and result contracts.
-    # Context: method/helper owned by StructuredIntegerInputSchema; it is reached through that object's workflow.
-    # Direct call references (conditional/branch-dependent): parse.
     def input_size(self, text):
-        # In-function documentation:
-        # Parameters:
-        #   - text: source or display text being parsed or rendered.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the result produced by the delegated helper; alternate return paths may produce the value selected by the conditional result.
-        # Flow: derive or store intermediate values; branch on validation or workflow conditions; return the stage result.
+        # In simple terms: Checks that the supplied information follows the rules and reports whether it is usable.
+        # What the inputs mean:
+        # - text: the text being parsed or shown.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         values = self.parse(text)
         if self.size_field:
             selected = values[self.size_field]
@@ -169,9 +147,6 @@ class StructuredIntegerInputSchema:
             for field in self.fields
         )
 
-    # Function role: Produces cases from the supplied schema, random seed, and selected distribution.
-    # Context: method/helper owned by StructuredIntegerInputSchema; it is reached through that object's workflow.
-    # Direct call references (conditional/branch-dependent): validate.
     def generate(
         self,
         rng: random.Random,
@@ -179,14 +154,13 @@ class StructuredIntegerInputSchema:
         *,
         max_array_length: int = 512,
     ):
-        # In-function documentation:
-        # Parameters:
-        #   - rng: the rng value used by this operation (type annotation: random.Random).
-        #   - distribution: sampling strategy used to generate values; defaults to 'uniform' when omitted.
-        #   - max_array_length: the max array length value used by this operation (type annotation: int).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the computed result value.
-        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+        # In simple terms: Helps with generate.
+        # What the inputs mean:
+        # - rng: the rng used for this step.
+        # - distribution: the way random values should be chosen.
+        # - max_array_length: the max array length used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         if distribution not in {
             "uniform", "boundary_biased", "duplicate_heavy",
             "sorted", "reverse_sorted",

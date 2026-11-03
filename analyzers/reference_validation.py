@@ -1,5 +1,5 @@
 """Deterministic checks for generated reference programs."""
-# Module role: Implements the reference validation subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles reference validation, one part of the AutoGrader’s workflow.
 
 from typing import Any
 
@@ -7,19 +7,16 @@ from analyzers.batch_execution import run_c_batch
 from analyzers.output_contract import normalize_stdout
 
 
-# Function role: Run a candidate reference against cases; never infer a proof.
-# Same-file callers: validate_reference_pair.
 def validate_reference_program(
     source: str,
     test_cases: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """Run a candidate reference against cases; never infer a proof."""
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - test_cases: generated or supplied inputs to execute and compare (type annotation: list[dict[str, Any]]).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values; iterate through input or evidence items.
+    # In simple terms: Run a candidate reference against cases; never infer a proof.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - test_cases: the example inputs used for checking programs.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(source, str) or not source.strip():
         return {
             "status": "invalid_request",
@@ -136,21 +133,18 @@ def validate_reference_program(
     }
 
 
-# Function role: Compare two candidate references on the same supplied cases.
-# Direct call references (conditional/branch-dependent): validate_reference_program.
 def validate_reference_pair(
     brute_force_source: str,
     efficient_source: str,
     test_cases: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """Compare two candidate references on the same supplied cases."""
-    # In-function documentation:
-    # Parameters:
-    #   - brute_force_source: the brute-force reference source used to check correctness (type annotation: str).
-    #   - efficient_source: the efficient reference source used to check correctness and performance (type annotation: str).
-    #   - test_cases: generated or supplied inputs to execute and compare (type annotation: list[dict[str, Any]]).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Compare two candidate references on the same supplied cases.
+    # What the inputs mean:
+    # - brute_force_source: the slow reference C code used on small cases.
+    # - efficient_source: the faster reference C code.
+    # - test_cases: the example inputs used for checking programs.
+    # What it gives back: It returns a set of named results for the next step.
     brute = validate_reference_program(brute_force_source, test_cases)
     efficient = validate_reference_program(efficient_source, test_cases)
 

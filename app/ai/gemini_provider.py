@@ -1,5 +1,5 @@
 """Gemini implementation of the provider-independent AI interface."""
-# Module role: Implements the shared AI protocol with Gemini's JSON response mode and categorized provider errors.
+# In plain terms: This file sends requests to Gemini and turns its replies and errors into results the app can handle.
 
 import json
 import os
@@ -11,15 +11,12 @@ from app.ai.base import AIProviderError
 _RETRYABLE_CODES = {429, 500, 502, 503, 504}
 
 
-# Function role: Convert SDK exceptions into safe, stable application error categories.
-# Same-file callers: generate_json.
 def _classify_error(exc: Exception) -> AIProviderError:
     """Convert SDK exceptions into safe, stable application error categories."""
-    # In-function documentation:
-    # Parameters:
-    #   - exc: caught exception whose type and message determine the failure result (type annotation: Exception).
-    # Returns: a value of declared type AIProviderError.
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Convert SDK exceptions into safe, stable application error categories.
+    # What the inputs mean:
+    # - exc: the caught error being handled.
+    # What it gives back: It returns the AIProvider Error result.
     code = getattr(exc, "code", None)
     if not isinstance(code, int):
         code = None
@@ -62,8 +59,6 @@ def _classify_error(exc: Exception) -> AIProviderError:
 class GeminiProvider:
     """Generate schema-constrained JSON using the Gemini Developer API."""
 
-    # Function role: Initializes the object and its validated dependencies.
-    # Context: method/helper owned by GeminiProvider; it is reached through that object's workflow.
     def __init__(
         self,
         api_key: str | None = None,
@@ -73,16 +68,15 @@ class GeminiProvider:
         max_retries: int = 2,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
-        # In-function documentation:
-        # Parameters:
-        #   - api_key: the api key value used by this operation (type annotation: str | None); defaults to None when omitted.
-        #   - model: AI model identifier selected by configuration (type annotation: str | None); defaults to None when omitted.
-        #   - client: the client value used by this operation (type annotation: Any); defaults to None when omitted.
-        #   - max_retries: the max retries value used by this operation (type annotation: int).
-        #   - sleep: the sleep value used by this operation (type annotation: Callable[[float], None]).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: no value (None); work is performed through side effects or validation.
-        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+        # In simple terms: Sets up .
+        # What the inputs mean:
+        # - api_key: the private key used to contact the AI service.
+        # - model: the AI model selected in settings.
+        # - client: the client used for this step.
+        # - max_retries: the max retries used for this step.
+        # - sleep: the sleep used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It does its work and does not return a value.
         if max_retries < 0 or max_retries > 2:
             raise ValueError("max_retries must be between 0 and 2.")
 
@@ -112,23 +106,19 @@ class GeminiProvider:
 
         self.client = client
 
-    # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
-    # Context: method/helper owned by GeminiProvider; it is reached through that object's workflow.
-    # Direct call references (conditional/branch-dependent): _classify_error.
     def generate_json(
         self,
         task: str,
         payload: dict[str, Any],
         schema: dict[str, Any],
     ) -> dict[str, Any]:
-        # In-function documentation:
-        # Parameters:
-        #   - task: the task value used by this operation (type annotation: str).
-        #   - payload: the request data being sent across an API/provider boundary (type annotation: dict[str, Any]).
-        #   - schema: declared data contract inputs or results must satisfy (type annotation: dict[str, Any]).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: a value of declared type dict[str, Any].
-        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+        # In simple terms: Creates json.
+        # What the inputs mean:
+        # - task: the task used for this step.
+        # - payload: the information being sent to an AI service.
+        # - schema: the schema used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns a set of named results for the next step.
         if not isinstance(task, str) or not task.strip():
             raise AIProviderError(
                 "Task must be a non-empty string.",

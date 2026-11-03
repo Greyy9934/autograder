@@ -3,7 +3,7 @@
 Measurements reuse the isolated batch runner. They are observations, not
 proofs of asymptotic complexity.
 """
-# Module role: Implements the complexity benchmark subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles complexity benchmark, one part of the AutoGrader’s workflow.
 
 import hashlib
 import math
@@ -18,7 +18,6 @@ MAX_REPETITIONS = 10
 MAX_TOTAL_RUNS = 1000
 
 
-# Function role: Measure runtime for explicitly supplied input sizes and inputs.
 def benchmark_complexity(
     source: str,
     benchmark_cases: list[dict[str, Any]],
@@ -33,13 +32,12 @@ def benchmark_complexity(
     The caller is responsible for ensuring that input_size meaningfully
     describes the supplied input. No inputs are generated automatically.
     """
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - benchmark_cases: the benchmark cases value used by this operation (type annotation: list[dict[str, Any]]).
-    #   - repetitions: number of repeated measurements used to reduce timing noise (type annotation: int); defaults to 3 when omitted.
-    # Returns: a value of declared type dict[str, Any]; alternate return paths may produce the computed invalid value, a structured mapping assembled for the caller.
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Measure runtime for explicitly supplied input sizes and inputs.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - benchmark_cases: the benchmark cases used for this step.
+    # - repetitions: the repetitions used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     invalid = {
         "status": "invalid_request",
         "results": [],

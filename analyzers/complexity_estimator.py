@@ -3,7 +3,7 @@
 This module does not parse the full C language and never claims to prove
 asymptotic complexity.
 """
-# Module role: Implements the complexity estimator subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles complexity estimator, one part of the AutoGrader’s workflow.
 
 import re
 from typing import Any
@@ -18,17 +18,14 @@ FUNCTION_PATTERN = re.compile(
 ALLOCATION_PATTERN = re.compile(r"\b(malloc|calloc|realloc)\s*\(")
 
 
-# Function role: Classify common loop forms without claiming full C semantics.
-# Same-file callers: estimate_complexity.
 def _loop_model(kind: str, header: str, body: str = "") -> dict[str, Any]:
     """Classify common loop forms without claiming full C semantics."""
-    # In-function documentation:
-    # Parameters:
-    #   - kind: the kind value used by this operation (type annotation: str).
-    #   - header: the header value used by this operation (type annotation: str).
-    #   - body: request, response, or file content being processed (type annotation: str); defaults to '' when omitted.
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Classify common loop forms without claiming full C semantics.
+    # What the inputs mean:
+    # - kind: the kind used for this step.
+    # - header: the header used for this step.
+    # - body: the body used for this step.
+    # What it gives back: It returns a set of named results for the next step.
     if kind == "for":
         parts = [part.strip() for part in header.split(";")]
         if len(parts) != 3:
@@ -78,16 +75,13 @@ def _loop_model(kind: str, header: str, body: str = "") -> dict[str, Any]:
     return {"model": model, "variable": variable, "bound": None}
 
 
-# Function role: Return a brace-delimited loop body, if one is present.
-# Same-file callers: estimate_complexity.
 def _brace_body(source: str, opening: int) -> str:
     """Return a brace-delimited loop body, if one is present."""
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - opening: the opening value used by this operation (type annotation: int).
-    # Returns: a value of declared type str.
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Return a brace-delimited loop body, if one is present.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - opening: the opening used for this step.
+    # What it gives back: It returns text.
     brace = source.find("{", opening)
     semicolon = source.find(";", opening)
     if brace < 0 or (semicolon >= 0 and semicolon < brace):
@@ -103,15 +97,12 @@ def _brace_body(source: str, opening: int) -> str:
     return source[brace + 1:]
 
 
-# Function role: Replace comments and string/character contents while preserving lines.
-# Same-file callers: estimate_complexity.
 def _mask_comments_and_strings(source: str) -> str:
     """Replace comments and string/character contents while preserving lines."""
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    # Returns: a value of declared type str.
-    # Flow: derive or store intermediate values; iterate through input or evidence items.
+    # In simple terms: Replace comments and string/character contents while preserving lines.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # What it gives back: It returns text.
     result = []
     index = 0
     state = "code"
@@ -181,13 +172,10 @@ def _mask_comments_and_strings(source: str) -> str:
     return "".join(result)
 
 
-# Function role: Implements the internal invalid result helper for complexity estimator.
-# Same-file callers: estimate_complexity.
 def _invalid_result() -> dict[str, Any]:
-    # In-function documentation:
-    # Parameters: none.
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: return the stage result.
+    # In simple terms: Helps with invalid result.
+    # This function takes no named inputs.
+    # What it gives back: It returns a set of named results for the next step.
     return {
         "status": "invalid_request",
         "time_complexity": "unknown",
@@ -204,15 +192,12 @@ def _invalid_result() -> dict[str, Any]:
     }
 
 
-# Function role: Estimate complexity from source patterns; not a semantic proof.
-# Direct call references (conditional/branch-dependent): _invalid_result, _mask_comments_and_strings, _brace_body, _loop_model.
 def estimate_complexity(source: str) -> dict[str, Any]:
     """Estimate complexity from source patterns; not a semantic proof."""
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    # Returns: a value of declared type dict[str, Any]; alternate return paths may produce the result produced by the delegated helper.
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Estimate complexity from source patterns; not a semantic proof.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(source, str) or not source.strip():
         return _invalid_result()
 

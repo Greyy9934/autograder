@@ -1,6 +1,6 @@
 """Persistent, concurrency-safe AI request budget."""
-# Module role: Reserves one shared daily request credit before a provider call and records provider-reported token usage afterwards.
-# Core concept: A request credit is reserved before each provider call. Token ceilings only cap possible output; actual billing follows provider usage, and hidden automatic retries are avoided for paid calls.
+# In plain terms: This file keeps track of AI requests so the app can apply its daily request limit.
+# Why it matters: The app reserves a request slot before calling an AI provider. A token limit only says how long an answer may be; the provider charges for what it actually uses.
 
 import logging
 import os
@@ -19,21 +19,17 @@ from app.ai.output_budget import (
 
 
 class RequestBudget:
-    # Function role: Initializes the object and its validated dependencies.
-    # Context: method/helper owned by RequestBudget; it is reached through that object's workflow.
-    # Direct call references (conditional/branch-dependent): _connect.
     def __init__(
         self,
         database_path: str | Path,
         daily_limit: int,
     ) -> None:
-        # In-function documentation:
-        # Parameters:
-        #   - database_path: the database path value used by this operation (type annotation: str | Path).
-        #   - daily_limit: the daily limit value used by this operation (type annotation: int).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: no value (None); work is performed through side effects or validation.
-        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+        # In simple terms: Sets up .
+        # What the inputs mean:
+        # - database_path: where the local development database is stored.
+        # - daily_limit: the daily limit used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It does its work and does not return a value.
         if isinstance(daily_limit, bool) or not isinstance(daily_limit, int) or daily_limit < 1:
             raise ValueError("daily_limit must be a positive integer.")
 
@@ -77,15 +73,11 @@ class RequestBudget:
                 category="budget_storage_error",
             ) from exc
 
-    # Function role: Opens the configured persistent or local-development database connection.
-    # Context: method/helper owned by RequestBudget; it is reached through that object's workflow.
-    # Same-file callers: __init__, reserve, record_usage.
     def _connect(self):
-        # In-function documentation:
-        # Parameters: none.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the computed connection value.
-        # Flow: derive or store intermediate values; delegate work to a helper or external boundary; return the stage result.
+        # In simple terms: Helps with connect.
+        # This function takes no named inputs.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         connection = sqlite3.connect(
             self.database_path,
             timeout=10,
@@ -94,18 +86,13 @@ class RequestBudget:
         connection.execute("PRAGMA busy_timeout = 10000")
         return connection
 
-    # Function role: Atomically reserve credits before an AI operation.
-    # Context: method/helper owned by RequestBudget; it is reached through that object's workflow.
-    # Same-file callers: generate_json.
-    # Direct call references (conditional/branch-dependent): _connect.
     def reserve(self, credits: int = 1) -> int:
         """Atomically reserve credits before an AI operation."""
-        # In-function documentation:
-        # Parameters:
-        #   - credits: the credits value used by this operation (type annotation: int); defaults to 1 when omitted.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: a value of declared type int; alternate return paths may produce the computed new_total value.
-        # Flow: branch on validation or workflow conditions; derive or store intermediate values; convert expected failures into controlled results.
+        # In simple terms: Opens the configured database connection.
+        # What the inputs mean:
+        # - credits: the credits used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the int result.
         from datetime import datetime, timezone
 
         if isinstance(credits, bool) or not isinstance(credits, int) or credits < 1:
@@ -173,18 +160,13 @@ class RequestBudget:
                 category="budget_storage_error",
             ) from exc
 
-    # Function role: Persist provider-reported token counts without storing prompts or code.
-    # Context: method/helper owned by RequestBudget; it is reached through that object's workflow.
-    # Same-file callers: _record_provider_usage.
-    # Direct call references (conditional/branch-dependent): _connect.
     def record_usage(self, usage: dict) -> None:
         """Persist provider-reported token counts without storing prompts or code."""
-        # In-function documentation:
-        # Parameters:
-        #   - usage: the usage value used by this operation (type annotation: dict).
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: no value (None); work is performed through side effects or validation.
-        # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+        # In simple terms: Persist provider-reported token counts without storing prompts or code.
+        # What the inputs mean:
+        # - usage: the usage used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It does its work and does not return a value.
         values = (
             usage.get("prompt_tokens"),
             usage.get("completion_tokens"),
@@ -235,17 +217,14 @@ class RequestBudget:
 class BudgetedProvider:
     """Reserve budget credits before delegating to an AI provider."""
 
-    # Function role: Initializes the object and its validated dependencies.
-    # Context: method/helper owned by BudgetedProvider; it is reached through that object's workflow.
     def __init__(self, provider, budget: RequestBudget, credits_per_call: int = 1):
-        # In-function documentation:
-        # Parameters:
-        #   - provider: the configured AI provider implementation used for one request.
-        #   - budget: the budget value used by this operation (type annotation: RequestBudget).
-        #   - credits_per_call: the credits per call value used by this operation (type annotation: int); defaults to 1 when omitted.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the operation result consumed by its caller.
-        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+        # In simple terms: Sets up .
+        # What the inputs mean:
+        # - provider: the selected AI service.
+        # - budget: the budget used for this step.
+        # - credits_per_call: the credits per call used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         if (
             isinstance(credits_per_call, bool)
             or not isinstance(credits_per_call, int)
@@ -257,21 +236,16 @@ class BudgetedProvider:
         self.budget = budget
         self.credits_per_call = credits_per_call
 
-    # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
-    # Context: method/helper owned by BudgetedProvider; it is reached through that object's workflow.
-    # Same-file callers: generate_json.
-    # Direct call references (conditional/branch-dependent): reserve, generate_json, _record_provider_usage.
     def generate_json(self, task, payload, schema):
         # Keep the concrete provider object intact for existing integrations.
         # Enforce the same request/response contract at the shared call boundary.
-        # In-function documentation:
-        # Parameters:
-        #   - task: the task value used by this operation.
-        #   - payload: the request data being sent across an API/provider boundary.
-        #   - schema: declared data contract inputs or results must satisfy.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: the computed result value.
-        # Flow: derive or store intermediate values.
+        # In simple terms: Creates json.
+        # What the inputs mean:
+        # - task: the task used for this step.
+        # - payload: the information being sent to an AI service.
+        # - schema: the schema used for this step.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It returns the result that the next step needs.
         from app.ai.guardrails import GuardedProvider
 
         logger = logging.getLogger(__name__)
@@ -366,16 +340,11 @@ class BudgetedProvider:
         )
         return result
 
-    # Function role: Implements the internal record provider usage helper for budget.
-    # Context: method/helper owned by BudgetedProvider; it is reached through that object's workflow.
-    # Same-file callers: generate_json.
-    # Direct call references (conditional/branch-dependent): record_usage.
     def _record_provider_usage(self) -> None:
-        # In-function documentation:
-        # Parameters: none.
-        #   - self/cls: receiver carrying the current object or class state.
-        # Returns: no value (None); work is performed through side effects or validation.
-        # Flow: derive or store intermediate values; branch on validation or workflow conditions; convert expected failures into controlled results.
+        # In simple terms: Helps with record provider usage.
+        # This function takes no named inputs.
+        # - self/cls: the current object this function belongs to.
+        # What it gives back: It does its work and does not return a value.
         usage = getattr(self.provider, "last_usage", None)
         if not isinstance(usage, dict):
             return
@@ -391,12 +360,10 @@ class BudgetedProvider:
             )
 
 
-# Function role: Constructs request budget with the module's required invariants.
 def create_request_budget() -> RequestBudget:
-    # In-function documentation:
-    # Parameters: none.
-    # Returns: a value of declared type RequestBudget.
-    # Flow: derive or store intermediate values; convert expected failures into controlled results.
+    # In simple terms: Creates request budget.
+    # This function takes no named inputs.
+    # What it gives back: It returns the Request Budget result.
     default_path = Path.home() / ".local" / "share" / "autograder" / "ai-budget.sqlite3"
     path = os.getenv("AI_BUDGET_DB", str(default_path)).strip()
     raw_limit = os.getenv("AI_DAILY_REQUEST_CREDITS", "350").strip()

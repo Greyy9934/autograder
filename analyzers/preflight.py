@@ -1,5 +1,5 @@
 """Deterministic, source-only preflight checks for C submissions."""
-# Module role: Implements the preflight subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles preflight, one part of the AutoGrader’s workflow.
 
 import json
 from pathlib import Path
@@ -9,15 +9,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RULES_PATH = PROJECT_ROOT / "rules" / "preflight.json"
 
 
-# Function role: Load and validate the source limits from preflight configuration.
-# Same-file callers: preflight.
 def load_rules(path: str | Path = DEFAULT_RULES_PATH) -> dict[str, Any]:
     """Load and validate the source limits from preflight configuration."""
-    # In-function documentation:
-    # Parameters:
-    #   - path: filesystem location read from or written to (type annotation: str | Path); defaults to DEFAULT_RULES_PATH when omitted.
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: derive or store intermediate values; manage a scoped resource; branch on validation or workflow conditions.
+    # In simple terms: Load and validate the source limits from preflight configuration.
+    # What the inputs mean:
+    # - path: the file location being read or written.
+    # What it gives back: It returns a set of named results for the next step.
     rules_path = Path(path)
 
     with rules_path.open("r", encoding="utf-8") as handle:
@@ -34,20 +31,16 @@ def load_rules(path: str | Path = DEFAULT_RULES_PATH) -> dict[str, Any]:
     return rules
 
 
-# Function role: Validate submitted source without compiling or executing it.
-# Numbered workflow order: 02.1a - deterministic source-size/non-empty gate.
-# Direct call references (conditional/branch-dependent): load_rules.
 def preflight(
     source: str,
     rules_path: str | Path = DEFAULT_RULES_PATH,
 ) -> dict[str, Any]:
     """Validate submitted source without compiling or executing it."""
-    # In-function documentation:
-    # Parameters:
-    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
-    #   - rules_path: the rules path value used by this operation (type annotation: str | Path); defaults to DEFAULT_RULES_PATH when omitted.
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
+    # In simple terms: Validate submitted source without compiling or executing it.
+    # What the inputs mean:
+    # - source: the C code being checked.
+    # - rules_path: the location of the grading rules file.
+    # What it gives back: It returns a set of named results for the next step.
     rules = load_rules(rules_path)
 
     if not isinstance(source, str) or not source.strip():

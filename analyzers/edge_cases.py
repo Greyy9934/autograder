@@ -1,18 +1,15 @@
 """Propose edge cases without assuming undocumented input constraints."""
-# Module role: Implements the edge cases subsystem used by the AutoGrader workflow.
+# In plain terms: This file handles edge cases, one part of the AutoGrader’s workflow.
 
 from typing import Any
 
 
-# Function role: Return test ideas classified by how strongly constraints support them.
-# Direct call references (conditional/branch-dependent): add.
 def analyze_edge_cases(problem: dict[str, Any]) -> dict[str, Any]:
     """Return test ideas classified by how strongly constraints support them."""
-    # In-function documentation:
-    # Parameters:
-    #   - problem: the problem description or reconstructed problem record (type annotation: dict[str, Any]).
-    # Returns: a value of declared type dict[str, Any].
-    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
+    # In simple terms: Return test ideas classified by how strongly constraints support them.
+    # What the inputs mean:
+    # - problem: the reconstructed problem details.
+    # What it gives back: It returns a set of named results for the next step.
     if not isinstance(problem, dict):
         return {
             "status": "invalid_request",
@@ -40,18 +37,14 @@ def analyze_edge_cases(problem: dict[str, Any]) -> dict[str, Any]:
 
     cases = []
 
-    # Function role: Adds one validated finding/case/issue to the result being assembled by analyze_edge_cases.
-    # Context: method/helper owned by analyze_edge_cases; it is reached through that object's workflow.
-    # Same-file callers: analyze_edge_cases.
     def add(case_id: str, idea: str, condition: str, category: str) -> None:
-        # In-function documentation:
-        # Parameters:
-        #   - case_id: the case id value used by this operation (type annotation: str).
-        #   - idea: the idea value used by this operation (type annotation: str).
-        #   - condition: the condition value used by this operation (type annotation: str).
-        #   - category: the category value used by this operation (type annotation: str).
-        # Returns: no value (None); work is performed through side effects or validation.
-        # Flow: delegate work to a helper or external boundary.
+        # In simple terms: Helps with add.
+        # What the inputs mean:
+        # - case_id: the case id used for this step.
+        # - idea: the idea used for this step.
+        # - condition: the condition used for this step.
+        # - category: the category used for this step.
+        # What it gives back: It does its work and does not return a value.
         cases.append({
             "id": case_id,
             "idea": idea,
