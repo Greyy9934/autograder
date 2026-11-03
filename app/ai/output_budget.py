@@ -54,6 +54,11 @@ if any(
 # Function role: Return the deliberately selected DeepSeek reasoning mode for a task.
 def reasoning_effort_for_task(task: str) -> str:
     """Return the deliberately selected DeepSeek reasoning mode for a task."""
+    # In-function documentation:
+    # Parameters:
+    #   - task: the task value used by this operation (type annotation: str).
+    # Returns: a value of declared type str.
+    # Flow: convert expected failures into controlled results.
     try:
         return TASK_REASONING_EFFORT[task]
     except (KeyError, TypeError) as exc:
@@ -66,6 +71,11 @@ def reasoning_effort_for_task(task: str) -> str:
 # Function role: Return the cap for a known task; reject unmapped calls rather than guess.
 def output_token_cap_for_task(task: str) -> int:
     """Return the cap for a known task; reject unmapped calls rather than guess."""
+    # In-function documentation:
+    # Parameters:
+    #   - task: the task value used by this operation (type annotation: str).
+    # Returns: a value of declared type int.
+    # Flow: convert expected failures into controlled results.
     try:
         return AGENT_OUTPUT_TOKEN_CAPS[task]
     except (KeyError, TypeError) as exc:

@@ -27,6 +27,13 @@ class RequestBudget:
         database_path: str | Path,
         daily_limit: int,
     ) -> None:
+        # In-function documentation:
+        # Parameters:
+        #   - database_path: the database path value used by this operation (type annotation: str | Path).
+        #   - daily_limit: the daily limit value used by this operation (type annotation: int).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: no value (None); work is performed through side effects or validation.
+        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
         if isinstance(daily_limit, bool) or not isinstance(daily_limit, int) or daily_limit < 1:
             raise ValueError("daily_limit must be a positive integer.")
 
@@ -74,6 +81,11 @@ class RequestBudget:
     # Context: method/helper owned by RequestBudget; it is reached through that object's workflow.
     # Same-file callers: __init__, reserve, record_usage.
     def _connect(self):
+        # In-function documentation:
+        # Parameters: none.
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: the computed connection value.
+        # Flow: derive or store intermediate values; delegate work to a helper or external boundary; return the stage result.
         connection = sqlite3.connect(
             self.database_path,
             timeout=10,
@@ -88,6 +100,12 @@ class RequestBudget:
     # Direct call references (conditional/branch-dependent): _connect.
     def reserve(self, credits: int = 1) -> int:
         """Atomically reserve credits before an AI operation."""
+        # In-function documentation:
+        # Parameters:
+        #   - credits: the credits value used by this operation (type annotation: int); defaults to 1 when omitted.
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: a value of declared type int; alternate return paths may produce the computed new_total value.
+        # Flow: branch on validation or workflow conditions; derive or store intermediate values; convert expected failures into controlled results.
         from datetime import datetime, timezone
 
         if isinstance(credits, bool) or not isinstance(credits, int) or credits < 1:
@@ -161,6 +179,12 @@ class RequestBudget:
     # Direct call references (conditional/branch-dependent): _connect.
     def record_usage(self, usage: dict) -> None:
         """Persist provider-reported token counts without storing prompts or code."""
+        # In-function documentation:
+        # Parameters:
+        #   - usage: the usage value used by this operation (type annotation: dict).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: no value (None); work is performed through side effects or validation.
+        # Flow: derive or store intermediate values; branch on validation or workflow conditions.
         values = (
             usage.get("prompt_tokens"),
             usage.get("completion_tokens"),
@@ -214,6 +238,14 @@ class BudgetedProvider:
     # Function role: Initializes the object and its validated dependencies.
     # Context: method/helper owned by BudgetedProvider; it is reached through that object's workflow.
     def __init__(self, provider, budget: RequestBudget, credits_per_call: int = 1):
+        # In-function documentation:
+        # Parameters:
+        #   - provider: the configured AI provider implementation used for one request.
+        #   - budget: the budget value used by this operation (type annotation: RequestBudget).
+        #   - credits_per_call: the credits per call value used by this operation (type annotation: int); defaults to 1 when omitted.
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: the operation result consumed by its caller.
+        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
         if (
             isinstance(credits_per_call, bool)
             or not isinstance(credits_per_call, int)
@@ -232,6 +264,14 @@ class BudgetedProvider:
     def generate_json(self, task, payload, schema):
         # Keep the concrete provider object intact for existing integrations.
         # Enforce the same request/response contract at the shared call boundary.
+        # In-function documentation:
+        # Parameters:
+        #   - task: the task value used by this operation.
+        #   - payload: the request data being sent across an API/provider boundary.
+        #   - schema: declared data contract inputs or results must satisfy.
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: the computed result value.
+        # Flow: derive or store intermediate values.
         from app.ai.guardrails import GuardedProvider
 
         logger = logging.getLogger(__name__)
@@ -331,6 +371,11 @@ class BudgetedProvider:
     # Same-file callers: generate_json.
     # Direct call references (conditional/branch-dependent): record_usage.
     def _record_provider_usage(self) -> None:
+        # In-function documentation:
+        # Parameters: none.
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: no value (None); work is performed through side effects or validation.
+        # Flow: derive or store intermediate values; branch on validation or workflow conditions; convert expected failures into controlled results.
         usage = getattr(self.provider, "last_usage", None)
         if not isinstance(usage, dict):
             return
@@ -348,6 +393,10 @@ class BudgetedProvider:
 
 # Function role: Constructs request budget with the module's required invariants.
 def create_request_budget() -> RequestBudget:
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: a value of declared type RequestBudget.
+    # Flow: derive or store intermediate values; convert expected failures into controlled results.
     default_path = Path.home() / ".local" / "share" / "autograder" / "ai-budget.sqlite3"
     path = os.getenv("AI_BUDGET_DB", str(default_path)).strip()
     raw_limit = os.getenv("AI_DAILY_REQUEST_CREDITS", "350").strip()

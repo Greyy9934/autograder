@@ -129,6 +129,10 @@ _FIXTURES = {
 # Function role: Return independent random fixtures; never accepts user input.
 def build_demo_payload():
     """Return independent random fixtures; never accepts user input."""
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: a structured mapping assembled for the caller.
+    # Flow: derive or store intermediate values; return the stage result.
     selected = {
         agent: deepcopy(_rng.choice(variants))
         for agent, variants in _FIXTURES.items()

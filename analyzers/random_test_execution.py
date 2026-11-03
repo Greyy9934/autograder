@@ -9,6 +9,12 @@ from analyzers.batch_execution import run_c_batch
 
 # Function role: Implements execute random test inputs for random test execution using this module's input and result contracts.
 def execute_random_test_inputs(source: str, inputs: list[str]) -> dict[str, Any]:
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    #   - inputs: values supplied to the current parser or program (type annotation: list[str]).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if not isinstance(source, str) or not source.strip():
         return {"status": "invalid_request", "results": []}
 

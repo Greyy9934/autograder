@@ -31,6 +31,11 @@ from app.runner import compile_c_source
 # Same-file callers: evaluate_execution_evidence, evaluate_submission.
 def _attach_grading(result: dict[str, Any]) -> dict[str, Any]:
     """Attach a conservative, rule-driven grade to any evaluation result."""
+    # In-function documentation:
+    # Parameters:
+    #   - result: the result value used by this operation (type annotation: dict[str, Any]).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: convert expected failures into controlled results; return the stage result.
     try:
         scores = derive_metric_scores(result)
         result["metric_scores"] = scores
@@ -50,6 +55,11 @@ def _attach_grading(result: dict[str, Any]) -> dict[str, Any]:
 # Function role: Implements the internal compact complexity static helper for orchestrator.
 # Same-file callers: evaluate_execution_evidence.
 def _compact_complexity_static(value: Any) -> dict[str, Any] | None:
+    # In-function documentation:
+    # Parameters:
+    #   - value: single value being parsed, validated, normalized, scored, or formatted (type annotation: Any).
+    # Returns: a value of declared type dict[str, Any] | None.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if not isinstance(value, dict):
         return None
     keys = (
@@ -70,6 +80,11 @@ def _compact_complexity_static(value: Any) -> dict[str, Any] | None:
 # Function role: Implements the internal compact complexity benchmark helper for orchestrator.
 # Same-file callers: evaluate_execution_evidence.
 def _compact_complexity_benchmark(value: Any) -> dict[str, Any] | None:
+    # In-function documentation:
+    # Parameters:
+    #   - value: single value being parsed, validated, normalized, scored, or formatted (type annotation: Any).
+    # Returns: a value of declared type dict[str, Any] | None.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if not isinstance(value, dict):
         return None
     chart = [
@@ -100,6 +115,11 @@ def _compact_complexity_benchmark(value: Any) -> dict[str, Any] | None:
 # Function role: Implements the internal compact complexity analysis helper for orchestrator.
 # Same-file callers: evaluate_execution_evidence.
 def _compact_complexity_analysis(value: Any) -> dict[str, Any] | None:
+    # In-function documentation:
+    # Parameters:
+    #   - value: single value being parsed, validated, normalized, scored, or formatted (type annotation: Any).
+    # Returns: a value of declared type dict[str, Any] | None.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values; return the stage result.
     if not isinstance(value, dict):
         return None
     analysis = value.get("ai_analysis") if isinstance(value.get("ai_analysis"), dict) else {}
@@ -132,6 +152,22 @@ def evaluate_execution_evidence(
     complexity_benchmark: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run execution-dependent checks after preparation is complete."""
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    #   - prepared_result: the prepared result value used by this operation (type annotation: dict[str, Any]).
+    #   - test_cases: generated or supplied inputs to execute and compare (type annotation: list[dict[str, Any]] | None); defaults to None when omitted.
+    #   - run_memory_diagnostics: the run memory diagnostics value used by this operation (type annotation: bool).
+    #   - memory_diagnostic_stdin: the memory diagnostic stdin value used by this operation (type annotation: str).
+    #   - provider: the configured AI provider implementation used for one request (type annotation: Any).
+    #   - adversarial_plan: the adversarial plan value used by this operation (type annotation: dict[str, Any] | None).
+    #   - random_test_inputs: the random test inputs value used by this operation (type annotation: list[str] | None).
+    #   - generated_test_plans: the generated test plans value used by this operation (type annotation: dict[str, Any] | None).
+    #   - run_complexity_analysis: the run complexity analysis value used by this operation (type annotation: bool).
+    #   - agent3b_execution: the agent3b execution value used by this operation (type annotation: dict[str, Any] | None).
+    #   - complexity_benchmark: the complexity benchmark value used by this operation (type annotation: dict[str, Any] | None).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     import copy
 
     result = copy.deepcopy(prepared_result)
@@ -344,6 +380,13 @@ def generate_reference_solutions_for_confirmed_spec(
     user_supplied_problem_statement: str | None = None,
 ) -> dict[str, Any]:
     """Run Agent 2 only after explicit instructor approval."""
+    # In-function documentation:
+    # Parameters:
+    #   - spec: the specification or configuration record being validated or consumed (type annotation: Any).
+    #   - provider: the configured AI provider implementation used for one request (type annotation: Any); defaults to None when omitted.
+    #   - user_supplied_problem_statement: the user supplied problem statement value used by this operation (type annotation: str | None).
+    # Returns: a value of declared type dict[str, Any]; alternate return paths may produce a structured mapping assembled for the caller.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     from analyzers.assignment_spec import AssignmentSpec
     from analyzers.reference_solutions import generate_reference_solutions
 
@@ -397,6 +440,18 @@ def evaluate_submission(
     Run preflight and heuristic source-risk analysis, then optional
     problem reconstruction. Source-risk findings are not confirmed bugs.
     """
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    #   - problem_statement: the natural-language task description being reconstructed or analyzed (type annotation: str | None); defaults to None when omitted.
+    #   - test_cases: generated or supplied inputs to execute and compare (type annotation: list[dict[str, Any]] | None); defaults to None when omitted.
+    #   - provider: the configured AI provider implementation used for one request (type annotation: Any).
+    #   - rules_path: the rules path value used by this operation (type annotation: str | None).
+    #   - run_memory_diagnostics: the run memory diagnostics value used by this operation (type annotation: bool).
+    #   - generate_edge_case_inputs: the inputs used to construct or generate generate edge case inputs (type annotation: bool).
+    #   - edge_case_input_bounds: the edge case input bounds value used by this operation (type annotation: dict[str, int] | None).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     source_risks = analyze_source_risks(source)
 
     preflight_result = (

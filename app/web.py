@@ -115,6 +115,12 @@ app = FastAPI(
 @app.middleware("http")
 async def attach_request_id(request: Request, call_next):
     """Tag each request so workflow and provider diagnostics can be correlated."""
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: Request).
+    #   - call_next: the call next value used by this operation.
+    # Returns: the computed response value.
+    # Flow: derive or store intermediate values.
     supplied_id = request.headers.get("X-Request-ID", "")
     safe_supplied_id = (
         supplied_id if 8 <= len(supplied_id) <= 64
@@ -143,6 +149,10 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 # Function role: Implements the internal approval signing key helper for web.
 # Same-file callers: _create_approval_token, _create_draft_token, _verify_draft_token, _verify_approval_token, _create_ui_session_token and other helpers.
 def _approval_signing_key() -> bytes:
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: a value of declared type bytes.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions; return the stage result.
     key = os.getenv("INSTRUCTOR_TOKEN_SIGNING_KEY", "").strip()
     if len(key) < 32:
         raise HTTPException(
@@ -156,6 +166,11 @@ def _approval_signing_key() -> bytes:
 # Same-file callers: confirm_assignment.
 # Direct call references (conditional/branch-dependent): _approval_signing_key.
 def _create_approval_token(fingerprint: str) -> str:
+    # In-function documentation:
+    # Parameters:
+    #   - fingerprint: digest identifying the canonical approved specification or analysis inputs (type annotation: str).
+    # Returns: a value of declared type str.
+    # Flow: derive or store intermediate values; return the stage result.
     issued_at = str(int(time.time()))
     message = f"{fingerprint}:{issued_at}".encode("utf-8")
     signature = hmac.new(
@@ -168,6 +183,11 @@ def _create_approval_token(fingerprint: str) -> str:
 # Same-file callers: prepare_submission, instructor_ui_prepare.
 # Direct call references (conditional/branch-dependent): _approval_signing_key.
 def _create_draft_token(fingerprint: str) -> str:
+    # In-function documentation:
+    # Parameters:
+    #   - fingerprint: digest identifying the canonical approved specification or analysis inputs (type annotation: str).
+    # Returns: a value of declared type str.
+    # Flow: derive or store intermediate values; return the stage result.
     issued_at = str(int(time.time()))
     message = f"draft:{fingerprint}:{issued_at}".encode("utf-8")
     signature = hmac.new(
@@ -180,6 +200,12 @@ def _create_draft_token(fingerprint: str) -> str:
 # Same-file callers: confirm_assignment.
 # Direct call references (conditional/branch-dependent): _approval_signing_key.
 def _verify_draft_token(fingerprint: str, token: str) -> bool:
+    # In-function documentation:
+    # Parameters:
+    #   - fingerprint: digest identifying the canonical approved specification or analysis inputs (type annotation: str).
+    #   - token: credential, signed workflow token, or parsed token value used by this helper (type annotation: str).
+    # Returns: a value of declared type bool; alternate return paths may produce a boolean indicating whether the condition passed.
+    # Flow: convert expected failures into controlled results; derive or store intermediate values; branch on validation or workflow conditions.
     try:
         issued_text, supplied_signature = token.split(".", 1)
         issued_at = int(issued_text)
@@ -201,6 +227,12 @@ def _verify_draft_token(fingerprint: str, token: str) -> bool:
 # Same-file callers: generate_references.
 # Direct call references (conditional/branch-dependent): _approval_signing_key.
 def _verify_approval_token(fingerprint: str, token: str) -> bool:
+    # In-function documentation:
+    # Parameters:
+    #   - fingerprint: digest identifying the canonical approved specification or analysis inputs (type annotation: str).
+    #   - token: credential, signed workflow token, or parsed token value used by this helper (type annotation: str).
+    # Returns: a value of declared type bool; alternate return paths may produce a boolean indicating whether the condition passed.
+    # Flow: convert expected failures into controlled results; derive or store intermediate values; branch on validation or workflow conditions.
     try:
         issued_text, supplied_signature = token.split(".", 1)
         issued_at = int(issued_text)
@@ -221,6 +253,11 @@ def _verify_approval_token(fingerprint: str, token: str) -> bool:
 # Function role: Implements home for web using this module's input and result contracts.
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def home(request: Request):
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: Request).
+    # Returns: the result produced by the delegated helper.
+    # Flow: return the stage result.
     return templates.TemplateResponse(
         request=request,
         name="index.html",
@@ -231,6 +268,10 @@ def home(request: Request):
 # Function role: Implements health for web using this module's input and result contracts.
 @app.get("/health")
 def health():
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: a structured mapping assembled for the caller.
+    # Flow: convert expected failures into controlled results; return the stage result.
     try:
         _verify_persistent_storage()
     except Exception as exc:
@@ -247,6 +288,10 @@ def health():
 # Function role: Implements api status for web using this module's input and result contracts.
 @app.get("/api/status")
 def api_status():
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: a structured mapping assembled for the caller.
+    # Flow: return the stage result.
     return {
         "service": "AutoGrader",
         "status": "online",
@@ -286,6 +331,12 @@ def confirm_assignment(
     request: ConfirmAssignmentRequest,
     x_instructor_key: str | None = Header(default=None),
 ):
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: ConfirmAssignmentRequest).
+    #   - x_instructor_key: the x instructor key value used by this operation (type annotation: str | None); defaults to Header(default=None) when omitted.
+    # Returns: a structured mapping assembled for the caller.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     configured_key = os.getenv("INSTRUCTOR_CONFIRMATION_KEY", "").strip()
     if not configured_key:
         raise HTTPException(
@@ -345,6 +396,11 @@ _PREPARATION_RATE_LOCK = threading.Lock()
 # Function role: Checks preparation rate limit and reports whether the stage may proceed.
 # Same-file callers: prepare_submission.
 def _check_preparation_rate_limit(api_key: str) -> None:
+    # In-function documentation:
+    # Parameters:
+    #   - api_key: the api key value used by this operation (type annotation: str).
+    # Returns: no value (None); work is performed through side effects or validation.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     limit = int(os.getenv("PREPARATION_RATE_LIMIT", "10"))
     window = int(os.getenv("PREPARATION_RATE_WINDOW_SECONDS", "60"))
 
@@ -380,6 +436,12 @@ def prepare_submission(
     request: PreparationRequest,
     x_preparation_key: str | None = Header(default=None),
 ):
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: PreparationRequest).
+    #   - x_preparation_key: the x preparation key value used by this operation (type annotation: str | None); defaults to Header(default=None) when omitted.
+    # Returns: the computed result value.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions; delegate work to a helper or external boundary.
     configured_key = os.getenv("PREPARATION_API_KEY", "").strip()
     if not configured_key:
         raise HTTPException(
@@ -465,6 +527,11 @@ def prepare_submission(
 # Function role: Implements analyze source for web using this module's input and result contracts.
 @app.post("/api/analyze")
 def analyze_source(request: AnalysisRequest):
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: AnalysisRequest).
+    # Returns: a structured mapping assembled for the caller.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions; return the stage result.
     source_bytes = request.source.encode("utf-8")
     if len(source_bytes) > 262144:
         raise HTTPException(status_code=413, detail="Source exceeds 256 KiB.")
@@ -504,6 +571,13 @@ def generate_references(
     *,
     provider: Any = None,
 ):
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: ReferenceGenerationRequest).
+    #   - x_instructor_key: the x instructor key value used by this operation (type annotation: str | None); defaults to Header(default=None) when omitted.
+    #   - provider: the configured AI provider implementation used for one request (type annotation: Any).
+    # Returns: the computed result value.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions; convert expected failures into controlled results.
     configured_key = os.getenv("INSTRUCTOR_CONFIRMATION_KEY", "").strip()
     if not configured_key:
         raise HTTPException(status_code=503, detail="Instructor confirmation is not configured.")
@@ -557,6 +631,11 @@ _LOGIN_ATTEMPTS_LOCK = threading.Lock()
 # Function role: Rejects excessive login attempts from one client within the configured time window.
 # Same-file callers: instructor_ui_login.
 def _check_login_rate_limit(client_ip: str) -> None:
+    # In-function documentation:
+    # Parameters:
+    #   - client_ip: the client ip value used by this operation (type annotation: str).
+    # Returns: no value (None); work is performed through side effects or validation.
+    # Flow: derive or store intermediate values; manage a scoped resource.
     now = time.monotonic()
     with _LOGIN_ATTEMPTS_LOCK:
         attempts = _LOGIN_ATTEMPTS[client_ip]
@@ -572,6 +651,11 @@ def _check_login_rate_limit(client_ip: str) -> None:
 # Function role: Adds a failed authentication attempt to the current client's rate-limit window.
 # Same-file callers: instructor_ui_login.
 def _record_login_failure(client_ip: str) -> None:
+    # In-function documentation:
+    # Parameters:
+    #   - client_ip: the client ip value used by this operation (type annotation: str).
+    # Returns: no value (None); work is performed through side effects or validation.
+    # Flow: manage a scoped resource.
     with _LOGIN_ATTEMPTS_LOCK:
         _LOGIN_ATTEMPTS[client_ip].append(time.monotonic())
 
@@ -579,6 +663,11 @@ def _record_login_failure(client_ip: str) -> None:
 # Function role: Clears the current client's failed-attempt history after successful authentication.
 # Same-file callers: instructor_ui_login.
 def _clear_login_failures(client_ip: str) -> None:
+    # In-function documentation:
+    # Parameters:
+    #   - client_ip: the client ip value used by this operation (type annotation: str).
+    # Returns: no value (None); work is performed through side effects or validation.
+    # Flow: manage a scoped resource.
     with _LOGIN_ATTEMPTS_LOCK:
         _LOGIN_ATTEMPTS.pop(client_ip, None)
 
@@ -586,6 +675,11 @@ def _clear_login_failures(client_ip: str) -> None:
 # Function role: Verifies instructor password against the expected evidence or signature.
 # Same-file callers: instructor_ui_login.
 def _verify_instructor_password(password: str) -> bool:
+    # In-function documentation:
+    # Parameters:
+    #   - password: the password value used by this operation (type annotation: str).
+    # Returns: a value of declared type bool; alternate return paths may produce a boolean indicating whether the condition passed.
+    # Flow: derive or store intermediate values; convert expected failures into controlled results.
     encoded = os.getenv("AUTOGRADER_PASSWORD_HASH", "").strip()
     try:
         algorithm, iterations_text, salt_hex, expected_hex = encoded.split("$")
@@ -608,6 +702,10 @@ def _verify_instructor_password(password: str) -> bool:
 # Same-file callers: instructor_ui_login.
 # Direct call references (conditional/branch-dependent): _approval_signing_key.
 def _create_ui_session_token() -> str:
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: a value of declared type str.
+    # Flow: derive or store intermediate values.
     issued = str(int(time.time()))
     nonce = secrets.token_urlsafe(24)
     payload = f"{issued}.{nonce}"
@@ -622,6 +720,11 @@ def _create_ui_session_token() -> str:
 # Same-file callers: _require_ui_session, instructor_ui_logout.
 # Direct call references (conditional/branch-dependent): _approval_signing_key, _is_ui_session_revoked.
 def _verify_ui_session_token(token: str | None) -> bool:
+    # In-function documentation:
+    # Parameters:
+    #   - token: credential, signed workflow token, or parsed token value used by this helper (type annotation: str | None).
+    # Returns: a value of declared type bool; alternate return paths may produce a boolean indicating whether the condition passed.
+    # Flow: branch on validation or workflow conditions; convert expected failures into controlled results; derive or store intermediate values.
     if not token:
         return False
     try:
@@ -650,6 +753,11 @@ def _verify_ui_session_token(token: str | None) -> bool:
 # Same-file callers: instructor_ui_demo, instructor_ui_preflight, instructor_ui_prepare, instructor_ui_confirm, instructor_ui_generate_references and other helpers.
 # Direct call references (conditional/branch-dependent): _verify_ui_session_token.
 def _require_ui_session(request: Request) -> str:
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: Request).
+    # Returns: a value of declared type str.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions; return the stage result.
     token = request.cookies.get("autograder_instructor_session")
     if not _verify_ui_session_token(token):
         raise HTTPException(status_code=401, detail="Instructor login required.")
@@ -678,6 +786,11 @@ _UI_SUBMISSIONS_LOCK = threading.RLock()
 # Function role: Implements the internal revoke ui session token helper for web.
 # Same-file callers: instructor_ui_logout.
 def _revoke_ui_session_token(token: str) -> None:
+    # In-function documentation:
+    # Parameters:
+    #   - token: credential, signed workflow token, or parsed token value used by this helper (type annotation: str).
+    # Returns: no value (None); work is performed through side effects or validation.
+    # Flow: derive or store intermediate values; convert expected failures into controlled results.
     digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
     try:
         _persistent_revoke_session(digest, 1800)
@@ -690,6 +803,11 @@ def _revoke_ui_session_token(token: str) -> None:
 # Function role: Returns whether ui session revoked holds under this module's rules.
 # Same-file callers: _verify_ui_session_token.
 def _is_ui_session_revoked(token: str) -> bool:
+    # In-function documentation:
+    # Parameters:
+    #   - token: credential, signed workflow token, or parsed token value used by this helper (type annotation: str).
+    # Returns: a value of declared type bool.
+    # Flow: derive or store intermediate values; convert expected failures into controlled results.
     digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
     try:
         return _persistent_is_session_revoked(digest)
@@ -702,6 +820,12 @@ def _is_ui_session_revoked(token: str) -> bool:
 # Function role: Persists one session-owned workflow record in durable storage and updates the process cache.
 # Same-file callers: instructor_ui_prepare.
 def _save_ui_submission(session_id: str, record: dict[str, Any]) -> str:
+    # In-function documentation:
+    # Parameters:
+    #   - session_id: authenticated session identifier that owns this workflow state (type annotation: str).
+    #   - record: the record value used by this operation (type annotation: dict[str, Any]).
+    # Returns: a value of declared type str.
+    # Flow: derive or store intermediate values; convert expected failures into controlled results.
     now = time.time()
     submission_id = secrets.token_urlsafe(32)
     stored = {
@@ -727,6 +851,11 @@ def _save_ui_submission(session_id: str, record: dict[str, Any]) -> str:
 # Function role: Deletes all transient workflow records owned by the specified session.
 # Same-file callers: instructor_ui_logout.
 def _clear_ui_submissions(session_id: str) -> None:
+    # In-function documentation:
+    # Parameters:
+    #   - session_id: authenticated session identifier that owns this workflow state (type annotation: str).
+    # Returns: no value (None); work is performed through side effects or validation.
+    # Flow: convert expected failures into controlled results; manage a scoped resource.
     try:
         _persistent_clear_submissions(session_id)
     except UIStorageError as exc:
@@ -745,6 +874,12 @@ def _clear_ui_submissions(session_id: str) -> None:
 # Function role: Loads a submission only when it belongs to the authenticated session and has not expired.
 # Same-file callers: instructor_ui_confirm, instructor_ui_generate_references, instructor_ui_generate_tests, instructor_ui_download_test_cases, instructor_ui_execute_tests and other helpers.
 def _get_ui_submission(session_id: str, submission_id: str) -> dict[str, Any]:
+    # In-function documentation:
+    # Parameters:
+    #   - session_id: authenticated session identifier that owns this workflow state (type annotation: str).
+    #   - submission_id: stable identifier for this submission/evaluation record (type annotation: str).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: derive or store intermediate values; manage a scoped resource.
     now = time.time()
     with _UI_SUBMISSIONS_LOCK:
         record = _UI_SUBMISSIONS.get(submission_id)
@@ -855,6 +990,12 @@ def instructor_ui_demo(
     request: UIDemoRequest = UIDemoRequest(),
 ):
     """Run the isolated built-in demo only for an authenticated instructor."""
+    # In-function documentation:
+    # Parameters:
+    #   - http_request: the http request value used by this operation (type annotation: Request).
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: UIDemoRequest); defaults to UIDemoRequest() when omitted.
+    # Returns: the result produced by the delegated helper.
+    # Flow: delegate work to a helper or external boundary; branch on validation or workflow conditions; return the stage result.
     _require_ui_session(http_request)
     if request.demo_mode is not True:
         raise HTTPException(status_code=403, detail="Explicit instructor demo mode is required.")
@@ -869,6 +1010,13 @@ def instructor_ui_login(
     response: Response,
     http_request: Request,
 ):
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: InstructorLoginRequest).
+    #   - response: structured provider or HTTP response being checked or converted (type annotation: Response).
+    #   - http_request: the http request value used by this operation (type annotation: Request).
+    # Returns: a structured mapping assembled for the caller.
+    # Flow: derive or store intermediate values; delegate work to a helper or external boundary; branch on validation or workflow conditions.
     client_ip = http_request.client.host if http_request.client else "unknown"
     _check_login_rate_limit(client_ip)
 
@@ -907,6 +1055,12 @@ def instructor_ui_login(
 # Direct call references (conditional/branch-dependent): _verify_ui_session_token, _clear_ui_submissions, _revoke_ui_session_token.
 @app.post("/api/ui/logout")
 def instructor_ui_logout(http_request: Request, response: Response):
+    # In-function documentation:
+    # Parameters:
+    #   - http_request: the http request value used by this operation (type annotation: Request).
+    #   - response: structured provider or HTTP response being checked or converted (type annotation: Response).
+    # Returns: a structured mapping assembled for the caller.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions; delegate work to a helper or external boundary.
     token = http_request.cookies.get("autograder_instructor_session")
     if _verify_ui_session_token(token):
         session_id = hashlib.sha256(token.encode("utf-8")).hexdigest()
@@ -930,6 +1084,12 @@ def instructor_ui_logout(http_request: Request, response: Response):
 @app.post("/api/ui/preflight")
 def instructor_ui_preflight(request: PreparationRequest, http_request: Request):
     """Run source-size and sandboxed compiler checks before Agent 1 is called."""
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: PreparationRequest).
+    #   - http_request: the http request value used by this operation (type annotation: Request).
+    # Returns: a structured mapping assembled for the caller.
+    # Flow: delegate work to a helper or external boundary; derive or store intermediate values; branch on validation or workflow conditions.
     _require_ui_session(http_request)
     source = request.source
     if request.demo_mode is True:
@@ -963,6 +1123,12 @@ def instructor_ui_preflight(request: PreparationRequest, http_request: Request):
 # Direct call references (conditional/branch-dependent): _require_ui_session, _create_draft_token, prepare_submission, _save_ui_submission.
 @app.post("/api/ui/prepare")
 def instructor_ui_prepare(request: PreparationRequest, http_request: Request):
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: PreparationRequest).
+    #   - http_request: the http request value used by this operation (type annotation: Request).
+    # Returns: the computed result value.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     session_id = _require_ui_session(http_request)
     scenario = None
     if request.demo_mode is True:
@@ -1059,6 +1225,12 @@ def instructor_ui_prepare(request: PreparationRequest, http_request: Request):
 # Direct call references (conditional/branch-dependent): _require_ui_session, _get_ui_submission, confirm_assignment.
 @app.post("/api/ui/confirm-assignment")
 def instructor_ui_confirm(request: UIConfirmRequest, http_request: Request):
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: UIConfirmRequest).
+    #   - http_request: the http request value used by this operation (type annotation: Request).
+    # Returns: a structured mapping assembled for the caller.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     session_id = _require_ui_session(http_request)
     record = _get_ui_submission(session_id, request.submission_id)
 
@@ -1112,6 +1284,12 @@ def instructor_ui_generate_references(
     request: UIGenerateReferencesRequest,
     http_request: Request,
 ):
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: UIGenerateReferencesRequest).
+    #   - http_request: the http request value used by this operation (type annotation: Request).
+    # Returns: the computed references value; alternate return paths may produce the result of the final transformation or check.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     session_id = _require_ui_session(http_request)
     record = _get_ui_submission(session_id, request.submission_id)
     if not record.get("confirmed_spec") or not record.get("approval_token"):
@@ -1162,6 +1340,12 @@ def instructor_ui_generate_tests(
     request: UIGenerateTestsRequest,
     http_request: Request,
 ):
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: UIGenerateTestsRequest).
+    #   - http_request: the http request value used by this operation (type annotation: Request).
+    # Returns: the computed result value; alternate return paths may produce the computed cached value.
+    # Flow: derive or store intermediate values.
     request_started = time.perf_counter()
     session_id = _require_ui_session(http_request)
     record = _get_ui_submission(session_id, request.submission_id)
@@ -1514,6 +1698,11 @@ def instructor_ui_generate_tests(
 # Same-file callers: instructor_ui_execute_tests.
 def _agent4_benchmark_evidence(benchmark):
     """Adapt measured student observations to the legacy reconciler format."""
+    # In-function documentation:
+    # Parameters:
+    #   - benchmark: the benchmark value used by this operation.
+    # Returns: a structured mapping assembled for the caller.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if not isinstance(benchmark, dict):
         return None
 
@@ -1560,6 +1749,11 @@ def _agent4_benchmark_evidence(benchmark):
 # Same-file callers: instructor_ui_execute_tests.
 def _attach_agent4_complexity_graphs(analysis):
     """Evaluate AI-reported complexity notation with the bounded math engine."""
+    # In-function documentation:
+    # Parameters:
+    #   - analysis: the analysis value used by this operation.
+    # Returns: the computed analysis value.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if not isinstance(analysis, dict):
         return analysis
     ai = analysis.get("ai_analysis")
@@ -1590,6 +1784,12 @@ def instructor_ui_download_test_cases(
     request: UIExecuteTestsRequest,
     http_request: Request,
 ):
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: UIExecuteTestsRequest).
+    #   - http_request: the http request value used by this operation (type annotation: Request).
+    # Returns: the result produced by the delegated helper.
+    # Flow: derive or store intermediate values.
     session_id = _require_ui_session(http_request)
     record = _get_ui_submission(session_id, request.submission_id)
 
@@ -1681,6 +1881,12 @@ def instructor_ui_download_test_cases(
 # Same-file callers: instructor_ui_execute_tests.
 def _grade_metric_snapshot_eligible(result: dict[str, Any], provider: Any) -> bool:
     """Only freeze metrics after every AI stage needed by the rubric returned usable output."""
+    # In-function documentation:
+    # Parameters:
+    #   - result: the result value used by this operation (type annotation: dict[str, Any]).
+    #   - provider: the configured AI provider implementation used for one request (type annotation: Any).
+    # Returns: a value of declared type bool.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values; iterate through input or evidence items.
     if provider is None:
         return False
     accepted_statuses = {
@@ -1714,6 +1920,12 @@ def _grade_metric_snapshot_eligible(result: dict[str, Any], provider: Any) -> bo
 # Same-file callers: instructor_ui_execute_tests.
 def _grade_snapshot_analysis_identity(provider: Any, result: dict[str, Any]) -> dict[str, Any]:
     """Fingerprint the provider/model and prompt/schema implementation that produced metrics."""
+    # In-function documentation:
+    # Parameters:
+    #   - provider: the configured AI provider implementation used for one request (type annotation: Any).
+    #   - result: the result value used by this operation (type annotation: dict[str, Any]).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: derive or store intermediate values; iterate through input or evidence items.
     actual = provider
     seen = set()
     while hasattr(actual, "provider") and id(actual) not in seen:
@@ -1765,6 +1977,12 @@ def instructor_ui_execute_tests(
     request: UIExecuteTestsRequest,
     http_request: Request,
 ):
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: UIExecuteTestsRequest).
+    #   - http_request: the http request value used by this operation (type annotation: Request).
+    # Returns: the computed result value; alternate return paths may produce the result of the final transformation or check.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if os.getenv("LOCAL_CODE_EXECUTION_ENABLED", "").lower() not in {"1", "true", "yes"}:
         raise HTTPException(
             status_code=503,
@@ -2213,6 +2431,12 @@ def instructor_ui_benchmark_complexity(
     request: UIComplexityBenchmarkRequest,
     http_request: Request,
 ):
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: UIComplexityBenchmarkRequest).
+    #   - http_request: the http request value used by this operation (type annotation: Request).
+    # Returns: the computed result value.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if os.getenv("LOCAL_CODE_EXECUTION_ENABLED", "").lower() not in {
         "1", "true", "yes"
     }:
@@ -2272,6 +2496,12 @@ def instructor_ui_generate_report(
     request: UIPDFReportRequest,
     http_request: Request,
 ):
+    # In-function documentation:
+    # Parameters:
+    #   - request: the incoming HTTP or provider request and its submitted fields (type annotation: UIPDFReportRequest).
+    #   - http_request: the http request value used by this operation (type annotation: Request).
+    # Returns: the result produced by the delegated helper.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     session_id = _require_ui_session(http_request)
     record = _get_ui_submission(session_id, request.submission_id)
 
@@ -2321,6 +2551,10 @@ def instructor_ui_generate_report(
 @app.get("/workflow", include_in_schema=False)
 async def evaluation_workflow_page():
     """Serve the standalone evaluation workflow page."""
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: the result produced by the delegated helper.
+    # Flow: return the stage result.
     return FileResponse(
         Path(__file__).resolve().parent / "templates" / "workflow.html",
         media_type="text/html"
@@ -2331,6 +2565,10 @@ async def evaluation_workflow_page():
 @app.get("/rubric", include_in_schema=False)
 async def grading_rubric_page():
     """Serve the standalone grading rubric page."""
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: the result produced by the delegated helper.
+    # Flow: return the stage result.
     return FileResponse(
         Path(__file__).resolve().parent / "templates" / "rubric.html",
         media_type="text/html"
@@ -2341,6 +2579,10 @@ async def grading_rubric_page():
 @app.get("/principles", include_in_schema=False)
 async def design_principles_page():
     """Serve the standalone design principles page."""
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: the result produced by the delegated helper.
+    # Flow: return the stage result.
     return FileResponse(
         Path(__file__).resolve().parent / "templates" / "principles.html",
         media_type="text/html"

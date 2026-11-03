@@ -16,6 +16,12 @@ class GuardedProvider:
     # Function role: Initializes the object and its validated dependencies.
     # Context: method/helper owned by GuardedProvider; it is reached through that object's workflow.
     def __init__(self, provider: Any) -> None:
+        # In-function documentation:
+        # Parameters:
+        #   - provider: the configured AI provider implementation used for one request (type annotation: Any).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: no value (None); work is performed through side effects or validation.
+        # Flow: derive or store intermediate values.
         self.provider = provider
         self.max_payload_bytes = int(
             os.getenv("AUTOGRADER_AI_MAX_PAYLOAD_BYTES", "1048576")
@@ -34,6 +40,12 @@ class GuardedProvider:
     # Same-file callers: generate_json.
     @staticmethod
     def _encode(value: Any, label: str) -> bytes:
+        # In-function documentation:
+        # Parameters:
+        #   - value: single value being parsed, validated, normalized, scored, or formatted (type annotation: Any).
+        #   - label: the label value used by this operation (type annotation: str).
+        # Returns: a value of declared type bytes.
+        # Flow: convert expected failures into controlled results.
         try:
             return json.dumps(
                 value,
@@ -57,6 +69,14 @@ class GuardedProvider:
         payload: dict[str, Any],
         schema: dict[str, Any],
     ) -> dict[str, Any]:
+        # In-function documentation:
+        # Parameters:
+        #   - task: the task value used by this operation (type annotation: str).
+        #   - payload: the request data being sent across an API/provider boundary (type annotation: dict[str, Any]).
+        #   - schema: declared data contract inputs or results must satisfy (type annotation: dict[str, Any]).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: a value of declared type dict[str, Any].
+        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
         if not isinstance(task, str) or not task.strip():
             raise AIProviderError(
                 "AI task must be a non-empty string.",

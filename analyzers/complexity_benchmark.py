@@ -33,6 +33,13 @@ def benchmark_complexity(
     The caller is responsible for ensuring that input_size meaningfully
     describes the supplied input. No inputs are generated automatically.
     """
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    #   - benchmark_cases: the benchmark cases value used by this operation (type annotation: list[dict[str, Any]]).
+    #   - repetitions: number of repeated measurements used to reduce timing noise (type annotation: int); defaults to 3 when omitted.
+    # Returns: a value of declared type dict[str, Any]; alternate return paths may produce the computed invalid value, a structured mapping assembled for the caller.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     invalid = {
         "status": "invalid_request",
         "results": [],

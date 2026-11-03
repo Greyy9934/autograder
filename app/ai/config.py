@@ -18,6 +18,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 # Same-file callers: create_ai_provider.
 def mock_mode_enabled() -> bool:
     """Return whether explicit offline mock mode is enabled."""
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: a value of declared type bool.
+    # Flow: return the stage result.
     return os.getenv("AUTOGRADER_MOCK_MODE", "").strip().lower() in {
         "1", "true", "yes", "on"
     }
@@ -27,6 +31,10 @@ def mock_mode_enabled() -> bool:
 # Direct call references (conditional/branch-dependent): mock_mode_enabled.
 def create_ai_provider():
     """Create the explicitly selected offline mock or configured AI provider."""
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: the result produced by the delegated helper.
+    # Flow: delegate work to a helper or external boundary; derive or store intermediate values; branch on validation or workflow conditions.
     load_dotenv(PROJECT_ROOT / ".env", override=False)
 
     mock_enabled = mock_mode_enabled()

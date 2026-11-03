@@ -8,6 +8,11 @@ from typing import Any
 # Direct call references (conditional/branch-dependent): add.
 def analyze_edge_cases(problem: dict[str, Any]) -> dict[str, Any]:
     """Return test ideas classified by how strongly constraints support them."""
+    # In-function documentation:
+    # Parameters:
+    #   - problem: the problem description or reconstructed problem record (type annotation: dict[str, Any]).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if not isinstance(problem, dict):
         return {
             "status": "invalid_request",
@@ -39,6 +44,14 @@ def analyze_edge_cases(problem: dict[str, Any]) -> dict[str, Any]:
     # Context: method/helper owned by analyze_edge_cases; it is reached through that object's workflow.
     # Same-file callers: analyze_edge_cases.
     def add(case_id: str, idea: str, condition: str, category: str) -> None:
+        # In-function documentation:
+        # Parameters:
+        #   - case_id: the case id value used by this operation (type annotation: str).
+        #   - idea: the idea value used by this operation (type annotation: str).
+        #   - condition: the condition value used by this operation (type annotation: str).
+        #   - category: the category value used by this operation (type annotation: str).
+        # Returns: no value (None); work is performed through side effects or validation.
+        # Flow: delegate work to a helper or external boundary.
         cases.append({
             "id": case_id,
             "idea": idea,

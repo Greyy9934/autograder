@@ -14,6 +14,13 @@ def compare_programs(
     inputs: list[str],
 ) -> dict[str, Any]:
     """Compare two programs; disagreements are evidence, not a verdict."""
+    # In-function documentation:
+    # Parameters:
+    #   - first_source: the first source value used by this operation (type annotation: str).
+    #   - second_source: the second source value used by this operation (type annotation: str).
+    #   - inputs: values supplied to the current parser or program (type annotation: list[str]).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values; iterate through input or evidence items.
     if (
         not isinstance(first_source, str)
         or not first_source.strip()
@@ -128,6 +135,16 @@ def generate_integer_list_inputs(
     max_value: int = 100,
 ) -> dict[str, Any]:
     """Generate reproducible inputs formatted as n followed by n integers."""
+    # In-function documentation:
+    # Parameters:
+    #   - seed: deterministic random seed used to make generated cases repeatable (type annotation: int).
+    #   - count: requested or measured number of items or runs (type annotation: int).
+    #   - min_length: the min length value used by this operation (type annotation: int).
+    #   - max_length: the max length value used by this operation (type annotation: int).
+    #   - min_value: the min value value used by this operation (type annotation: int).
+    #   - max_value: the max value value used by this operation (type annotation: int).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     integer_arguments = (
         seed, count, min_length, max_length, min_value, max_value
     )
@@ -169,6 +186,14 @@ def generate_integer_list_edge_cases(
     max_value: int = 100,
 ) -> dict[str, Any]:
     """Generate deterministic boundary cases for n followed by n integers."""
+    # In-function documentation:
+    # Parameters:
+    #   - min_length: the min length value used by this operation (type annotation: int).
+    #   - max_length: the max length value used by this operation (type annotation: int).
+    #   - min_value: the min value value used by this operation (type annotation: int).
+    #   - max_value: the max value value used by this operation (type annotation: int).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     arguments = (min_length, max_length, min_value, max_value)
     if (
         any(isinstance(value, bool) or not isinstance(value, int)

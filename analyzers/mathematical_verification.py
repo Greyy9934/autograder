@@ -65,6 +65,11 @@ VERIFICATION_SCHEMA = {
 # Function role: Returns the module's standard invalid-input result without running analysis.
 # Same-file callers: verify_algorithm.
 def _invalid(message: str) -> dict[str, Any]:
+    # In-function documentation:
+    # Parameters:
+    #   - message: the message value used by this operation (type annotation: str).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: return the stage result.
     return {
         "status": "invalid_request",
         "formally_verified": False,
@@ -81,6 +86,13 @@ def verify_algorithm(
     provider: AIProvider,
 ) -> dict[str, Any]:
     """Ask an AI reviewer for a rigorous, problem-specific correctness proof."""
+    # In-function documentation:
+    # Parameters:
+    #   - problem: the problem description or reconstructed problem record (type annotation: dict[str, Any]).
+    #   - algorithm: the algorithm value used by this operation (type annotation: dict[str, Any]).
+    #   - provider: the configured AI provider implementation used for one request (type annotation: AIProvider).
+    # Returns: a value of declared type dict[str, Any]; alternate return paths may produce the result produced by the delegated helper, a structured mapping assembled for the caller.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if not isinstance(problem, dict) or not isinstance(algorithm, dict):
         return _invalid("Problem and algorithm must be structured objects.")
 

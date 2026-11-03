@@ -26,6 +26,20 @@ def generate_test_plans(
     reference_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Generate random and adversarial inputs without executing student code."""
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    #   - spec: the specification or configuration record being validated or consumed (type annotation: AssignmentSpec).
+    #   - schema: declared data contract inputs or results must satisfy (type annotation: IntegerInputSchema).
+    #   - random_seed: the random seed value used by this operation (type annotation: int).
+    #   - random_count: the random count value used by this operation (type annotation: int).
+    #   - random_distribution: the random distribution value used by this operation (type annotation: str).
+    #   - adversarial_seed: the adversarial seed value used by this operation (type annotation: int).
+    #   - adversarial_count: the adversarial count value used by this operation (type annotation: int).
+    #   - static_findings: the static findings value used by this operation (type annotation: list[dict[str, Any]] | None).
+    #   - reference_metadata: the reference metadata value used by this operation (type annotation: dict[str, Any] | None).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
 
     if not isinstance(spec, AssignmentSpec) or not spec.confirmed:
         return {

@@ -30,6 +30,10 @@ MAX_OPEN_FILES = 64
 # Function role: Apply basic resource limits to GCC and its immediate process.
 def _set_compile_limits() -> None:
     """Apply basic resource limits to GCC and its immediate process."""
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: no value (None); work is performed through side effects or validation.
+    # Flow: delegate work to a helper or external boundary.
     resource.setrlimit(
         resource.RLIMIT_CPU,
         (COMPILE_TIMEOUT_SECONDS, COMPILE_TIMEOUT_SECONDS + 1),
@@ -49,6 +53,11 @@ def _set_compile_limits() -> None:
 # Same-file callers: _run_bounded.
 def _kill_process_group(process: subprocess.Popen[bytes]) -> None:
     """Terminate the process group, then force-kill it if necessary."""
+    # In-function documentation:
+    # Parameters:
+    #   - process: child process handle whose status, pipes, and lifecycle are managed (type annotation: subprocess.Popen[bytes]).
+    # Returns: no value (None); work is performed through side effects or validation.
+    # Flow: branch on validation or workflow conditions; convert expected failures into controlled results.
     if process.poll() is not None:
         return
 
@@ -78,6 +87,14 @@ def _capture_bounded(
     key: str,
 ) -> None:
     """Drain a pipe fully but retain at most OUTPUT_LIMIT_BYTES."""
+    # In-function documentation:
+    # Parameters:
+    #   - stream: readable pipe connected to the child process, usually stdout or stderr (type annotation: Any).
+    #   - storage: mutable output buffer retaining bounded captured data (type annotation: bytearray).
+    #   - state: shared mutable status flags, including output truncation state (type annotation: dict[str, bool]).
+    #   - key: mapping key naming the value to read or update (type annotation: str).
+    # Returns: no value (None); work is performed through side effects or validation.
+    # Flow: convert expected failures into controlled results.
     try:
         while True:
             chunk = stream.read(8192)
@@ -106,6 +123,15 @@ def _run_bounded(
     preexec_fn: Any = None,
 ) -> dict[str, Any]:
     """Run a process with bounded output and prompt process-group cleanup."""
+    # In-function documentation:
+    # Parameters:
+    #   - command: the executable and arguments launched for this bounded process (type annotation: list[str]).
+    #   - stdin_file: the stdin file value used by this operation (type annotation: Any).
+    #   - timeout_seconds: the timeout seconds value used by this operation (type annotation: int).
+    #   - cwd: the cwd value used by this operation (type annotation: Path).
+    #   - preexec_fn: the preexec fn value used by this operation (type annotation: Any).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: derive or store intermediate values.
     stdout_data = bytearray()
     stderr_data = bytearray()
     state = {"stdout_truncated": False, "stderr_truncated": False}
@@ -199,6 +225,11 @@ def _run_bounded(
 # Same-file callers: run_c_program.
 def _normalize_result(result: dict[str, Any]) -> dict[str, Any]:
     """Ensure every worker response has consistent output fields."""
+    # In-function documentation:
+    # Parameters:
+    #   - result: the result value used by this operation (type annotation: dict[str, Any]).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: delegate work to a helper or external boundary.
     result.setdefault("stdout", "")
     result.setdefault("stderr", "")
     result.setdefault("stdout_truncated", False)
@@ -211,6 +242,11 @@ def _normalize_result(result: dict[str, Any]) -> dict[str, Any]:
 # Direct call references (conditional/branch-dependent): _run_bounded.
 def compile_c_source(source: str) -> dict[str, Any]:
     """Compile C in the restricted sandbox without executing the submission."""
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions; manage a scoped resource.
     if not isinstance(source, str) or not source.strip():
         return {"status": "invalid_request", "message": "C source must be a non-empty string."}
     if len(source.encode("utf-8")) > 256 * 1024:
@@ -281,6 +317,12 @@ def _run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
     This is a development worker, not a security-certified public sandbox.
     Compilation and execution run inside separate Bubblewrap namespaces.
     """
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    #   - stdin: the stdin value used by this operation (type annotation: str); defaults to '' when omitted.
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions.
     if not isinstance(source, str) or not source.strip():
         return {
             "status": "invalid_request",
@@ -435,5 +477,11 @@ def _run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
 # Direct call references (conditional/branch-dependent): _run_c_program, _normalize_result.
 def run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
     """Public worker API with a consistent result shape."""
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    #   - stdin: the stdin value used by this operation (type annotation: str); defaults to '' when omitted.
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: derive or store intermediate values; return the stage result.
     result = _run_c_program(source, stdin)
     return _normalize_result(result)

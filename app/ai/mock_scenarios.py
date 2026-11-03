@@ -344,6 +344,12 @@ SCHEMA_BY_AGENT = {
 # Function role: Return an isolated, schema-current copy of one named scenario.
 def get_scenario(agent: str, name: str) -> dict:
     """Return an isolated, schema-current copy of one named scenario."""
+    # In-function documentation:
+    # Parameters:
+    #   - agent: the agent value used by this operation (type annotation: str).
+    #   - name: the name value used by this operation (type annotation: str).
+    # Returns: a value of declared type dict.
+    # Flow: convert expected failures into controlled results.
     try:
         response = deepcopy(SCENARIOS[agent][name])
         if agent == "agent4" and "grading_assessment" not in response:

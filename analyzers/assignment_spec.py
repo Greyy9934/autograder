@@ -27,6 +27,11 @@ class AssignmentSpec:
     # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
     # Direct call references (conditional/branch-dependent): to_dict.
     def __post_init__(self):
+        # In-function documentation:
+        # Parameters: none.
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: the operation result consumed by its caller.
+        # Flow: iterate through input or evidence items; branch on validation or workflow conditions.
         for field in (
             "problem_id",
             "title",
@@ -83,6 +88,13 @@ class AssignmentSpec:
     # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
     @classmethod
     def create_draft(cls, candidate: dict[str, Any], **formats):
+        # In-function documentation:
+        # Parameters:
+        #   - candidate: the candidate value used by this operation (type annotation: dict[str, Any]).
+        #   - **formats: the formats value used by this operation.
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: the result produced by the delegated helper.
+        # Flow: branch on validation or workflow conditions; return the stage result.
         if not isinstance(candidate, dict):
             raise ValueError("candidate must be an object.")
 
@@ -102,6 +114,12 @@ class AssignmentSpec:
     # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
     # Direct call references (conditional/branch-dependent): to_dict.
     def confirm(self, *, instructor_approved: bool):
+        # In-function documentation:
+        # Parameters:
+        #   - instructor_approved: the instructor approved value used by this operation (type annotation: bool).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: the result produced by the delegated helper.
+        # Flow: branch on validation or workflow conditions; derive or store intermediate values; return the stage result.
         if instructor_approved is not True:
             raise ValueError("Explicit instructor approval is required.")
 
@@ -114,6 +132,11 @@ class AssignmentSpec:
     # Same-file callers: fingerprint.
     # Direct call references (conditional/branch-dependent): to_dict.
     def canonical_json(self) -> str:
+        # In-function documentation:
+        # Parameters: none.
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: a value of declared type str.
+        # Flow: return the stage result.
         return json.dumps(
             self.to_dict(),
             sort_keys=True,
@@ -124,12 +147,22 @@ class AssignmentSpec:
     # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
     # Direct call references (conditional/branch-dependent): canonical_json.
     def fingerprint(self) -> str:
+        # In-function documentation:
+        # Parameters: none.
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: a value of declared type str.
+        # Flow: return the stage result.
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
 
     # Function role: Serializes the internal model to the stable plain-dictionary shape used by API and persistence boundaries.
     # Context: method/helper owned by AssignmentSpec; it is reached through that object's workflow.
     # Same-file callers: __post_init__, confirm, canonical_json.
     def to_dict(self) -> dict[str, Any]:
+        # In-function documentation:
+        # Parameters: none.
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: a value of declared type dict[str, Any].
+        # Flow: derive or store intermediate values; branch on validation or workflow conditions; return the stage result.
         values = asdict(self)
         if values["input_schema"] is not None:
             values["input_schema"] = json.loads(values["input_schema"])

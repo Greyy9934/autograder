@@ -96,11 +96,23 @@ int main(void) {
 # Function role: Implements the internal make input helper for demo runner.
 # Same-file callers: _generate_benchmark_cases, _generate_edge_cases.
 def _make_input(values: list[int], target: int) -> str:
+    # In-function documentation:
+    # Parameters:
+    #   - values: the values value used by this operation (type annotation: list[int]).
+    #   - target: the target value used by this operation (type annotation: int).
+    # Returns: a value of declared type str.
+    # Flow: return the stage result.
     return f"{len(values)}\n{' '.join(map(str, values))}\n{target}\n"
 
 
 # Function role: Implements the internal oracle helper for demo runner.
 def _oracle(values: list[int], target: int) -> str:
+    # In-function documentation:
+    # Parameters:
+    #   - values: the values value used by this operation (type annotation: list[int]).
+    #   - target: the target value used by this operation (type annotation: int).
+    # Returns: a value of declared type str.
+    # Flow: derive or store intermediate values; iterate through input or evidence items; return the stage result.
     seen: set[int] = set()
     for value in values:
         if target - value in seen:
@@ -114,6 +126,10 @@ def _oracle(values: list[int], target: int) -> str:
 # Direct call references (conditional/branch-dependent): _make_input.
 def _generate_benchmark_cases() -> list[dict[str, Any]]:
     """Reproducible progressive-size, no-solution inputs (seed 20261101)."""
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: a value of declared type list[dict[str, Any]].
+    # Flow: derive or store intermediate values; iterate through input or evidence items; return the stage result.
     rng = random.Random(20261101)
     cases = []
     for size in (100, 300, 600, 1000, 1800):
@@ -133,6 +149,10 @@ def _generate_benchmark_cases() -> list[dict[str, Any]]:
 # Same-file callers: build_real_demo_payload.
 # Direct call references (conditional/branch-dependent): _make_input.
 def _generate_edge_cases() -> list[dict[str, Any]]:
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: a value of declared type list[dict[str, Any]].
+    # Flow: derive or store intermediate values; return the stage result.
     definitions = [
         ("empty_array", [], 5, "NO", "Minimum valid array length."),
         ("single_element", [5], 10, "NO", "A single position cannot be reused."),
@@ -158,6 +178,10 @@ def _generate_edge_cases() -> list[dict[str, Any]]:
 # Direct call references (conditional/branch-dependent): _generate_benchmark_cases, _generate_edge_cases.
 def build_real_demo_payload() -> dict[str, Any]:
     """Run only trusted demo code; accepts no user source or form data."""
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: derive or store intermediate values; iterate through input or evidence items.
     cases = _generate_benchmark_cases()
     edge_cases = _generate_edge_cases()
 

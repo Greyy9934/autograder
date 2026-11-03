@@ -27,6 +27,11 @@ def benchmark_time_budget_for_case_count(case_count: int) -> float:
     leaves most of a 100-case batch unverified even when the inputs are small.
     Keep the window bounded so the request remains predictable on hosted servers.
     """
+    # In-function documentation:
+    # Parameters:
+    #   - case_count: the case count value used by this operation (type annotation: int).
+    # Returns: a value of declared type float.
+    # Flow: branch on validation or workflow conditions; return the stage result.
     if isinstance(case_count, bool) or not isinstance(case_count, int) or case_count < 1:
         raise ValueError("case_count must be a positive integer.")
     return round(min(
@@ -39,6 +44,11 @@ def benchmark_time_budget_for_case_count(case_count: int) -> float:
 # Same-file callers: _classify_benchmark_run.
 def _classify_execution(run: dict[str, Any]) -> str:
     """Classify execution outcomes without confusing infrastructure with student errors."""
+    # In-function documentation:
+    # Parameters:
+    #   - run: the run value used by this operation (type annotation: dict[str, Any]).
+    # Returns: a value of declared type str.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     status = run.get("status")
 
     if status == "launch_error":
@@ -68,6 +78,12 @@ def _classify_benchmark_run(
     shared_budget_limited: bool,
 ) -> str:
     """Separate a global benchmark cutoff from a program's own time limit."""
+    # In-function documentation:
+    # Parameters:
+    #   - run: the run value used by this operation (type annotation: dict[str, Any]).
+    #   - shared_budget_limited: the shared budget limited value used by this operation (type annotation: bool).
+    # Returns: a value of declared type str; alternate return paths may produce the result of the final transformation or check.
+    # Flow: branch on validation or workflow conditions; return the stage result.
     if run.get("status") == "timeout" and shared_budget_limited:
         return "benchmark_time_budget_exhausted"
     return _classify_execution(run)
@@ -77,6 +93,11 @@ def _classify_benchmark_run(
 # Same-file callers: run_c_batch.
 def _summarize_results(results: list[dict[str, Any]]) -> dict[str, int]:
     """Count each execution category for deterministic downstream reporting."""
+    # In-function documentation:
+    # Parameters:
+    #   - results: collected outputs, statuses, or evidence produced by an earlier stage (type annotation: list[dict[str, Any]]).
+    # Returns: a value of declared type dict[str, int].
+    # Flow: derive or store intermediate values; return the stage result.
     categories = (
         "program_success",
         "runtime_error",
@@ -102,6 +123,13 @@ class _SharedExecutionGate:
     # Function role: Initializes the object and its validated dependencies.
     # Context: method/helper owned by _SharedExecutionGate; it is reached through that object's workflow.
     def __init__(self, workers: int, budget_seconds: float):
+        # In-function documentation:
+        # Parameters:
+        #   - workers: the workers value used by this operation (type annotation: int).
+        #   - budget_seconds: the budget seconds value used by this operation (type annotation: float).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: the operation result consumed by its caller.
+        # Flow: derive or store intermediate values.
         self.workers = workers
         self.budget_seconds = budget_seconds
         self.condition = threading.Condition()
@@ -114,6 +142,11 @@ class _SharedExecutionGate:
     # Context: method/helper owned by _SharedExecutionGate; it is reached through that object's workflow.
     # Same-file callers: run_c_batch.
     def abort(self):
+        # In-function documentation:
+        # Parameters: none.
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: the operation result consumed by its caller.
+        # Flow: manage a scoped resource.
         with self.condition:
             self.aborted = True
             self.condition.notify_all()
@@ -122,6 +155,11 @@ class _SharedExecutionGate:
     # Context: method/helper owned by _SharedExecutionGate; it is reached through that object's workflow.
     # Same-file callers: run_c_batch.
     def wait_until_all_ready(self):
+        # In-function documentation:
+        # Parameters: none.
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: a tuple containing the operation results.
+        # Flow: manage a scoped resource.
         with self.condition:
             self.ready += 1
             if self.ready == self.workers:
@@ -155,6 +193,16 @@ def run_c_batch(
     per_case_timeout_seconds: float | None = None,
 ) -> dict[str, Any]:
 
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    #   - inputs: values supplied to the current parser or program (type annotation: list[str]).
+    #   - time_budget_seconds: the time budget seconds value used by this operation (type annotation: float | None).
+    #   - _shared_gate: the shared gate value used by this operation (type annotation: _SharedExecutionGate | None).
+    #   - stop_after_timeout: the stop after timeout value used by this operation (type annotation: bool).
+    #   - per_case_timeout_seconds: the per case timeout seconds value used by this operation (type annotation: float | None).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions.
     if not isinstance(source, str) or not source.strip():
         return {"status": "invalid_request", "results": []}
 
@@ -402,6 +450,12 @@ def _adaptive_benchmark_case_order(
     set of additional low-size cases, before the upper probes and remaining
     cases. The brute-force worker may stop after an actual per-case timeout.
     """
+    # In-function documentation:
+    # Parameters:
+    #   - generated_cases: the generated cases value used by this operation (type annotation: list[dict[str, Any]]).
+    #   - max_ladder_points: the max ladder points value used by this operation (type annotation: int).
+    # Returns: a value of declared type tuple[list[int], list[int]].
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     sizes = [case["input_size"] for case in generated_cases]
     unique_sizes = sorted(set(sizes))
     if not unique_sizes:
@@ -487,6 +541,15 @@ def benchmark_three_programs_parallel(
     time_budget_seconds: float = 2.0,
 ) -> dict[str, Any]:
     """Compile three programs, then execute them concurrently on one clock."""
+    # In-function documentation:
+    # Parameters:
+    #   - student_source: the student program source used as the comparison candidate (type annotation: str).
+    #   - brute_force_source: the brute-force reference source used to check correctness (type annotation: str).
+    #   - efficient_source: the efficient reference source used to check correctness and performance (type annotation: str).
+    #   - generated_cases: the generated cases value used by this operation (type annotation: list[dict[str, Any]]).
+    #   - time_budget_seconds: the time budget seconds value used by this operation (type annotation: float).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     from concurrent.futures import ThreadPoolExecutor
 
     if not isinstance(generated_cases, list) or not 1 <= len(generated_cases) <= 200:

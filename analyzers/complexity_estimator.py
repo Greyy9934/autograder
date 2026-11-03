@@ -22,6 +22,13 @@ ALLOCATION_PATTERN = re.compile(r"\b(malloc|calloc|realloc)\s*\(")
 # Same-file callers: estimate_complexity.
 def _loop_model(kind: str, header: str, body: str = "") -> dict[str, Any]:
     """Classify common loop forms without claiming full C semantics."""
+    # In-function documentation:
+    # Parameters:
+    #   - kind: the kind value used by this operation (type annotation: str).
+    #   - header: the header value used by this operation (type annotation: str).
+    #   - body: request, response, or file content being processed (type annotation: str); defaults to '' when omitted.
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if kind == "for":
         parts = [part.strip() for part in header.split(";")]
         if len(parts) != 3:
@@ -75,6 +82,12 @@ def _loop_model(kind: str, header: str, body: str = "") -> dict[str, Any]:
 # Same-file callers: estimate_complexity.
 def _brace_body(source: str, opening: int) -> str:
     """Return a brace-delimited loop body, if one is present."""
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    #   - opening: the opening value used by this operation (type annotation: int).
+    # Returns: a value of declared type str.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     brace = source.find("{", opening)
     semicolon = source.find(";", opening)
     if brace < 0 or (semicolon >= 0 and semicolon < brace):
@@ -94,6 +107,11 @@ def _brace_body(source: str, opening: int) -> str:
 # Same-file callers: estimate_complexity.
 def _mask_comments_and_strings(source: str) -> str:
     """Replace comments and string/character contents while preserving lines."""
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    # Returns: a value of declared type str.
+    # Flow: derive or store intermediate values; iterate through input or evidence items.
     result = []
     index = 0
     state = "code"
@@ -166,6 +184,10 @@ def _mask_comments_and_strings(source: str) -> str:
 # Function role: Implements the internal invalid result helper for complexity estimator.
 # Same-file callers: estimate_complexity.
 def _invalid_result() -> dict[str, Any]:
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: return the stage result.
     return {
         "status": "invalid_request",
         "time_complexity": "unknown",
@@ -186,6 +208,11 @@ def _invalid_result() -> dict[str, Any]:
 # Direct call references (conditional/branch-dependent): _invalid_result, _mask_comments_and_strings, _brace_body, _loop_model.
 def estimate_complexity(source: str) -> dict[str, Any]:
     """Estimate complexity from source patterns; not a semantic proof."""
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    # Returns: a value of declared type dict[str, Any]; alternate return paths may produce the result produced by the delegated helper.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if not isinstance(source, str) or not source.strip():
         return _invalid_result()
 

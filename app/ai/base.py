@@ -19,6 +19,15 @@ class AIProviderError(RuntimeError):
         retryable: bool = False,
         status_code: int | None = None,
     ) -> None:
+        # In-function documentation:
+        # Parameters:
+        #   - message: the message value used by this operation (type annotation: str).
+        #   - category: the category value used by this operation (type annotation: str).
+        #   - retryable: the retryable value used by this operation (type annotation: bool).
+        #   - status_code: status or result code interpreted by this function (type annotation: int | None).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: no value (None); work is performed through side effects or validation.
+        # Flow: delegate work to a helper or external boundary; derive or store intermediate values.
         super().__init__(message)
         self.category = category
         self.retryable = retryable
@@ -35,4 +44,11 @@ class AIProvider(Protocol):
         schema: dict[str, Any],
     ) -> dict[str, Any]:
         """Generate one structured JSON object."""
+        # In-function documentation:
+        # Parameters:
+        #   - task: the task value used by this operation (type annotation: str).
+        #   - payload: the request data being sent across an API/provider boundary (type annotation: dict[str, Any]).
+        #   - schema: declared data contract inputs or results must satisfy (type annotation: dict[str, Any]).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: a value of declared type dict[str, Any].
         ...

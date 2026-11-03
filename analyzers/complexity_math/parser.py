@@ -33,6 +33,11 @@ DEFAULT_LIMITS = ExpressionLimits()
 # Same-file callers: parse_complexity_expression.
 def _validate_limits(limits: ExpressionLimits) -> None:
     """Reject invalid or unsafe parser resource configurations."""
+    # In-function documentation:
+    # Parameters:
+    #   - limits: the limits value used by this operation (type annotation: ExpressionLimits).
+    # Returns: no value (None); work is performed through side effects or validation.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values; iterate through input or evidence items.
     if not isinstance(limits, ExpressionLimits):
         raise ExpressionParseError(
             "invalid_limits", "Limits must be an ExpressionLimits instance."
@@ -77,6 +82,13 @@ class ExpressionParseError(ValueError):
     # Same-file callers: __init__.
     # Direct call references (conditional/branch-dependent): __init__.
     def __init__(self, code: str, message: str):
+        # In-function documentation:
+        # Parameters:
+        #   - code: the code value used by this operation (type annotation: str).
+        #   - message: the message value used by this operation (type annotation: str).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: the operation result consumed by its caller.
+        # Flow: delegate work to a helper or external boundary; derive or store intermediate values.
         super().__init__(message)
         self.code = code
 
@@ -89,6 +101,11 @@ def _strip_asymptotic_wrapper(text: str) -> tuple[str, str]:
     Only a wrapper that encloses the entire expression is removed.
     Nested parentheses are checked explicitly.
     """
+    # In-function documentation:
+    # Parameters:
+    #   - text: source or display text being parsed or rendered (type annotation: str).
+    # Returns: a value of declared type tuple[str, str].
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     text = text.strip()
 
     wrappers = {
@@ -167,6 +184,11 @@ def _strip_asymptotic_wrapper(text: str) -> tuple[str, str]:
 # Direct call references (conditional/branch-dependent): _strip_asymptotic_wrapper.
 def _normalize(text: str) -> str:
     """Normalize mathematical notation without corrupting function names."""
+    # In-function documentation:
+    # Parameters:
+    #   - text: source or display text being parsed or rendered (type annotation: str).
+    # Returns: a value of declared type str; alternate return paths may produce the computed expression value.
+    # Flow: derive or store intermediate values.
     text = text.strip()
     text = text.replace("−", "-").replace("×", "*").replace("·", "*")
     text = text.replace("÷", "/").replace("π", "pi")
@@ -198,6 +220,11 @@ def _normalize(text: str) -> str:
     # Function role: Implements expand log chain for parser using this module's input and result contracts.
     # Context: method/helper owned by _normalize; it is reached through that object's workflow.
     def expand_log_chain(match: re.Match[str]) -> str:
+        # In-function documentation:
+        # Parameters:
+        #   - match: regular-expression match extracted from the input text (type annotation: re.Match[str]).
+        # Returns: a value of declared type str.
+        # Flow: derive or store intermediate values; iterate through input or evidence items; return the stage result.
         functions = re.findall(log_token, match.group(1), flags=re.IGNORECASE)
         expression = match.group(2)
         for function in reversed(functions):
@@ -268,6 +295,13 @@ def _walk_and_validate(
     limits: ExpressionLimits,
     supplied_parameters: dict[str, float],
 ) -> tuple[frozenset[str], frozenset[str], frozenset[str]]:
+    # In-function documentation:
+    # Parameters:
+    #   - root: base filesystem directory used to resolve allowed paths (type annotation: ast.AST).
+    #   - limits: the limits value used by this operation (type annotation: ExpressionLimits).
+    #   - supplied_parameters: the supplied parameters value used by this operation (type annotation: dict[str, float]).
+    # Returns: a value of declared type tuple[frozenset[str], frozenset[str], frozenset[str]].
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     nodes = list(ast.walk(root))
     if len(nodes) > limits.max_ast_nodes:
         raise ExpressionParseError("too_many_nodes", "Expression contains too many syntax nodes.")
@@ -283,6 +317,12 @@ def _walk_and_validate(
     # Same-file callers: _walk_and_validate, visit.
     # Direct call references (conditional/branch-dependent): visit.
     def visit(node: ast.AST, depth: int = 0) -> None:
+        # In-function documentation:
+        # Parameters:
+        #   - node: current validated syntax-tree node handled recursively (type annotation: ast.AST).
+        #   - depth: the depth value used by this operation (type annotation: int); defaults to 0 when omitted.
+        # Returns: no value (None); work is performed through side effects or validation.
+        # Flow: branch on validation or workflow conditions.
         if depth > limits.max_ast_depth:
             raise ExpressionParseError("too_deep", "Expression nesting exceeds the permitted depth.")
 
@@ -358,6 +398,13 @@ def parse_complexity_expression(
     limits: ExpressionLimits = DEFAULT_LIMITS,
 ) -> ParseResult:
     """Parse and validate an asymptotic expression without executing it."""
+    # In-function documentation:
+    # Parameters:
+    #   - notation: the notation value used by this operation (type annotation: str).
+    #   - parameters: the parameters value used by this operation (type annotation: dict[str, float] | None).
+    #   - limits: the limits value used by this operation (type annotation: ExpressionLimits).
+    # Returns: a value of declared type ParseResult.
+    # Flow: branch on validation or workflow conditions; convert expected failures into controlled results.
     if not isinstance(notation, str):
         return ParseResult("invalid", None, "invalid_type", "Notation must be a string.", {})
 

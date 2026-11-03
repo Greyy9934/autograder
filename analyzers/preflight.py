@@ -13,6 +13,11 @@ DEFAULT_RULES_PATH = PROJECT_ROOT / "rules" / "preflight.json"
 # Same-file callers: preflight.
 def load_rules(path: str | Path = DEFAULT_RULES_PATH) -> dict[str, Any]:
     """Load and validate the source limits from preflight configuration."""
+    # In-function documentation:
+    # Parameters:
+    #   - path: filesystem location read from or written to (type annotation: str | Path); defaults to DEFAULT_RULES_PATH when omitted.
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: derive or store intermediate values; manage a scoped resource; branch on validation or workflow conditions.
     rules_path = Path(path)
 
     with rules_path.open("r", encoding="utf-8") as handle:
@@ -37,6 +42,12 @@ def preflight(
     rules_path: str | Path = DEFAULT_RULES_PATH,
 ) -> dict[str, Any]:
     """Validate submitted source without compiling or executing it."""
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    #   - rules_path: the rules path value used by this operation (type annotation: str | Path); defaults to DEFAULT_RULES_PATH when omitted.
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     rules = load_rules(rules_path)
 
     if not isinstance(source, str) or not source.strip():

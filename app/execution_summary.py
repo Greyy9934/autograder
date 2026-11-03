@@ -18,6 +18,11 @@ OUTCOME_KEYS = (
 # Function role: Normalizes one execution result into the compact status/count fields used in summaries.
 # Same-file callers: summarize_execution_evidence.
 def _summarize_one(result: Any) -> dict[str, Any]:
+    # In-function documentation:
+    # Parameters:
+    #   - result: the result value used by this operation (type annotation: Any).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values; iterate through input or evidence items.
     if not isinstance(result, dict):
         result = {}
 
@@ -47,6 +52,11 @@ def _summarize_one(result: Any) -> dict[str, Any]:
 # Direct call references (conditional/branch-dependent): _summarize_one.
 def summarize_execution_evidence(evidence: dict[str, Any]) -> dict[str, Any]:
     """Combine random/adversarial observations; never derive correctness."""
+    # In-function documentation:
+    # Parameters:
+    #   - evidence: validated execution or analysis facts used downstream (type annotation: dict[str, Any]).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: derive or store intermediate values; return the stage result.
     random_result = evidence.get("random_test_execution")
     adversarial_result = evidence.get("adversarial_execution")
 

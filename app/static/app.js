@@ -4,6 +4,10 @@
   "use strict";
 
   // Function role: Returns the first DOM element matching a CSS selector.
+  // Function details:
+  // Parameters:
+  //   - selector: CSS selector used to locate a DOM element.
+  // Returns: the expression immediately following =>.
   const $ = (selector) => document.querySelector(selector);
 
   const editor = $("#source");
@@ -23,6 +27,9 @@
 
   // Function role: Shows scenario controls only when demo mode is enabled.
   function updateDemoScenarioVisibility() {
+    // Parameters:
+    //   - None.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (demoScenarioControl) {
       demoScenarioControl.hidden = !Boolean(demoModeCheckbox?.checked);
     }
@@ -35,6 +42,9 @@
 
   // Function role: Displays a short-lived status message.
   function showToast(message) {
+    // Parameters:
+    //   - message: short status text shown to the user.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (!toast) return;
     toast.textContent = message;
     toast.classList.add("show");
@@ -44,6 +54,9 @@
 
   // Function role: Synchronizes editor line numbers and source length counters.
   function updateEditorStats() {
+    // Parameters:
+    //   - None.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (!editor) return;
 
     const lines = editor.value.split("\n").length;
@@ -67,6 +80,9 @@
 
   // Function role: Loads the built-in example program into the editor.
   function loadExample() {
+    // Parameters:
+    //   - None.
+    // Returns: Returns the computed value described above to the calling UI workflow; branch-specific return statements define its exact shape..
     if (!editor) return;
 
     problem.value =
@@ -365,6 +381,10 @@ int main(void) {
 
   // Function role: Sends one workflow request, adds request tracing, and normalizes API errors.
   async function apiRequest(url, payload = {}) {
+    // Parameters:
+    //   - url: workflow endpoint receiving the request.
+    //   - payload: fields sent in the workflow API request; default is {}.
+    // Returns: Returns a Promise; it resolves to the workflow/API result or to no value when this handler only updates the UI..
     const requestId = globalThis.crypto?.randomUUID?.() ||
       `ui-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
     let response;
@@ -397,6 +417,9 @@ int main(void) {
 
   // Function role: Converts internal values into readable labels.
   function displayLabel(value) {
+    // Parameters:
+    //   - value: current structured value being rendered or formatted.
+    // Returns: Returns the computed value described above to the calling UI workflow; branch-specific return statements define its exact shape..
     return String(value)
       .replace(/_/g, " ")
       .replace(/([a-z])([A-Z])/g, "$1 $2")
@@ -405,6 +428,10 @@ int main(void) {
 
   // Function role: Safely renders structured agent output as text and code while omitting sensitive fields.
   function renderStructured(container, value) {
+    // Parameters:
+    //   - container: DOM container that receives the rendered result.
+    //   - value: current structured value being rendered or formatted.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (!container) return;
     container.replaceChildren();
 
@@ -412,6 +439,11 @@ int main(void) {
 
     // Function role: Recursively renders one structured value as readable arrays, objects, or code.
     function renderValue(parent, key, item) {
+      // Parameters:
+      //   - parent: target DOM node to receive generated child elements.
+      //   - key: scenario or agent identifier used for rendering.
+      //   - item: current item in a structured collection.
+      // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
       if (sensitive.test(key)) return;
 
       if (item === null || item === undefined) return;
@@ -497,6 +529,11 @@ int main(void) {
   // Isolated built-in demo. Sends no user submission fields.
   // Function role: Adds a labeled text row to a demo card.
   function demoText(parent, label, value) {
+    // Parameters:
+    //   - parent: target DOM node to receive generated child elements.
+    //   - label: human-facing text identifying the value.
+    //   - value: current structured value being rendered or formatted.
+    // Returns: Returns the computed value described above to the calling UI workflow; branch-specific return statements define its exact shape..
     const row = document.createElement("div");
     row.className = "demo-result-row";
     const heading = document.createElement("strong");
@@ -516,6 +553,11 @@ int main(void) {
 
   // Function role: Adds a collapsible source-code block to a demo result.
   function demoCode(parent, label, source) {
+    // Parameters:
+    //   - parent: target DOM node to receive generated child elements.
+    //   - label: human-facing text identifying the value.
+    //   - source: program source text to load, analyze, or display.
+    // Returns: Returns the computed value described above to the calling UI workflow; branch-specific return statements define its exact shape..
     if (typeof source !== "string") return;
     const details = document.createElement("details");
     details.className = "demo-code-details";
@@ -531,6 +573,10 @@ int main(void) {
   // Shared measured-runtime chart for both normal and demo workflows.
   // Function role: Builds an SVG chart from successful measured runtime observations.
   function renderBenchmarkChart(parent, benchmark) {
+    // Parameters:
+    //   - parent: target DOM node to receive generated child elements.
+    //   - benchmark: measured benchmark observations and comparisons.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     const observations = Array.isArray(benchmark?.chart_data)
       ? benchmark.chart_data.filter(point =>
           point &&
@@ -611,6 +657,12 @@ int main(void) {
 
       // Function role: Creates an SVG element, applies attributes, and optionally sets its text.
       const make = (tag, attrs, text) => {
+        // In-function documentation:
+        // Parameters:
+        //   - tag: element name to create.
+        //   - attrs: attributes to apply to the SVG element.
+        //   - text: plain text assigned to the created element.
+        // Returns: the computed result or no explicit value, as shown by the return statements below.
         const node = document.createElementNS(NS, tag);
         Object.entries(attrs || {}).forEach(([key, value]) =>
           node.setAttribute(key, String(value))
@@ -628,23 +680,51 @@ int main(void) {
       const logX = minX > 0 && maxX / minX >= 100;
       const logY = maxY / minY >= 10;
       // Function role: Maps an input size into the benchmark chart x-axis scale.
+      // Function details:
+      // Parameters:
+      //   - value: value transformed into chart coordinates or display text.
+      // Returns: the expression immediately following =>.
       const tx = value => logX ? Math.log10(Math.max(value, 1e-12)) : value;
       // Function role: Maps a runtime into the benchmark chart y-axis scale.
+      // Function details:
+      // Parameters:
+      //   - value: value transformed into chart coordinates or display text.
+      // Returns: the expression immediately following =>.
       const ty = value => logY ? Math.log10(Math.max(value, 1e-12)) : value;
       const xMin = tx(minX), xMax = tx(maxX), yMin = ty(minY), yMax = ty(maxY);
       // Function role: Converts an x-axis chart coordinate back to input size.
+      // Function details:
+      // Parameters:
+      //   - value: value transformed into chart coordinates or display text.
+      // Returns: the expression immediately following =>.
       const unTx = value => logX ? 10 ** value : value;
       // Function role: Converts a y-axis chart coordinate back to runtime.
+      // Function details:
+      // Parameters:
+      //   - value: value transformed into chart coordinates or display text.
+      // Returns: the expression immediately following =>.
       const unTy = value => logY ? 10 ** value : value;
       // Function role: Maps a value to a horizontal chart coordinate.
+      // Function details:
+      // Parameters:
+      //   - value: value transformed into chart coordinates or display text.
+      // Returns: the expression immediately following =>.
       const x = value => xMax === xMin
         ? left + width / 2
         : left + ((tx(value) - xMin) / (xMax - xMin)) * width;
       // Function role: Maps a value to a vertical chart coordinate.
+      // Function details:
+      // Parameters:
+      //   - value: value transformed into chart coordinates or display text.
+      // Returns: the expression immediately following =>.
       const y = value => yMax === yMin
         ? bottom - height / 2
         : bottom - ((ty(Math.max(value, 0.001)) - yMin) / (yMax - yMin)) * height;
       // Function role: Formats chart tick values compactly.
+      // Function details:
+      // Parameters:
+      //   - value: value transformed into chart coordinates or display text.
+      // Returns: the expression immediately following =>.
       const formatAxisValue = value =>
         value >= 10000 || (value > 0 && value < 0.01)
           ? value.toExponential(1)
@@ -698,6 +778,10 @@ int main(void) {
       } else {
         // Function role: Chooses a readable interval for linear chart ticks.
         const niceStep = raw => {
+          // In-function documentation:
+          // Parameters:
+          //   - raw: unscaled interval used to choose chart ticks.
+          // Returns: the computed result or no explicit value, as shown by the return statements below.
           if (!(raw > 0)) return 1;
           const power = Math.pow(10, Math.floor(Math.log10(raw)));
           const fraction = raw / power;
@@ -822,6 +906,11 @@ int main(void) {
 
   // Function role: Adds one labeled workflow-stage result.
   function stageText(parent, label, value) {
+    // Parameters:
+    //   - parent: target DOM node to receive generated child elements.
+    //   - label: human-facing text identifying the value.
+    //   - value: current structured value being rendered or formatted.
+    // Returns: Returns the computed value described above to the calling UI workflow; branch-specific return statements define its exact shape..
     if (!parent || value == null || value === "") return;
     const row = document.createElement("p");
     row.className = "agent-result-summary";
@@ -833,6 +922,12 @@ int main(void) {
 
   // Function role: Summarizes compared executions and displays a capped set of failures or inconclusive examples.
   function renderDifferentialResults(parent, comparisons, label, maxExamples = 5) {
+    // Parameters:
+    //   - parent: target DOM node to receive generated child elements.
+    //   - comparisons: per-case program outcomes being compared.
+    //   - label: human-facing text identifying the value.
+    //   - maxExamples: upper bound on failure examples shown in the card; default is 5.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (!parent) return 0;
     parent.replaceChildren();
     const cases = Array.isArray(comparisons) ? comparisons : [];
@@ -865,6 +960,10 @@ int main(void) {
           kind = "student_mismatch";
           studentMismatches += 1;
           // Function role: Extracts the final output token for output-contract-aware comparisons.
+          // Function details:
+          // Parameters:
+          //   - value: value transformed into chart coordinates or display text.
+          // Returns: the expression immediately following =>.
           const finalToken = value => value.split(/\s+/).filter(Boolean).at(-1) || "";
           if (finalToken(studentOut) && finalToken(studentOut) === finalToken(bruteOut)) {
             possibleFormatOnlyMismatches += 1;
@@ -944,6 +1043,11 @@ int main(void) {
 
   // Function role: Renders structured summary data under a descriptive heading.
   function renderStructuredSummary(parent, value, heading) {
+    // Parameters:
+    //   - parent: target DOM node to receive generated child elements.
+    //   - value: current structured value being rendered or formatted.
+    //   - heading: descriptive heading for the rendered section.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (!parent) return;
     parent.replaceChildren();
     if (!value || typeof value !== "object") {
@@ -963,11 +1067,20 @@ int main(void) {
 
   // Function role: Displays the reviewed contract, constraints, and authoritative input schema.
   function renderAssignmentSummary(parent, data) {
+    // Parameters:
+    //   - parent: target DOM node to receive generated child elements.
+    //   - data: structured API or demo response consumed by this renderer.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (!parent) return;
     parent.replaceChildren();
     const spec = data?.assignment_spec || {};
     // Function role: Adds one labeled assignment detail section.
     const addSection = (title, value) => {
+      // In-function documentation:
+      // Parameters:
+      //   - title: section heading to display.
+      //   - value: value transformed into chart coordinates or display text.
+      // Returns: the computed result or no explicit value, as shown by the return statements below.
       if (!value) return;
       const section = document.createElement("section");
       section.className = "result-section user-summary-section";
@@ -1018,6 +1131,10 @@ int main(void) {
 
   // Function role: Shows Agent 2 brute-force and efficient solutions in separate readable code panels.
   function renderReferenceSolutions(parent, references) {
+    // Parameters:
+    //   - parent: target DOM node to receive generated child elements.
+    //   - references: brute-force and efficient reference implementations.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (!parent) return;
     parent.replaceChildren();
     stageText(parent, "Agent 2 status", references?.status || "no_response");
@@ -1042,6 +1159,10 @@ int main(void) {
 
   // Function role: Renders demo benchmark outcomes and issue examples.
   function renderDemoBenchmark(parent, benchmark) {
+    // Parameters:
+    //   - parent: target DOM node to receive generated child elements.
+    //   - benchmark: measured benchmark observations and comparisons.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     renderBenchmarkChart(parent, benchmark);
 
     const comparisons = Array.isArray(benchmark.differential_comparisons)
@@ -1053,6 +1174,10 @@ int main(void) {
 
   // Function role: Renders one agent card from its demo response and findings.
   function renderDemoAgent(key, agent) {
+    // Parameters:
+    //   - key: scenario or agent identifier used for rendering.
+    //   - agent: one agent result and its associated case data.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     const titles = {
       agent1: "AGENT 1 — PROBLEM RECONSTRUCTION",
       agent2: "AGENT 2 — THREE C IMPLEMENTATIONS",
@@ -1122,6 +1247,9 @@ int main(void) {
 
   // Function role: Runs a deterministic demo scenario without calling the paid provider.
   async function runDemo() {
+    // Parameters:
+    //   - None.
+    // Returns: Returns a Promise; it resolves to the workflow/API result or to no value when this handler only updates the UI..
     const results = $("#demo-results");
     const notice = $("#demo-notice");
     const output = $("#demo-agent-results");
@@ -1207,6 +1335,9 @@ int main(void) {
 
   // Function role: Displays syntax, compile, and static preflight results before Agent 1.
   function renderPreflightCard(result) {
+    // Parameters:
+    //   - result: response or execution result being summarized.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (!resultsFindings) return;
     resultsFindings.querySelector(".preflight-result-card")?.remove();
     const preflight = result?.preflight || {};
@@ -1217,6 +1348,12 @@ int main(void) {
     const checks = document.createElement("ul"); checks.className = "preflight-check-list";
     // Function role: Appends one labeled preflight check.
     const add = (label, detail, passed) => {
+      // In-function documentation:
+      // Parameters:
+      //   - label: value supplied to this helper as indicated by its name and call site.
+      //   - detail: value supplied to this helper as indicated by its name and call site.
+      //   - passed: value supplied to this helper as indicated by its name and call site.
+      // Returns: the computed result or no explicit value, as shown by the return statements below.
       const item = document.createElement("li");
       const state = document.createElement("strong");
       state.textContent = passed ? "Passed" : "Needs attention";
@@ -1247,6 +1384,9 @@ int main(void) {
   // Function role: Starts the instructor path after preflight: Agent 1 reconstruction, approval, then Agent 2 references.
   // Workflow order 02: invoked after preflight; coordinates Agent 1, instructor approval, then Agent 2.
   async function runAgent1Workflow() {
+    // Parameters:
+    //   - None.
+    // Returns: Returns a Promise; it resolves to the workflow/API result or to no value when this handler only updates the UI..
     if (!instructorAuthenticated) {
       showToast("Please log in as instructor first.");
       return;
@@ -1492,6 +1632,9 @@ int main(void) {
 
   // Function role: Configures Agent 3 controls from the Agent 1 schema.
   function configureAgent3SchemaMode() {
+    // Parameters:
+    //   - None.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     const schema = currentDraft?.assignment_spec?.input_schema;
     const structured = Boolean(
       schema && typeof schema === "object" &&
@@ -1530,6 +1673,10 @@ int main(void) {
     }
 
     // Function role: Reads a numeric Agent 3 form value.
+    // Function details:
+    // Parameters:
+    //   - id: DOM id whose numeric field value is read.
+    // Returns: the expression immediately following =>.
     const readNumber = id => Number($(id)?.value);
     const structuredMode = configureAgent3SchemaMode();
     const payload = {
@@ -1584,6 +1731,13 @@ int main(void) {
 
       // Function role: Creates a text-only DOM element for safe result rendering.
       const addText = (parent, tag, text, className) => {
+        // In-function documentation:
+        // Parameters:
+        //   - parent: DOM parent receiving the generated child.
+        //   - tag: element name to create.
+        //   - text: plain text assigned to the created element.
+        //   - className: value supplied to this helper as indicated by its name and call site.
+        // Returns: the computed result or no explicit value, as shown by the return statements below.
         const element = document.createElement(tag);
         element.textContent = text;
         if (className) element.className = className;
@@ -1593,6 +1747,12 @@ int main(void) {
 
       // Function role: Searches nested data for a field matching a label pattern.
       const findValue = (obj, pattern, depth = 0) => {
+        // In-function documentation:
+        // Parameters:
+        //   - obj: value supplied to this helper as indicated by its name and call site.
+        //   - pattern: pattern used to find a matching nested field.
+        //   - depth: current recursion depth, used to bound nested traversal.
+        // Returns: the computed result or no explicit value, as shown by the return statements below.
         if (!obj || typeof obj !== "object" || depth > 6) return null;
         for (const [key, value] of Object.entries(obj)) {
           if (pattern.test(key) && value != null) return value;
@@ -1720,6 +1880,10 @@ int main(void) {
 
   // Function role: Serializes generated cases and execution outcomes into the downloadable test file.
   function buildGeneratedTestsText(result, execution = null) {
+    // Parameters:
+    //   - result: response or execution result being summarized.
+    //   - execution: local execution evidence associated with generated cases; default is null.
+    // Returns: Returns the computed value described above to the calling UI workflow; branch-specific return statements define its exact shape..
     const lines = [
       "AUTOGRADER — GENERATED TEST CASES",
       "=".repeat(44),
@@ -1806,6 +1970,10 @@ int main(void) {
 
   // Function role: Triggers a browser download of generated test cases.
   function downloadGeneratedTests(result, execution = null) {
+    // Parameters:
+    //   - result: response or execution result being summarized.
+    //   - execution: local execution evidence associated with generated cases; default is null.
+    // Returns: Returns the computed value described above to the calling UI workflow; branch-specific return statements define its exact shape..
     const blob = new Blob(
       [buildGeneratedTestsText(result, execution)],
       { type: "text/plain;charset=utf-8" }
@@ -1823,6 +1991,11 @@ int main(void) {
 
   // Function role: Draws the adaptive generic complexity curve, separate from measured runtime.
   function renderComplexityCurve(parent, graph, label) {
+    // Parameters:
+    //   - parent: target DOM node to receive generated child elements.
+    //   - graph: sampled mathematical complexity curve data.
+    //   - label: human-facing text identifying the value.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (!parent || graph?.status !== "completed" || !Array.isArray(graph.points) || graph.points.length < 2) {
       stageText(parent, `${label} graph`, graph?.message || "No safe curve could be generated from this notation.");
       return;
@@ -1844,10 +2017,18 @@ int main(void) {
     const maxY = Math.max(...ys);
     const left = 68, right = 695, top = 24, bottom = 245;
     // Function role: Maps a value to a horizontal chart coordinate.
+    // Function details:
+    // Parameters:
+    //   - value: value transformed into chart coordinates or display text.
+    // Returns: the expression immediately following =>.
     const x = value => maxX === minX ? (left + right) / 2
       : left + (Math.log(Number(value)) - Math.log(minX)) /
         (Math.log(maxX) - Math.log(minX)) * (right - left);
     // Function role: Maps a value to a vertical chart coordinate.
+    // Function details:
+    // Parameters:
+    //   - value: value transformed into chart coordinates or display text.
+    // Returns: the expression immediately following =>.
     const y = value => maxY === minY ? (top + bottom) / 2
       : bottom - (Number(value) - minY) / (maxY - minY) * (bottom - top);
     for (let index = 0; index <= 4; index++) {
@@ -1860,6 +2041,12 @@ int main(void) {
     }
     // Function role: Creates an SVG element, applies attributes, and optionally sets its text.
     const make = (tag, attrs, text) => {
+      // In-function documentation:
+      // Parameters:
+      //   - tag: element name to create.
+      //   - attrs: attributes to apply to the SVG element.
+      //   - text: plain text assigned to the created element.
+      // Returns: the computed result or no explicit value, as shown by the return statements below.
       const node = document.createElementNS(NS, tag);
       Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, String(value)));
       if (text != null) node.textContent = text;
@@ -1896,6 +2083,10 @@ int main(void) {
 
   // Function role: Renders Agent 4 complexity analysis and its evidence.
   function renderAgent4(parent, analysis) {
+    // Parameters:
+    //   - parent: target DOM node to receive generated child elements.
+    //   - analysis: Agent 4 analysis response to display.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (!parent) return;
     parent.replaceChildren();
     const ai = analysis?.ai_analysis || analysis || {};
@@ -1938,6 +2129,10 @@ int main(void) {
 
   // Function role: Renders Agent 5 mathematical verification as advisory proof evidence.
   function renderAgent5(parent, verification) {
+    // Parameters:
+    //   - parent: target DOM node to receive generated child elements.
+    //   - verification: Agent 5 verification response to display.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (!parent) return;
     parent.replaceChildren();
     // The proof claim and reasoning are more useful than an internal status label.
@@ -1981,6 +2176,10 @@ int main(void) {
 
   // Function role: Renders Agent 6 source-based maintainability and readability findings.
   function renderAgent6(parent, review) {
+    // Parameters:
+    //   - parent: target DOM node to receive generated child elements.
+    //   - review: Agent 6 review response to display.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (!parent) return;
     parent.replaceChildren();
     stageText(parent, "Code review", review?.summary);
@@ -2018,6 +2217,10 @@ int main(void) {
 
   // Function role: Displays the final deterministic grade and score breakdown.
   function renderGrade(parent, result) {
+    // Parameters:
+    //   - parent: target DOM node to receive generated child elements.
+    //   - result: response or execution result being summarized.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (!parent) return;
     parent.replaceChildren();
     const grade = result?.grading || {};
@@ -2060,6 +2263,10 @@ int main(void) {
 
   // Function role: Summarizes execution coverage, correctness comparisons, and runtime observations.
   function renderExecutionSummary(container, result) {
+    // Parameters:
+    //   - container: DOM container that receives the rendered result.
+    //   - result: response or execution result being summarized.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (container) {
       container.replaceChildren();
       const tests = result?.test_evaluation || {};
@@ -2114,6 +2321,9 @@ int main(void) {
 
   // Function role: Resets per-submission stage indicators before a new workflow.
   function resetWorkflowProgress() {
+    // Parameters:
+    //   - None.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (agent1Panel) agent1Panel.hidden = true;
     if (agent2Panel) agent2Panel.hidden = true;
     if (agent3Panel) agent3Panel.hidden = true;
@@ -2260,6 +2470,9 @@ int main(void) {
 
   // Function role: Queries the health endpoint and updates the UI status indicator.
   async function checkHealth() {
+    // Parameters:
+    //   - None.
+    // Returns: Returns a Promise; it resolves to the workflow/API result or to no value when this handler only updates the UI..
     const serviceStatus = $("#service-status");
     const healthCheck = $("#health-check");
     const healthDetail = $("#health-detail");
@@ -2309,6 +2522,10 @@ int main(void) {
   // Magical cursor feedback: lightweight DOM particles, no external library.
   // Function role: Creates the decorative click animation used by the themed interface.
   function createSpellBurst(x, y) {
+    // Parameters:
+    //   - x: horizontal viewport coordinate for the effect.
+    //   - y: vertical viewport coordinate for the effect.
+    // Returns: Returns no explicit value; the function updates or constructs UI state as described above..
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const burst = document.createElement("span");
     burst.className = "spell-burst";

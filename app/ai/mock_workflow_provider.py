@@ -26,6 +26,12 @@ from app.ai.output_budget import (
 # Function role: Implements the internal sample input helper for mock workflow provider.
 # Same-file callers: _generate_json_unchecked.
 def _sample_input(schema: dict[str, Any], seed: int = 0) -> str:
+    # In-function documentation:
+    # Parameters:
+    #   - schema: declared data contract inputs or results must satisfy (type annotation: dict[str, Any]).
+    #   - seed: deterministic random seed used to make generated cases repeatable (type annotation: int); defaults to 0 when omitted.
+    # Returns: a value of declared type str.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     rng = random.Random(seed)
     if "fields" not in schema:
         count = int(schema.get("token_count", 1))
@@ -54,6 +60,11 @@ def _sample_input(schema: dict[str, Any], seed: int = 0) -> str:
 # Function role: Implements the internal generator program helper for mock workflow provider.
 # Same-file callers: _generate_json_unchecked.
 def _generator_program(schema: dict[str, Any]) -> str:
+    # In-function documentation:
+    # Parameters:
+    #   - schema: declared data contract inputs or results must satisfy (type annotation: dict[str, Any]).
+    # Returns: a value of declared type str.
+    # Flow: derive or store intermediate values; return the stage result.
     encoded = json.dumps(schema, separators=(",", ":"))
     return (
         "import json, random, sys\n"
@@ -98,6 +109,11 @@ class MockWorkflowProvider:
     # Function role: Initializes the object and its validated dependencies.
     # Context: method/helper owned by MockWorkflowProvider; it is reached through that object's workflow.
     def __init__(self):
+        # In-function documentation:
+        # Parameters: none.
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: the operation result consumed by its caller.
+        # Flow: derive or store intermediate values.
         self.calls: list[dict[str, Any]] = []
 
     # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
@@ -105,12 +121,26 @@ class MockWorkflowProvider:
     # Same-file callers: generate_json.
     # Direct call references (conditional/branch-dependent): generate_json.
     def generate_json(self, task: str, payload: dict, schema: dict) -> dict:
+        # In-function documentation:
+        # Parameters:
+        #   - task: the task value used by this operation (type annotation: str).
+        #   - payload: the request data being sent across an API/provider boundary (type annotation: dict).
+        #   - schema: declared data contract inputs or results must satisfy (type annotation: dict).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: a value of declared type dict.
+        # Flow: return the stage result.
         from app.ai.guardrails import GuardedProvider
 
         class _MockAdapter:
             # Function role: Initializes the object and its validated dependencies.
             # Context: method/helper owned by _MockAdapter; it is reached through that object's workflow.
             def __init__(self, owner):
+                # In-function documentation:
+                # Parameters:
+                #   - owner: the owner value used by this operation.
+                #   - self/cls: receiver carrying the current object or class state.
+                # Returns: the operation result consumed by its caller.
+                # Flow: derive or store intermediate values.
                 self.owner = owner
 
             # Function role: Requests one structured JSON response from the configured provider or deterministic fixture.
@@ -118,6 +148,14 @@ class MockWorkflowProvider:
             # Same-file callers: generate_json.
             # Direct call references (conditional/branch-dependent): _generate_json_unchecked.
             def generate_json(self, inner_task, inner_payload, inner_schema):
+                # In-function documentation:
+                # Parameters:
+                #   - inner_task: the inner task value used by this operation.
+                #   - inner_payload: the inner payload value used by this operation.
+                #   - inner_schema: the inner schema value used by this operation.
+                #   - self/cls: receiver carrying the current object or class state.
+                # Returns: the result produced by the delegated helper.
+                # Flow: return the stage result.
                 return self.owner._generate_json_unchecked(
                     inner_task, inner_payload, inner_schema
                 )
@@ -131,6 +169,14 @@ class MockWorkflowProvider:
     # Same-file callers: generate_json.
     # Direct call references (conditional/branch-dependent): _generator_program, _sample_input.
     def _generate_json_unchecked(self, task: str, payload: dict, schema: dict) -> dict:
+        # In-function documentation:
+        # Parameters:
+        #   - task: the task value used by this operation (type annotation: str).
+        #   - payload: the request data being sent across an API/provider boundary (type annotation: dict).
+        #   - schema: declared data contract inputs or results must satisfy (type annotation: dict).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: a value of declared type dict; alternate return paths may produce the result produced by the delegated helper, a structured mapping assembled for the caller, the computed response value.
+        # Flow: delegate work to a helper or external boundary; branch on validation or workflow conditions.
         self.calls.append({"task": task, "payload": deepcopy(payload), "schema": deepcopy(schema)})
         if task == TASK_RECONSTRUCTION:
             statement = ""

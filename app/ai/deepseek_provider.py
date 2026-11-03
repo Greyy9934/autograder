@@ -35,6 +35,20 @@ class DeepSeekProvider:
         sleep=time.sleep,
         max_response_bytes: int = 1048576,
     ):
+        # In-function documentation:
+        # Parameters:
+        #   - api_key: the api key value used by this operation (type annotation: str).
+        #   - model: AI model identifier selected by configuration (type annotation: str); defaults to 'deepseek-flash' when omitted.
+        #   - endpoint: the endpoint value used by this operation (type annotation: str).
+        #   - timeout: maximum wall-clock duration allowed for this operation (type annotation: float).
+        #   - max_retries: the max retries value used by this operation (type annotation: int).
+        #   - max_tokens: maximum output tokens requested for this provider task (type annotation: int).
+        #   - opener: the opener value used by this operation.
+        #   - sleep: the sleep value used by this operation.
+        #   - max_response_bytes: the max response bytes value used by this operation (type annotation: int).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: the operation result consumed by its caller.
+        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
         if not api_key.strip():
             raise ValueError("DeepSeek API key must not be empty.")
         if not model.strip():
@@ -88,6 +102,14 @@ class DeepSeekProvider:
         payload: dict[str, Any],
         schema: dict[str, Any],
     ) -> dict[str, Any]:
+        # In-function documentation:
+        # Parameters:
+        #   - task: the task value used by this operation (type annotation: str).
+        #   - payload: the request data being sent across an API/provider boundary (type annotation: dict[str, Any]).
+        #   - schema: declared data contract inputs or results must satisfy (type annotation: dict[str, Any]).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: a value of declared type dict[str, Any].
+        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
         if not isinstance(task, str) or not task.strip():
             raise AIProviderError("Task must not be empty.", category="invalid_request")
         task_cap = output_token_cap_for_task(task)
@@ -219,6 +241,11 @@ class DeepSeekProvider:
     # Same-file callers: generate_json.
     @staticmethod
     def _extract_usage(raw: bytes) -> dict[str, int] | None:
+        # In-function documentation:
+        # Parameters:
+        #   - raw: the raw value used by this operation (type annotation: bytes).
+        # Returns: a value of declared type dict[str, int] | None.
+        # Flow: convert expected failures into controlled results; branch on validation or workflow conditions; derive or store intermediate values.
         try:
             envelope = json.loads(raw.decode("utf-8"))
             raw_usage = envelope.get("usage")
@@ -251,6 +278,11 @@ class DeepSeekProvider:
     # Same-file callers: generate_json.
     @staticmethod
     def _extract_finish_reason(raw: bytes) -> str | None:
+        # In-function documentation:
+        # Parameters:
+        #   - raw: the raw value used by this operation (type annotation: bytes).
+        # Returns: a value of declared type str | None.
+        # Flow: convert expected failures into controlled results; return the stage result.
         try:
             envelope = json.loads(raw.decode("utf-8"))
             choice = envelope["choices"][0]
@@ -264,6 +296,11 @@ class DeepSeekProvider:
     # Same-file callers: generate_json.
     @staticmethod
     def _parse_response(raw: bytes) -> tuple[dict[str, Any], dict[str, int] | None]:
+        # In-function documentation:
+        # Parameters:
+        #   - raw: the raw value used by this operation (type annotation: bytes).
+        # Returns: a value of declared type tuple[dict[str, Any], dict[str, int] | None].
+        # Flow: convert expected failures into controlled results; branch on validation or workflow conditions.
         try:
             envelope = json.loads(raw.decode("utf-8"))
             choice = envelope["choices"][0]

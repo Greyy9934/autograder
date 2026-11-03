@@ -49,6 +49,11 @@ REFERENCE_SCHEMA = {
 # Same-file callers: generate_reference_solutions.
 def _validate_reference(result: Any) -> dict[str, Any]:
     """Check shape and essential content, not algorithmic correctness."""
+    # In-function documentation:
+    # Parameters:
+    #   - result: the result value used by this operation (type annotation: Any).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions; iterate through input or evidence items.
     if not isinstance(result, dict):
         raise AIProviderError("Reference response must be a JSON object.")
 
@@ -91,6 +96,12 @@ def generate_reference_solutions(
     provider: AIProvider,
 ) -> dict[str, Any]:
     """Generate candidate references for a selected, unambiguous problem."""
+    # In-function documentation:
+    # Parameters:
+    #   - problem: the problem description or reconstructed problem record (type annotation: dict[str, Any]).
+    #   - provider: the configured AI provider implementation used for one request (type annotation: AIProvider).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if not isinstance(problem, dict):
         return {
             "status": "invalid_request",

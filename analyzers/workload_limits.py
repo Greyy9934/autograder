@@ -10,6 +10,11 @@ MAX_GENERATED_ARRAY_LENGTH = 512
 # Function role: Return a conservative per-length-field cap for a schema's arrays.
 def max_generated_array_length(schema) -> int | None:
     """Return a conservative per-length-field cap for a schema's arrays."""
+    # In-function documentation:
+    # Parameters:
+    #   - schema: declared data contract inputs or results must satisfy.
+    # Returns: a value of declared type int | None.
+    # Flow: derive or store intermediate values; branch on validation or workflow conditions.
     fields = getattr(schema, "fields", ())
     arrays = [field for field in fields if field.get("type") == "int_array"]
     if not arrays:

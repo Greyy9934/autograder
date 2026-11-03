@@ -27,6 +27,17 @@ def plan_adversarial_tests(
     static_findings: list[dict[str, Any]] | None = None,
     reference_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    #   - spec: the specification or configuration record being validated or consumed (type annotation: AssignmentSpec).
+    #   - schema: declared data contract inputs or results must satisfy (type annotation: IntegerInputSchema).
+    #   - seed: deterministic random seed used to make generated cases repeatable (type annotation: int).
+    #   - max_cases: the max cases value used by this operation (type annotation: int).
+    #   - static_findings: the static findings value used by this operation (type annotation: list[dict[str, Any]] | None).
+    #   - reference_metadata: the reference metadata value used by this operation (type annotation: dict[str, Any] | None).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions.
     if not isinstance(source, str) or not source.strip():
         return {"status": "invalid_request", "cases": []}
     if not isinstance(spec, AssignmentSpec) or not spec.confirmed:
@@ -69,6 +80,14 @@ def plan_adversarial_tests(
     # Same-file callers: plan_adversarial_tests, add.
     # Direct call references (conditional/branch-dependent): add.
     def add(text: str, reason: str, priority: str, trigger: str):
+        # In-function documentation:
+        # Parameters:
+        #   - text: source or display text being parsed or rendered (type annotation: str).
+        #   - reason: specific explanation for a rejected, failed, or unavailable operation (type annotation: str).
+        #   - priority: the priority value used by this operation (type annotation: str).
+        #   - trigger: the trigger value used by this operation (type annotation: str).
+        # Returns: no value (None); work is performed through side effects or validation.
+        # Flow: branch on validation or workflow conditions; derive or store intermediate values.
         if (
             len(candidates) >= max_cases
             or len(text.encode("utf-8")) > MAX_GENERATED_CASE_INPUT_BYTES

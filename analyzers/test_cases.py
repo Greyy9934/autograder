@@ -15,6 +15,12 @@ def analyze_test_cases(
     test_cases: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """Run explicit input/output cases using one compilation per batch."""
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    #   - test_cases: generated or supplied inputs to execute and compare (type annotation: list[dict[str, Any]]).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions; iterate through input or evidence items; derive or store intermediate values.
     if not isinstance(test_cases, list) or not test_cases:
         return {
             "status": "invalid_request",

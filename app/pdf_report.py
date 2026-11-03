@@ -51,6 +51,10 @@ ASCII_DASHES = str.maketrans({
 # Function role: Implements the internal register fonts helper for pdf report.
 # Same-file callers: generate_pdf_report.
 def _register_fonts():
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: no value (None); work is performed through side effects or validation.
+    # Flow: derive or store intermediate values; iterate through input or evidence items.
     global FONT, BOLD
     candidates = [
         ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -74,6 +78,13 @@ def _register_fonts():
 # Direct call references (conditional/branch-dependent): _find.
 def _find(data, names, default=None):
     """Find the first matching key recursively in nested evaluation data."""
+    # In-function documentation:
+    # Parameters:
+    #   - data: structured input record consumed by this operation.
+    #   - names: the names value used by this operation.
+    #   - default: fallback value used when the preferred value is absent; defaults to None when omitted.
+    # Returns: the computed default value; alternate return paths may produce the computed default value, the result of the final transformation or check, the computed result value.
+    # Flow: branch on validation or workflow conditions; iterate through input or evidence items; return the stage result.
     if not isinstance(data, dict):
         return default
     for name in names:
@@ -91,6 +102,12 @@ def _find(data, names, default=None):
 # Same-file callers: _human_value, _safe.
 # Direct call references (conditional/branch-dependent): _human_value.
 def _human_value(value, depth=0):
+    # In-function documentation:
+    # Parameters:
+    #   - value: single value being parsed, validated, normalized, scored, or formatted.
+    #   - depth: the depth value used by this operation; defaults to 0 when omitted.
+    # Returns: the result produced by the delegated helper; alternate return paths may produce the result of the final transformation or check, the value selected by the conditional result, the result produced by the delegated helper.
+    # Flow: branch on validation or workflow conditions.
     if value is None:
         return "Not available"
     if isinstance(value, bool):
@@ -114,6 +131,12 @@ def _human_value(value, depth=0):
 # Same-file callers: _p, _table, _metric_cards, generate_pdf_report.
 # Direct call references (conditional/branch-dependent): _human_value.
 def _safe(value, limit=10000):
+    # In-function documentation:
+    # Parameters:
+    #   - value: single value being parsed, validated, normalized, scored, or formatted.
+    #   - limit: maximum permitted quantity for the associated resource or collection; defaults to 10000 when omitted.
+    # Returns: the result produced by the delegated helper; alternate return paths may produce the result of the final transformation or check.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values; return the stage result.
     if value is None:
         return "Not available"
     text = _human_value(value).translate(ASCII_DASHES)[:limit]
@@ -123,12 +146,23 @@ def _safe(value, limit=10000):
 # Function role: Implements the internal p helper for pdf report.
 # Direct call references (conditional/branch-dependent): _safe.
 def _p(value, style):
+    # In-function documentation:
+    # Parameters:
+    #   - value: single value being parsed, validated, normalized, scored, or formatted.
+    #   - style: the style value used by this operation.
+    # Returns: the result produced by the delegated helper.
+    # Flow: return the stage result.
     return Paragraph(_safe(value), style)
 
 
 # Function role: Implements the internal flatten items helper for pdf report.
 # Same-file callers: generate_pdf_report.
 def _flatten_items(value):
+    # In-function documentation:
+    # Parameters:
+    #   - value: single value being parsed, validated, normalized, scored, or formatted.
+    # Returns: a list of collected or generated values; alternate return paths may produce the computed value value, the result of the final transformation or check.
+    # Flow: branch on validation or workflow conditions; return the stage result.
     if isinstance(value, list):
         return value
     if isinstance(value, dict):
@@ -142,6 +176,14 @@ def _flatten_items(value):
 # Same-file callers: generate_pdf_report.
 # Direct call references (conditional/branch-dependent): _safe.
 def _table(rows, widths, styles, header=True):
+    # In-function documentation:
+    # Parameters:
+    #   - rows: database records being processed.
+    #   - widths: the widths value used by this operation.
+    #   - styles: the styles value used by this operation.
+    #   - header: the header value used by this operation; defaults to True when omitted.
+    # Returns: the computed t value.
+    # Flow: derive or store intermediate values; iterate through input or evidence items.
     converted = []
     for r_index, row in enumerate(rows):
         converted.append([
@@ -175,6 +217,15 @@ def _table(rows, widths, styles, header=True):
 # Function role: Implements the internal bar chart helper for pdf report.
 # Same-file callers: generate_pdf_report.
 def _bar_chart(title, labels, values, width=470, height=205):
+    # In-function documentation:
+    # Parameters:
+    #   - title: the title value used by this operation.
+    #   - labels: the labels value used by this operation.
+    #   - values: the values value used by this operation.
+    #   - width: rendering width of a chart or visual; defaults to 470 when omitted.
+    #   - height: rendering height of a chart or visual; defaults to 205 when omitted.
+    # Returns: the computed drawing value.
+    # Flow: derive or store intermediate values; delegate work to a helper or external boundary.
     drawing = Drawing(width, height)
     drawing.add(String(8, height - 17, title, fontName=BOLD,
                        fontSize=10, fillColor=NAVY))
@@ -202,6 +253,14 @@ def _bar_chart(title, labels, values, width=470, height=205):
 # Same-file callers: generate_pdf_report.
 def _line_chart(title, points, width=470, height=220):
     """Render empirical input-size/runtime observations."""
+    # In-function documentation:
+    # Parameters:
+    #   - title: the title value used by this operation.
+    #   - points: the points value used by this operation.
+    #   - width: rendering width of a chart or visual; defaults to 470 when omitted.
+    #   - height: rendering height of a chart or visual; defaults to 220 when omitted.
+    # Returns: the computed drawing value.
+    # Flow: derive or store intermediate values; delegate work to a helper or external boundary.
     drawing = Drawing(width, height)
     drawing.add(String(8, height - 17, title, fontName=BOLD,
                        fontSize=10, fillColor=NAVY))
@@ -241,6 +300,14 @@ def _line_chart(title, points, width=470, height=220):
 # Same-file callers: generate_pdf_report.
 def _multi_program_runtime_chart(title, measurements, width=470, height=245):
     """Plot successful measured runtimes for each implementation."""
+    # In-function documentation:
+    # Parameters:
+    #   - title: the title value used by this operation.
+    #   - measurements: the measurements value used by this operation.
+    #   - width: rendering width of a chart or visual; defaults to 470 when omitted.
+    #   - height: rendering height of a chart or visual; defaults to 245 when omitted.
+    # Returns: the computed drawing value.
+    # Flow: derive or store intermediate values.
     names = ("student", "brute_force", "efficient")
     labels = {
         "student": "Student",
@@ -324,6 +391,14 @@ def _multi_program_runtime_chart(title, measurements, width=470, height=245):
 # Direct call references (conditional/branch-dependent): xy.
 def _complexity_curve_chart(graph, label, width=470, height=220):
     """Draw the adaptive generic growth curve returned by the math engine."""
+    # In-function documentation:
+    # Parameters:
+    #   - graph: the graph value used by this operation.
+    #   - label: the label value used by this operation.
+    #   - width: rendering width of a chart or visual; defaults to 470 when omitted.
+    #   - height: rendering height of a chart or visual; defaults to 220 when omitted.
+    # Returns: the computed drawing value; alternate return paths may produce a tuple containing the operation results.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if not isinstance(graph, dict) or graph.get("status") != "completed":
         return None
     points = graph.get("points")
@@ -359,6 +434,11 @@ def _complexity_curve_chart(graph, label, width=470, height=220):
     # Context: method/helper owned by _complexity_curve_chart; it is reached through that object's workflow.
     # Same-file callers: _complexity_curve_chart.
     def xy(point):
+        # In-function documentation:
+        # Parameters:
+        #   - point: the point value used by this operation.
+        # Returns: a tuple containing the operation results.
+        # Flow: derive or store intermediate values; return the stage result.
         px = left + (math.log10(point[0]) - min_x) / (max_x - min_x) * (right - left)
         py = bottom + (point[1] - min_y) / (max_y - min_y) * (top - bottom)
         return px, py
@@ -383,6 +463,15 @@ def _complexity_curve_chart(graph, label, width=470, height=220):
 # Function role: Implements the internal pie chart helper for pdf report.
 # Same-file callers: generate_pdf_report.
 def _pie_chart(title, labels, values, width=470, height=210):
+    # In-function documentation:
+    # Parameters:
+    #   - title: the title value used by this operation.
+    #   - labels: the labels value used by this operation.
+    #   - values: the values value used by this operation.
+    #   - width: rendering width of a chart or visual; defaults to 470 when omitted.
+    #   - height: rendering height of a chart or visual; defaults to 210 when omitted.
+    # Returns: the computed drawing value.
+    # Flow: derive or store intermediate values; delegate work to a helper or external boundary.
     drawing = Drawing(width, height)
     drawing.add(String(8, height - 17, title, fontName=BOLD,
                        fontSize=10, fillColor=NAVY))
@@ -406,6 +495,14 @@ def _pie_chart(title, labels, values, width=470, height=210):
 def _section(story, title, subtitle, styles):
     # Keep thematic pairs together across pages instead of letting section
     # headings land at the bottom of a page after unrelated material.
+    # In-function documentation:
+    # Parameters:
+    #   - story: the story value used by this operation.
+    #   - title: the title value used by this operation.
+    #   - subtitle: the subtitle value used by this operation.
+    #   - styles: the styles value used by this operation.
+    # Returns: the operation result consumed by its caller.
+    # Flow: branch on validation or workflow conditions; delegate work to a helper or external boundary; derive or store intermediate values.
     if str(title).startswith(("04  /", "06  /", "07  /", "08  /", "10  /")):
         story.append(PageBreak())
     story.append(Spacer(1, 3 * mm))
@@ -421,6 +518,12 @@ def _section(story, title, subtitle, styles):
 # Same-file callers: generate_pdf_report.
 # Direct call references (conditional/branch-dependent): _safe.
 def _metric_cards(metrics, styles):
+    # In-function documentation:
+    # Parameters:
+    #   - metrics: dimension scores and availability data used to build the final grade.
+    #   - styles: the styles value used by this operation.
+    # Returns: the computed t value.
+    # Flow: derive or store intermediate values; iterate through input or evidence items; delegate work to a helper or external boundary.
     cells = []
     for label, value in metrics:
         cells.append([
@@ -442,6 +545,12 @@ def _metric_cards(metrics, styles):
 
 # Function role: Implements the internal draw page helper for pdf report.
 def _draw_page(canvas, doc):
+    # In-function documentation:
+    # Parameters:
+    #   - canvas: the canvas value used by this operation.
+    #   - doc: the doc value used by this operation.
+    # Returns: the operation result consumed by its caller.
+    # Flow: delegate work to a helper or external boundary; derive or store intermediate values.
     canvas.saveState()
     width, height = A4
     canvas.setFillColor(WHITE)
@@ -466,6 +575,13 @@ def _draw_page(canvas, doc):
 # Same-file callers: generate_pdf_report.
 def _final_grade_graph(grading: dict[str, Any], width: float = 470, height: float = 196):
     """Draw a compact scorecard with a dominant grade and weighted metric bars."""
+    # In-function documentation:
+    # Parameters:
+    #   - grading: the grading value used by this operation (type annotation: dict[str, Any]).
+    #   - width: rendering width of a chart or visual (type annotation: float); defaults to 470 when omitted.
+    #   - height: rendering height of a chart or visual (type annotation: float); defaults to 196 when omitted.
+    # Returns: the computed drawing value.
+    # Flow: derive or store intermediate values.
     drawing = Drawing(width, height)
     score = grading.get("score")
     band = grading.get("grade_band") or "-"
@@ -501,6 +617,12 @@ def _final_grade_graph(grading: dict[str, Any], width: float = 470, height: floa
 # Direct call references (conditional/branch-dependent): _register_fonts, _find, _metric_cards, _table, _section, _safe, _flatten_items and further helpers.
 def generate_pdf_report(evaluation: dict[str, Any], output_path: str | Path) -> Path:
     """Generate a multi-section report with evidence-derived charts."""
+    # In-function documentation:
+    # Parameters:
+    #   - evaluation: the evaluation value used by this operation (type annotation: dict[str, Any]).
+    #   - output_path: the output path value used by this operation (type annotation: str | Path).
+    # Returns: a value of declared type Path.
+    # Flow: branch on validation or workflow conditions; delegate work to a helper or external boundary; derive or store intermediate values.
     if not isinstance(evaluation, dict):
         raise TypeError("evaluation must be a dictionary")
 

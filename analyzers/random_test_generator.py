@@ -29,6 +29,17 @@ def generate_random_test_batch(
     distribution: str = "uniform",
 ) -> dict[str, Any]:
     """Generate and validate a deterministic batch using an explicit format adapter."""
+    # In-function documentation:
+    # Parameters:
+    #   - spec: the specification or configuration record being validated or consumed (type annotation: AssignmentSpec).
+    #   - seed: deterministic random seed used to make generated cases repeatable (type annotation: int).
+    #   - count: requested or measured number of items or runs (type annotation: int).
+    #   - input_generator: the input generator value used by this operation (type annotation: InputGenerator).
+    #   - input_validator: the input validator value used by this operation (type annotation: InputValidator).
+    #   - schema: declared data contract inputs or results must satisfy.
+    #   - distribution: sampling strategy used to generate values (type annotation: str).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions.
 
     if not isinstance(spec, AssignmentSpec) or not spec.confirmed:
         return {
@@ -137,6 +148,15 @@ def generate_schema_test_batch(
     distribution: str = "uniform",
 ) -> dict[str, Any]:
     """Generate tests using an explicit integer input schema."""
+    # In-function documentation:
+    # Parameters:
+    #   - spec: the specification or configuration record being validated or consumed (type annotation: AssignmentSpec).
+    #   - schema: declared data contract inputs or results must satisfy.
+    #   - seed: deterministic random seed used to make generated cases repeatable (type annotation: int).
+    #   - count: requested or measured number of items or runs (type annotation: int).
+    #   - distribution: sampling strategy used to generate values (type annotation: str).
+    # Returns: a value of declared type dict[str, Any]; alternate return paths may produce a structured mapping assembled for the caller.
+    # Flow: branch on validation or workflow conditions; return the stage result.
     if not isinstance(spec, AssignmentSpec) or not spec.confirmed:
         return {
             "status": "rejected",

@@ -52,6 +52,11 @@ PRESET_NOTATIONS = (
 # Same-file callers: generate_complexity_graph.
 def _candidate_sizes(max_input_size: int) -> list[int]:
     """Create dense small-input samples followed by bounded geometric samples."""
+    # In-function documentation:
+    # Parameters:
+    #   - max_input_size: the max input size value used by this operation (type annotation: int).
+    # Returns: a value of declared type list[int].
+    # Flow: derive or store intermediate values; iterate through input or evidence items.
     dense_end = min(16, max_input_size)
     values = list(range(1, dense_end + 1))
 
@@ -67,6 +72,11 @@ def _candidate_sizes(max_input_size: int) -> list[int]:
 # Same-file callers: generate_complexity_graph.
 def _preset_match(normalized_expression: str) -> bool:
     """Check metadata equivalence without restricting accepted expressions."""
+    # In-function documentation:
+    # Parameters:
+    #   - normalized_expression: the normalized expression value used by this operation (type annotation: str).
+    # Returns: a value of declared type bool.
+    # Flow: iterate through input or evidence items; return the stage result.
     for notation in PRESET_NOTATIONS:
         parsed = parse_complexity_expression(notation)
         if (
@@ -86,6 +96,14 @@ def _failure(
     message: str = "A valid supported asymptotic expression is required.",
     **extra: Any,
 ) -> dict[str, Any]:
+    # In-function documentation:
+    # Parameters:
+    #   - notation: the notation value used by this operation (type annotation: Any).
+    #   - status: execution, provider, or workflow status being mapped or checked (type annotation: str); defaults to 'invalid_expression' when omitted.
+    #   - message: the message value used by this operation (type annotation: str); defaults to 'A valid supported asymptotic expression is required.' when omitted.
+    #   - **extra: the extra value used by this operation (type annotation: Any).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: return the stage result.
     return {
         "status": status,
         "original_notation": notation if isinstance(notation, str) else None,
@@ -111,6 +129,15 @@ def generate_complexity_graph(
     Parameters must be supplied explicitly. For example:
         generate_complexity_graph("O(n^k)", parameters={"k": 2.5})
     """
+    # In-function documentation:
+    # Parameters:
+    #   - notation: the notation value used by this operation (type annotation: str).
+    #   - parameters: the parameters value used by this operation (type annotation: dict[str, float] | None).
+    #   - max_points: the max points value used by this operation (type annotation: int).
+    #   - max_input_size: the max input size value used by this operation (type annotation: int).
+    #   - max_evaluations: the max evaluations value used by this operation (type annotation: int).
+    # Returns: a value of declared type dict[str, Any]; alternate return paths may produce the result produced by the delegated helper.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if not isinstance(notation, str) or not notation.strip():
         return _failure(notation)
 
@@ -446,4 +473,8 @@ def generate_complexity_graph(
 # Function role: Return the reference notation-pattern library.
 def list_preset_notations() -> list[str]:
     """Return the reference notation-pattern library."""
+    # In-function documentation:
+    # Parameters: none.
+    # Returns: a value of declared type list[str].
+    # Flow: return the stage result.
     return list(PRESET_NOTATIONS)

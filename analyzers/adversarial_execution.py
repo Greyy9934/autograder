@@ -12,6 +12,12 @@ def execute_adversarial_candidates(
     source: str,
     plan: dict[str, Any],
 ) -> dict[str, Any]:
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    #   - plan: the plan value used by this operation (type annotation: dict[str, Any]).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if not isinstance(source, str) or not source.strip():
         return {"status": "invalid_request", "results": []}
 

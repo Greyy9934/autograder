@@ -78,6 +78,11 @@ RECONSTRUCTION_SCHEMA = {
 # Function role: Checks provider response fields, ranges, and source/schema evidence before accepting the result.
 # Same-file callers: reconstruct_problem.
 def _validate_response(result: Any) -> dict[str, Any]:
+    # In-function documentation:
+    # Parameters:
+    #   - result: the result value used by this operation (type annotation: Any).
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if not isinstance(result, dict):
         raise AIProviderError("Reconstruction response must be an object.")
     if result.get("status") not in {"ready", "needs_clarification"}:
@@ -150,6 +155,14 @@ def reconstruct_problem(
     provider: AIProvider | None = None,
 ) -> dict[str, Any]:
     """Accept source-only submissions and optionally invoke an AI provider."""
+    # In-function documentation:
+    # Parameters:
+    #   - source: the submitted or generated source text being analyzed or compiled (type annotation: str).
+    #   - problem_statement: the natural-language task description being reconstructed or analyzed (type annotation: str | None); defaults to None when omitted.
+    #   - test_cases: generated or supplied inputs to execute and compare (type annotation: list[dict[str, Any]] | None); defaults to None when omitted.
+    #   - provider: the configured AI provider implementation used for one request (type annotation: AIProvider | None); defaults to None when omitted.
+    # Returns: a value of declared type dict[str, Any].
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values.
     if not isinstance(source, str) or not source.strip():
         return {
             "status": "invalid_request",

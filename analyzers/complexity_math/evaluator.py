@@ -48,6 +48,11 @@ class EvaluationResult:
     # Direct call references (conditional/branch-dependent): _format_number.
     def to_dict(self) -> dict[str, Any]:
         """Return JSON-friendly output without losing large-value information."""
+        # In-function documentation:
+        # Parameters: none.
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: a value of declared type dict[str, Any].
+        # Flow: return the stage result.
         return {
             "status": self.status,
             "value": _format_number(self.value),
@@ -67,6 +72,11 @@ class EvaluationResult:
 # Function role: Formats a bounded numeric result as stable human-readable text.
 # Same-file callers: to_dict.
 def _format_number(value: mp.mpf | None) -> str | None:
+    # In-function documentation:
+    # Parameters:
+    #   - value: single value being parsed, validated, normalized, scored, or formatted (type annotation: mp.mpf | None).
+    # Returns: a value of declared type str | None; alternate return paths may produce the result of the final transformation or check, the value selected by the conditional result.
+    # Flow: branch on validation or workflow conditions; return the stage result.
     if value is None:
         return None
     if mp.isnan(value):
@@ -79,6 +89,11 @@ def _format_number(value: mp.mpf | None) -> str | None:
 # Function role: Rejects evaluation settings outside the explicit resource and numeric limits.
 # Same-file callers: evaluate_complexity_expression.
 def _validate_limits(limits: EvaluationLimits) -> None:
+    # In-function documentation:
+    # Parameters:
+    #   - limits: the limits value used by this operation (type annotation: EvaluationLimits).
+    # Returns: no value (None); work is performed through side effects or validation.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values; iterate through input or evidence items.
     if not isinstance(limits, EvaluationLimits):
         raise ValueError("limits must be an EvaluationLimits instance")
 
@@ -106,6 +121,11 @@ def _validate_limits(limits: EvaluationLimits) -> None:
 # Same-file callers: _function.
 def _log_star(value: mp.mpf) -> mp.mpf:
     """Count base-2 logarithms needed to bring value down to <= 1."""
+    # In-function documentation:
+    # Parameters:
+    #   - value: single value being parsed, validated, normalized, scored, or formatted (type annotation: mp.mpf).
+    # Returns: a value of declared type mp.mpf.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values; iterate through input or evidence items.
     if value <= 1:
         return mp.mpf(0)
 
@@ -129,6 +149,11 @@ def _inverse_ackermann_approx(value: mp.mpf) -> mp.mpf:
     Uses conservative threshold levels. This is a graphing approximation,
     not an exact symbolic inverse of a particular Ackermann definition.
     """
+    # In-function documentation:
+    # Parameters:
+    #   - value: single value being parsed, validated, normalized, scored, or formatted (type annotation: mp.mpf).
+    # Returns: a value of declared type mp.mpf.
+    # Flow: branch on validation or workflow conditions; derive or store intermediate values; iterate through input or evidence items; return the stage result.
     if value <= 1:
         return mp.mpf(1)
 
@@ -154,6 +179,13 @@ class _EvaluationFailure(Exception):
     # Same-file callers: __init__.
     # Direct call references (conditional/branch-dependent): __init__.
     def __init__(self, code: str, message: str):
+        # In-function documentation:
+        # Parameters:
+        #   - code: the code value used by this operation (type annotation: str).
+        #   - message: the message value used by this operation (type annotation: str).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: the operation result consumed by its caller.
+        # Flow: delegate work to a helper or external boundary; derive or store intermediate values.
         super().__init__(message)
         self.code = code
 
@@ -168,6 +200,14 @@ class _Evaluator:
         input_size: int,
         limits: EvaluationLimits,
     ):
+        # In-function documentation:
+        # Parameters:
+        #   - expression: complexity expression parsed in the restricted grammar (type annotation: ParsedExpression).
+        #   - input_size: the input size value used by this operation (type annotation: int).
+        #   - limits: the limits value used by this operation (type annotation: EvaluationLimits).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: the operation result consumed by its caller.
+        # Flow: derive or store intermediate values.
         self.expression = expression
         self.input_size = input_size
         self.limits = limits
@@ -179,6 +219,11 @@ class _Evaluator:
     # Context: method/helper owned by _Evaluator; it is reached through that object's workflow.
     # Same-file callers: _function, visit.
     def _tick(self) -> None:
+        # In-function documentation:
+        # Parameters: none.
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: no value (None); work is performed through side effects or validation.
+        # Flow: branch on validation or workflow conditions.
         self.operations += 1
         if self.operations > self.limits.max_operations:
             raise _EvaluationFailure(
@@ -190,6 +235,12 @@ class _Evaluator:
     # Context: method/helper owned by _Evaluator; it is reached through that object's workflow.
     # Same-file callers: evaluate_complexity_expression, _power, _function, visit.
     def _finite(self, value: mp.mpf) -> mp.mpf:
+        # In-function documentation:
+        # Parameters:
+        #   - value: single value being parsed, validated, normalized, scored, or formatted (type annotation: mp.mpf).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: a value of declared type mp.mpf.
+        # Flow: branch on validation or workflow conditions; return the stage result.
         if not mp.isfinite(value):
             raise _EvaluationFailure(
                 "non_finite_result",
@@ -205,6 +256,13 @@ class _Evaluator:
         # A variable exponent such as 2^n must be allowed to grow with n.
         # The effective ceiling is bounded by both the configured exponent
         # limit and the maximum permitted input size.
+        # In-function documentation:
+        # Parameters:
+        #   - base: the base value used by this operation (type annotation: mp.mpf).
+        #   - exponent: the exponent value used by this operation (type annotation: mp.mpf).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: a value of declared type mp.mpf.
+        # Flow: derive or store intermediate values; branch on validation or workflow conditions.
         effective_limit = max(
             self.limits.max_absolute_exponent,
             self.input_size,
@@ -242,6 +300,13 @@ class _Evaluator:
     # Same-file callers: visit.
     # Direct call references (conditional/branch-dependent): _tick, _finite, _log_star, _inverse_ackermann_approx.
     def _function(self, name: str, argument: mp.mpf) -> mp.mpf:
+        # In-function documentation:
+        # Parameters:
+        #   - name: the name value used by this operation (type annotation: str).
+        #   - argument: the argument value used by this operation (type annotation: mp.mpf).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: a value of declared type mp.mpf.
+        # Flow: delegate work to a helper or external boundary; branch on validation or workflow conditions.
         self._tick()
 
         if name in {"log", "ln", "log2", "log10"}:
@@ -312,6 +377,12 @@ class _Evaluator:
     # Same-file callers: evaluate_complexity_expression, visit.
     # Direct call references (conditional/branch-dependent): _tick, visit, _finite, _power, _function.
     def visit(self, node: ast.AST) -> mp.mpf:
+        # In-function documentation:
+        # Parameters:
+        #   - node: current validated syntax-tree node handled recursively (type annotation: ast.AST).
+        #   - self/cls: receiver carrying the current object or class state.
+        # Returns: a value of declared type mp.mpf; alternate return paths may produce the result produced by the delegated helper, the result of the final transformation or check, the computed value value.
+        # Flow: delegate work to a helper or external boundary; branch on validation or workflow conditions.
         self._tick()
 
         if isinstance(node, ast.Expression):
@@ -412,6 +483,14 @@ def evaluate_complexity_expression(
     precision: int | None = None,
 ) -> EvaluationResult:
     """Evaluate a parser-validated expression at one positive input size."""
+    # In-function documentation:
+    # Parameters:
+    #   - expression: complexity expression parsed in the restricted grammar (type annotation: ParsedExpression).
+    #   - input_size: the input size value used by this operation (type annotation: int).
+    #   - limits: the limits value used by this operation (type annotation: EvaluationLimits).
+    #   - precision: numeric precision bound controlling formatting or evaluation (type annotation: int | None).
+    # Returns: a value of declared type EvaluationResult.
+    # Flow: branch on validation or workflow conditions; convert expected failures into controlled results.
     if not isinstance(expression, ParsedExpression):
         return EvaluationResult(
             "invalid", None, None, 0,
