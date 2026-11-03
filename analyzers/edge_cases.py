@@ -1,12 +1,12 @@
 """Propose edge cases without assuming undocumented input constraints."""
-# In plain terms: This file handles edge cases, one part of the AutoGrader’s workflow.
+# This file handles edge cases as one part of the app.
 
 from typing import Any
 
 
 def analyze_edge_cases(problem: dict[str, Any]) -> dict[str, Any]:
     """Return test ideas classified by how strongly constraints support them."""
-    # In simple terms: Return test ideas classified by how strongly constraints support them.
+    # Looks at edge cases.
     # What the inputs mean:
     # - problem: the reconstructed problem details.
     # What it gives back: It returns a set of named results for the next step.
@@ -38,7 +38,7 @@ def analyze_edge_cases(problem: dict[str, Any]) -> dict[str, Any]:
     cases = []
 
     def add(case_id: str, idea: str, condition: str, category: str) -> None:
-        # In simple terms: Helps with add.
+        # Helps with add inside add.
         # What the inputs mean:
         # - case_id: the case id used for this step.
         # - idea: the idea used for this step.

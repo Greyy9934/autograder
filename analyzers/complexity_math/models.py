@@ -1,5 +1,5 @@
 """Typed models shared by the mathematical complexity engine."""
-# In plain terms: This file handles models, one part of the AutoGrader’s workflow.
+# This file handles models as one part of the app.
 
 from __future__ import annotations
 

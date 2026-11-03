@@ -1,5 +1,5 @@
 """Explicit, deterministic input schemas for generated C-program tests."""
-# In plain terms: This file handles input schema, one part of the AutoGrader’s workflow.
+# This file handles input schema as one part of the app.
 
 from dataclasses import dataclass
 import random
@@ -12,7 +12,7 @@ class IntegerInputSchema:
     maximum: int
 
     def __post_init__(self):
-        # In simple terms: Checks the new object .
+        # Helps with post init inside post init.
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns the result that the next step needs.
@@ -26,7 +26,7 @@ class IntegerInputSchema:
             raise ValueError("minimum cannot exceed maximum")
 
     def validate(self, text: str) -> bool:
-        # In simple terms: Checks that the new object’s information is valid.
+        # Handles post init as a supporting part of input schema .
         # What the inputs mean:
         # - text: the text being parsed or shown.
         # - self/cls: the current object this function belongs to.
@@ -43,7 +43,7 @@ class IntegerInputSchema:
             return False
 
     def generate(self, rng: random.Random, distribution: str) -> str:
-        # In simple terms: Helps with generate.
+        # Checks whether the supplied information follows the rules.
         # What the inputs mean:
         # - rng: the rng used for this step.
         # - distribution: the way random values should be chosen.

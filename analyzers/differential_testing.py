@@ -1,5 +1,5 @@
 """Compare candidate programs on identical inputs."""
-# In plain terms: This file handles differential testing, one part of the AutoGrader’s workflow.
+# This file handles differential testing as one part of the app.
 
 import random
 from typing import Any
@@ -13,7 +13,7 @@ def compare_programs(
     inputs: list[str],
 ) -> dict[str, Any]:
     """Compare two programs; disagreements are evidence, not a verdict."""
-    # In simple terms: Compare two programs; disagreements are evidence, not a verdict.
+    # Handles compare programs as a supporting part of differential testing .
     # What the inputs mean:
     # - first_source: the first source used for this step.
     # - second_source: the second source used for this step.
@@ -132,7 +132,7 @@ def generate_integer_list_inputs(
     max_value: int = 100,
 ) -> dict[str, Any]:
     """Generate reproducible inputs formatted as n followed by n integers."""
-    # In simple terms: Generate reproducible inputs formatted as n followed by n integers.
+    # Creates integer list inputs.
     # What the inputs mean:
     # - seed: the starting number that makes random test generation repeatable.
     # - count: how many items or runs are requested.
@@ -181,7 +181,7 @@ def generate_integer_list_edge_cases(
     max_value: int = 100,
 ) -> dict[str, Any]:
     """Generate deterministic boundary cases for n followed by n integers."""
-    # In simple terms: Generate deterministic boundary cases for n followed by n integers.
+    # Creates integer list edge cases.
     # What the inputs mean:
     # - min_length: the min length used for this step.
     # - max_length: the max length used for this step.

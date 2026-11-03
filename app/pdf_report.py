@@ -1,5 +1,5 @@
 """Professional, evidence-based AutoGrader technical evaluation dossier."""
-# In plain terms: This file handles pdf report, one part of the AutoGrader’s workflow.
+# This file handles pdf report as one part of the app.
 
 import math
 import os
@@ -49,7 +49,7 @@ ASCII_DASHES = str.maketrans({
 
 
 def _register_fonts():
-    # In simple terms: Helps with register fonts.
+    # Helps with register fonts inside register fonts.
     # This function takes no named inputs.
     # What it gives back: It returns the result that the next step needs.
     global FONT, BOLD
@@ -72,7 +72,7 @@ def _register_fonts():
 
 def _find(data, names, default=None):
     """Find the first matching key recursively in nested evaluation data."""
-    # In simple terms: Find the first matching key recursively in nested evaluation data.
+    # Handles find as a supporting part of pdf report .
     # What the inputs mean:
     # - data: the information this function is working with.
     # - names: the names used for this step.
@@ -92,7 +92,7 @@ def _find(data, names, default=None):
 
 
 def _human_value(value, depth=0):
-    # In simple terms: Helps with human value.
+    # Helps with find inside find.
     # What the inputs mean:
     # - value: the particular value being checked or changed.
     # - depth: the depth used for this step.
@@ -117,7 +117,7 @@ def _human_value(value, depth=0):
 
 
 def _safe(value, limit=10000):
-    # In simple terms: Helps with safe.
+    # Helps with safe inside safe.
     # What the inputs mean:
     # - value: the particular value being checked or changed.
     # - limit: the largest allowed amount.
@@ -129,7 +129,7 @@ def _safe(value, limit=10000):
 
 
 def _p(value, style):
-    # In simple terms: Helps with p.
+    # Handles safe as a supporting part of pdf report .
     # What the inputs mean:
     # - value: the particular value being checked or changed.
     # - style: the style used for this step.
@@ -138,7 +138,7 @@ def _p(value, style):
 
 
 def _flatten_items(value):
-    # In simple terms: Helps with flatten items.
+    # Handles p as a supporting part of pdf report .
     # What the inputs mean:
     # - value: the particular value being checked or changed.
     # What it gives back: It returns the result that the next step needs.
@@ -152,7 +152,7 @@ def _flatten_items(value):
 
 
 def _table(rows, widths, styles, header=True):
-    # In simple terms: Helps with table.
+    # Handles flatten items as a supporting part of pdf report .
     # What the inputs mean:
     # - rows: the rows used for this step.
     # - widths: the widths used for this step.
@@ -190,7 +190,7 @@ def _table(rows, widths, styles, header=True):
 
 
 def _bar_chart(title, labels, values, width=470, height=205):
-    # In simple terms: Helps with bar chart.
+    # Helps with bar chart inside bar chart.
     # What the inputs mean:
     # - title: the title used for this step.
     # - labels: the labels used for this step.
@@ -223,7 +223,7 @@ def _bar_chart(title, labels, values, width=470, height=205):
 
 def _line_chart(title, points, width=470, height=220):
     """Render empirical input-size/runtime observations."""
-    # In simple terms: Render empirical input-size/runtime observations.
+    # Handles line chart as a supporting part of pdf report .
     # What the inputs mean:
     # - title: the title used for this step.
     # - points: the points used for this step.
@@ -267,7 +267,7 @@ def _line_chart(title, points, width=470, height=220):
 
 def _multi_program_runtime_chart(title, measurements, width=470, height=245):
     """Plot successful measured runtimes for each implementation."""
-    # In simple terms: Plot successful measured runtimes for each implementation.
+    # Handles multi program runtime chart as a supporting part of pdf report .
     # What the inputs mean:
     # - title: the title used for this step.
     # - measurements: the measurements used for this step.
@@ -354,7 +354,7 @@ def _multi_program_runtime_chart(title, measurements, width=470, height=245):
 
 def _complexity_curve_chart(graph, label, width=470, height=220):
     """Draw the adaptive generic growth curve returned by the math engine."""
-    # In simple terms: Draw the adaptive generic growth curve returned by the math engine.
+    # Handles complexity curve chart as a supporting part of pdf report .
     # What the inputs mean:
     # - graph: the graph used for this step.
     # - label: the label used for this step.
@@ -393,7 +393,7 @@ def _complexity_curve_chart(graph, label, width=470, height=220):
     if max_y == min_y:
         max_y = min_y + 1
     def xy(point):
-        # In simple terms: Helps with xy.
+        # Helps with xy inside xy.
         # What the inputs mean:
         # - point: the point used for this step.
         # What it gives back: It returns the result that the next step needs.
@@ -419,7 +419,7 @@ def _complexity_curve_chart(graph, label, width=470, height=220):
 
 
 def _pie_chart(title, labels, values, width=470, height=210):
-    # In simple terms: Helps with pie chart.
+    # Helps with pie chart inside pie chart.
     # What the inputs mean:
     # - title: the title used for this step.
     # - labels: the labels used for this step.
@@ -448,7 +448,7 @@ def _pie_chart(title, labels, values, width=470, height=210):
 def _section(story, title, subtitle, styles):
     # Keep thematic pairs together across pages instead of letting section
     # headings land at the bottom of a page after unrelated material.
-    # In simple terms: Helps with section.
+    # Helps with section inside section.
     # What the inputs mean:
     # - story: the story used for this step.
     # - title: the title used for this step.
@@ -467,7 +467,7 @@ def _section(story, title, subtitle, styles):
 
 
 def _metric_cards(metrics, styles):
-    # In simple terms: Helps with metric cards.
+    # Handles section as a supporting part of pdf report .
     # What the inputs mean:
     # - metrics: the individual score parts.
     # - styles: the styles used for this step.
@@ -492,7 +492,7 @@ def _metric_cards(metrics, styles):
 
 
 def _draw_page(canvas, doc):
-    # In simple terms: Helps with draw page.
+    # Helps with draw page inside draw page.
     # What the inputs mean:
     # - canvas: the canvas used for this step.
     # - doc: the doc used for this step.
@@ -519,7 +519,7 @@ def _draw_page(canvas, doc):
 
 def _final_grade_graph(grading: dict[str, Any], width: float = 470, height: float = 196):
     """Draw a compact scorecard with a dominant grade and weighted metric bars."""
-    # In simple terms: Draw a compact scorecard with a dominant grade and weighted metric bars.
+    # Handles final grade graph as a supporting part of pdf report .
     # What the inputs mean:
     # - grading: the grading used for this step.
     # - width: the width used for this step.
@@ -557,7 +557,7 @@ def _final_grade_graph(grading: dict[str, Any], width: float = 470, height: floa
 
 def generate_pdf_report(evaluation: dict[str, Any], output_path: str | Path) -> Path:
     """Generate a multi-section report with evidence-derived charts."""
-    # In simple terms: Generate a multi-section report with evidence-derived charts.
+    # Creates pdf report.
     # What the inputs mean:
     # - evaluation: the evaluation used for this step.
     # - output_path: the output path used for this step.

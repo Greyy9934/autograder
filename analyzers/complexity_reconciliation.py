@@ -3,14 +3,14 @@
 Static analysis and empirical measurements are supporting evidence only.
 They can trigger review, but never silently replace the AI assessment.
 """
-# In plain terms: This file handles complexity reconciliation, one part of the AutoGrader’s workflow.
+# This file handles complexity reconciliation as one part of the app.
 
 import math
 from typing import Any
 
 
 def _is_constant_complexity(expression: Any) -> bool:
-    # In simple terms: Helps with is constant complexity.
+    # Checks whether constant complexity.
     # What the inputs mean:
     # - expression: the math formula the graph is asked to draw.
     # What it gives back: It returns yes or no.
@@ -23,7 +23,7 @@ def _is_constant_complexity(expression: Any) -> bool:
 def _static_review_flags(
     ai_analysis: dict, static_analysis: dict | None
 ) -> list[dict[str, str]]:
-    # In simple terms: Helps with static review flags.
+    # Checks whether constant complexity.
     # What the inputs mean:
     # - ai_analysis: the ai analysis used for this step.
     # - static_analysis: the static analysis used for this step.
@@ -86,7 +86,7 @@ def _static_review_flags(
 
 
 def _benchmark_summary(benchmark: dict | None) -> dict[str, Any]:
-    # In simple terms: Helps with benchmark summary.
+    # Measures summary.
     # What the inputs mean:
     # - benchmark: the benchmark used for this step.
     # What it gives back: It returns a set of named results for the next step.
@@ -179,7 +179,7 @@ def reconcile_complexity_evidence(
     benchmark: dict | None = None,
 ) -> dict[str, Any]:
     """Preserve AI conclusions and attach reviewable supporting evidence."""
-    # In simple terms: Preserve AI conclusions and attach reviewable supporting evidence.
+    # Handles reconcile complexity evidence as a supporting part of complexity reconciliation .
     # What the inputs mean:
     # - ai_result: the ai result used for this step.
     # - static_analysis: the static analysis used for this step.

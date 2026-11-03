@@ -1,5 +1,5 @@
 """Deterministic, rule-driven grading with explicit evidence eligibility."""
-# In plain terms: This file turns collected evidence and the rules in grading.json into a final score.
+# It applies the score rules stored in grading.json; correctness has the greatest weight and missing evidence is not made up.
 
 import json
 import hashlib
@@ -20,7 +20,7 @@ class GradingRulesError(ValueError):
 # Correctness matters most; missing evidence is left out and the other weights are fairly scaled up.
 def load_grading_rules(path: str | Path = DEFAULT_GRADING_RULES) -> dict[str, Any]:
     """Load and validate external grading rules."""
-    # In simple terms: Reads the grading weights and checks that they make sense.
+    # Reads the weights and grading choices from grading.json and rejects invalid settings.
     # What the inputs mean:
     # - path: the file location being read or written.
     # What it gives back: It returns a set of named results for the next step.
@@ -83,7 +83,7 @@ def _eligible_correctness(
     evidence: dict[str, Any],
     policy: dict[str, Any],
 ) -> tuple[bool, str]:
-    # In simple terms: Helps with eligible correctness.
+    # Checks that the problem and test results are clear enough to include correctness in the grade.
     # What the inputs mean:
     # - evidence: the test and review results used to make a decision.
     # - policy: the policy used for this step.
@@ -134,7 +134,7 @@ def _reproducibility_metadata(
     rules: dict[str, Any],
 ) -> dict[str, Any]:
     """Fingerprint the stable inputs that determine a grade, excluding timings."""
-    # In simple terms: Records which code, rules, and test evidence were used to produce this grade.
+    # Records which code, assignment, rules, and test results were used to calculate this grade.
     # What the inputs mean:
     # - evidence: the test and review results used to make a decision.
     # - metric_scores: the score values calculated from available evidence.
@@ -233,7 +233,7 @@ def grade_submission(
     Missing metrics are excluded and remaining weights are renormalized.
     This function does not invent metric scores from AI opinions.
     """
-    # In simple terms: Combines the available scores using the published grading weights.
+    # Applies the published score weights to available evidence and explains what was included or left out.
     # What the inputs mean:
     # - evidence: the test and review results used to make a decision.
     # - metric_scores: the score values calculated from available evidence.

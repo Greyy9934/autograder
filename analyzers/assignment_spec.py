@@ -1,5 +1,5 @@
 """Immutable, explicitly confirmed assignment specifications."""
-# In plain terms: This file holds the version of the assignment that the instructor reviewed and approved.
+# It holds one reviewed version of the problem and its input/output rules for all later steps.
 
 from dataclasses import asdict, dataclass
 import hashlib
@@ -24,7 +24,7 @@ class AssignmentSpec:
     confirmed: bool = False
 
     def __post_init__(self):
-        # In simple terms: Checks the new object .
+        # Helps with post init inside post init.
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns the result that the next step needs.
@@ -82,7 +82,7 @@ class AssignmentSpec:
 
     @classmethod
     def create_draft(cls, candidate: dict[str, Any], **formats):
-        # In simple terms: Creates draft.
+        # Creates draft.
         # What the inputs mean:
         # - candidate: the candidate used for this step.
         # - formats: the formats used for this step.
@@ -104,7 +104,7 @@ class AssignmentSpec:
         )
 
     def confirm(self, *, instructor_approved: bool):
-        # In simple terms: Helps with confirm.
+        # Helps with confirm inside confirm.
         # What the inputs mean:
         # - instructor_approved: the instructor approved used for this step.
         # - self/cls: the current object this function belongs to.
@@ -117,7 +117,7 @@ class AssignmentSpec:
         return AssignmentSpec(**values)
 
     def canonical_json(self) -> str:
-        # In simple terms: Marks the reviewed assignment as approved and returns that approved copy.
+        # Handles confirm as a supporting part of assignment spec .
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns text.
@@ -128,14 +128,14 @@ class AssignmentSpec:
         )
 
     def fingerprint(self) -> str:
-        # In simple terms: Writes the assignment details in one consistent order so they can be compared reliably.
+        # Handles canonical json as a supporting part of assignment spec .
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns text.
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
 
     def to_dict(self) -> dict[str, Any]:
-        # In simple terms: Creates a short identity mark from the assignment details.
+        # Handles fingerprint as a supporting part of assignment spec .
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns a set of named results for the next step.

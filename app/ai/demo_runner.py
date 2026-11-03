@@ -1,6 +1,6 @@
 """Real, isolated, no-AI Two Sum demonstration using trusted built-in C programs."""
 from __future__ import annotations
-# In plain terms: This file handles demo runner, one part of the AutoGrader’s workflow.
+# This file handles demo runner as one part of the app.
 
 import random
 from typing import Any
@@ -94,7 +94,7 @@ int main(void) {
 
 
 def _make_input(values: list[int], target: int) -> str:
-    # In simple terms: Helps with make input.
+    # Creates input.
     # What the inputs mean:
     # - values: the values used for this step.
     # - target: the target used for this step.
@@ -103,7 +103,7 @@ def _make_input(values: list[int], target: int) -> str:
 
 
 def _oracle(values: list[int], target: int) -> str:
-    # In simple terms: Helps with oracle.
+    # Creates input.
     # What the inputs mean:
     # - values: the values used for this step.
     # - target: the target used for this step.
@@ -118,7 +118,7 @@ def _oracle(values: list[int], target: int) -> str:
 
 def _generate_benchmark_cases() -> list[dict[str, Any]]:
     """Reproducible progressive-size, no-solution inputs (seed 20261101)."""
-    # In simple terms: Reproducible progressive-size, no-solution inputs (seed 20261101).
+    # Handles oracle as a supporting part of demo runner .
     # This function takes no named inputs.
     # What it gives back: It returns a list of the items it found or made.
     rng = random.Random(20261101)
@@ -137,7 +137,7 @@ def _generate_benchmark_cases() -> list[dict[str, Any]]:
 
 
 def _generate_edge_cases() -> list[dict[str, Any]]:
-    # In simple terms: Helps with generate edge cases.
+    # Creates benchmark cases.
     # This function takes no named inputs.
     # What it gives back: It returns a list of the items it found or made.
     definitions = [
@@ -163,7 +163,7 @@ def _generate_edge_cases() -> list[dict[str, Any]]:
 
 def build_real_demo_payload() -> dict[str, Any]:
     """Run only trusted demo code; accepts no user source or form data."""
-    # In simple terms: Run only trusted demo code; accepts no user source or form data.
+    # Puts together real demo payload.
     # This function takes no named inputs.
     # What it gives back: It returns a set of named results for the next step.
     cases = _generate_benchmark_cases()

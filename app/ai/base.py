@@ -1,5 +1,5 @@
 """Shared contract for all AutoGrader AI providers."""
-# In plain terms: This file handles base, one part of the AutoGrader’s workflow.
+# This file handles base as one part of the app.
 
 from typing import Any, Protocol
 
@@ -15,7 +15,7 @@ class AIProviderError(RuntimeError):
         retryable: bool = False,
         status_code: int | None = None,
     ) -> None:
-        # In simple terms: Sets up .
+        # Helps with init inside init.
         # What the inputs mean:
         # - message: the message used for this step.
         # - category: the category used for this step.
@@ -37,7 +37,7 @@ class AIProvider(Protocol):
         schema: dict[str, Any],
     ) -> dict[str, Any]:
         """Generate one structured JSON object."""
-        # In simple terms: Generate one structured JSON object.
+        # Creates json.
         # What the inputs mean:
         # - task: the task used for this step.
         # - payload: the information being sent to an AI service.

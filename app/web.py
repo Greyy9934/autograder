@@ -1,4 +1,4 @@
-# In plain terms: This file connects the web page to the rest of the app. It checks requests, manages instructor sessions, and moves a submission through its stages.
+# It receives page requests and guides a submission through login, review, testing, grading, and report download.
 #   This is the normal order, not a claim that every stage runs: ambiguity, missing configuration, or disabled execution can stop/skip later stages.
 from typing import Any
 import time
@@ -104,7 +104,7 @@ app = FastAPI(
 @app.middleware("http")
 async def attach_request_id(request: Request, call_next):
     """Tag each request so workflow and provider diagnostics can be correlated."""
-    # In simple terms: Tag each request so workflow and provider diagnostics can be correlated.
+    # Handles attach request id as a supporting part of web .
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # - call_next: the call next used for this step.
@@ -135,7 +135,7 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 
 def _approval_signing_key() -> bytes:
-    # In simple terms: Helps with approval signing key.
+    # Gets the private server key used to sign approval tokens.
     # This function takes no named inputs.
     # What it gives back: It returns the bytes result.
     key = os.getenv("INSTRUCTOR_TOKEN_SIGNING_KEY", "").strip()
@@ -148,7 +148,7 @@ def _approval_signing_key() -> bytes:
 
 
 def _create_approval_token(fingerprint: str) -> str:
-    # In simple terms: Helps with create approval token.
+    # Gets the server secret used to sign instructor approval tokens.
     # What the inputs mean:
     # - fingerprint: the short identity mark for the approved assignment.
     # What it gives back: It returns text.
@@ -161,7 +161,7 @@ def _create_approval_token(fingerprint: str) -> str:
 
 
 def _create_draft_token(fingerprint: str) -> str:
-    # In simple terms: Helps with create draft token.
+    # Creates an approval token that is valid only for the reviewed assignment.
     # What the inputs mean:
     # - fingerprint: the short identity mark for the approved assignment.
     # What it gives back: It returns text.
@@ -174,7 +174,7 @@ def _create_draft_token(fingerprint: str) -> str:
 
 
 def _verify_draft_token(fingerprint: str, token: str) -> bool:
-    # In simple terms: Helps with verify draft token.
+    # Creates draft token.
     # What the inputs mean:
     # - fingerprint: the short identity mark for the approved assignment.
     # - token: the login or approval token being checked.
@@ -197,7 +197,7 @@ def _verify_draft_token(fingerprint: str, token: str) -> bool:
 
 
 def _verify_approval_token(fingerprint: str, token: str) -> bool:
-    # In simple terms: Helps with verify approval token.
+    # Checks that the approval token is genuine and still valid.
     # What the inputs mean:
     # - fingerprint: the short identity mark for the approved assignment.
     # - token: the login or approval token being checked.
@@ -221,7 +221,7 @@ def _verify_approval_token(fingerprint: str, token: str) -> bool:
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def home(request: Request):
-    # In simple terms: Helps with home.
+    # Helps with home inside home.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # What it gives back: It returns the result that the next step needs.
@@ -234,7 +234,7 @@ def home(request: Request):
 
 @app.get("/health")
 def health():
-    # In simple terms: Helps with health.
+    # Handles home as a supporting part of web .
     # This function takes no named inputs.
     # What it gives back: It returns the result that the next step needs.
     try:
@@ -252,7 +252,7 @@ def health():
 
 @app.get("/api/status")
 def api_status():
-    # In simple terms: Helps with api status.
+    # Helps with api status inside api status.
     # This function takes no named inputs.
     # What it gives back: It returns the result that the next step needs.
     return {
@@ -291,7 +291,7 @@ def confirm_assignment(
     request: ConfirmAssignmentRequest,
     x_instructor_key: str | None = Header(default=None),
 ):
-    # In simple terms: Confirms assignment.
+    # Checks instructor approval and locks in the reviewed assignment for later steps.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # - x_instructor_key: the x instructor key used for this step.
@@ -353,7 +353,7 @@ _PREPARATION_RATE_LOCK = threading.Lock()
 
 
 def _check_preparation_rate_limit(api_key: str) -> None:
-    # In simple terms: Helps with check preparation rate limit.
+    # Checks preparation rate limit.
     # What the inputs mean:
     # - api_key: the private key used to contact the AI service.
     # What it gives back: It does its work and does not return a value.
@@ -389,7 +389,7 @@ def prepare_submission(
     request: PreparationRequest,
     x_preparation_key: str | None = Header(default=None),
 ):
-    # In simple terms: Helps with prepare submission.
+    # Helps with prepare submission inside prepare submission.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # - x_preparation_key: the x preparation key used for this step.
@@ -478,7 +478,7 @@ def prepare_submission(
 
 @app.post("/api/analyze")
 def analyze_source(request: AnalysisRequest):
-    # In simple terms: Looks at source.
+    # Looks at source.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # What it gives back: It returns the result that the next step needs.
@@ -518,7 +518,7 @@ def generate_references(
     *,
     provider: Any = None,
 ):
-    # In simple terms: Creates references.
+    # Creates references.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # - x_instructor_key: the x instructor key used for this step.
@@ -575,7 +575,7 @@ _LOGIN_ATTEMPTS_LOCK = threading.Lock()
 
 
 def _check_login_rate_limit(client_ip: str) -> None:
-    # In simple terms: Helps with check login rate limit.
+    # Checks login rate limit.
     # What the inputs mean:
     # - client_ip: the client ip used for this step.
     # What it gives back: It does its work and does not return a value.
@@ -592,7 +592,7 @@ def _check_login_rate_limit(client_ip: str) -> None:
 
 
 def _record_login_failure(client_ip: str) -> None:
-    # In simple terms: Helps with record login failure.
+    # Checks login rate limit.
     # What the inputs mean:
     # - client_ip: the client ip used for this step.
     # What it gives back: It does its work and does not return a value.
@@ -601,7 +601,7 @@ def _record_login_failure(client_ip: str) -> None:
 
 
 def _clear_login_failures(client_ip: str) -> None:
-    # In simple terms: Helps with clear login failures.
+    # Records login failure.
     # What the inputs mean:
     # - client_ip: the client ip used for this step.
     # What it gives back: It does its work and does not return a value.
@@ -610,7 +610,7 @@ def _clear_login_failures(client_ip: str) -> None:
 
 
 def _verify_instructor_password(password: str) -> bool:
-    # In simple terms: Helps with verify instructor password.
+    # Clears login failures.
     # What the inputs mean:
     # - password: the password used for this step.
     # What it gives back: It returns yes or no.
@@ -633,7 +633,7 @@ def _verify_instructor_password(password: str) -> bool:
 
 
 def _create_ui_session_token() -> str:
-    # In simple terms: Helps with create ui session token.
+    # Creates ui session token.
     # This function takes no named inputs.
     # What it gives back: It returns text.
     issued = str(int(time.time()))
@@ -647,7 +647,7 @@ def _create_ui_session_token() -> str:
 
 
 def _verify_ui_session_token(token: str | None) -> bool:
-    # In simple terms: Helps with verify ui session token.
+    # Creates ui session token.
     # What the inputs mean:
     # - token: the login or approval token being checked.
     # What it gives back: It returns yes or no.
@@ -676,7 +676,7 @@ def _verify_ui_session_token(token: str | None) -> bool:
 
 
 def _require_ui_session(request: Request) -> str:
-    # In simple terms: Helps with require ui session.
+    # Helps with require ui session inside require ui session.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # What it gives back: It returns text.
@@ -706,7 +706,7 @@ _UI_SUBMISSIONS_LOCK = threading.RLock()
 
 
 def _revoke_ui_session_token(token: str) -> None:
-    # In simple terms: Helps with revoke ui session token.
+    # Revokes ui session token.
     # What the inputs mean:
     # - token: the login or approval token being checked.
     # What it gives back: It does its work and does not return a value.
@@ -720,7 +720,7 @@ def _revoke_ui_session_token(token: str) -> None:
 
 
 def _is_ui_session_revoked(token: str) -> bool:
-    # In simple terms: Helps with is ui session revoked.
+    # Revokes ui session token.
     # What the inputs mean:
     # - token: the login or approval token being checked.
     # What it gives back: It returns yes or no.
@@ -734,7 +734,7 @@ def _is_ui_session_revoked(token: str) -> bool:
 
 
 def _save_ui_submission(session_id: str, record: dict[str, Any]) -> str:
-    # In simple terms: Helps with save ui submission.
+    # Checks whether ui session revoked.
     # What the inputs mean:
     # - session_id: the instructor session that owns this submission.
     # - record: the record used for this step.
@@ -762,7 +762,7 @@ def _save_ui_submission(session_id: str, record: dict[str, Any]) -> str:
 
 
 def _clear_ui_submissions(session_id: str) -> None:
-    # In simple terms: Helps with clear ui submissions.
+    # Clears ui submissions.
     # What the inputs mean:
     # - session_id: the instructor session that owns this submission.
     # What it gives back: It does its work and does not return a value.
@@ -782,7 +782,7 @@ def _clear_ui_submissions(session_id: str) -> None:
 
 
 def _get_ui_submission(session_id: str, submission_id: str) -> dict[str, Any]:
-    # In simple terms: Helps with get ui submission.
+    # Gets ui submission.
     # What the inputs mean:
     # - session_id: the instructor session that owns this submission.
     # - submission_id: the identifier for this submission.
@@ -895,7 +895,7 @@ def instructor_ui_demo(
     request: UIDemoRequest = UIDemoRequest(),
 ):
     """Run the isolated built-in demo only for an authenticated instructor."""
-    # In simple terms: Run the isolated built-in demo only for an authenticated instructor.
+    # Handles instructor ui demo as a supporting part of web .
     # What the inputs mean:
     # - http_request: the http request used for this step.
     # - request: the information sent to this web endpoint.
@@ -912,7 +912,7 @@ def instructor_ui_login(
     response: Response,
     http_request: Request,
 ):
-    # In simple terms: Helps with instructor ui login.
+    # Helps with instructor ui demo inside instructor ui demo.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # - response: the reply received from the AI service or web request.
@@ -954,7 +954,7 @@ def instructor_ui_login(
 
 @app.post("/api/ui/logout")
 def instructor_ui_logout(http_request: Request, response: Response):
-    # In simple terms: Helps with instructor ui logout.
+    # Helps with instructor ui logout inside instructor ui logout.
     # What the inputs mean:
     # - http_request: the http request used for this step.
     # - response: the reply received from the AI service or web request.
@@ -979,7 +979,7 @@ def instructor_ui_logout(http_request: Request, response: Response):
 @app.post("/api/ui/preflight")
 def instructor_ui_preflight(request: PreparationRequest, http_request: Request):
     """Run source-size and sandboxed compiler checks before Agent 1 is called."""
-    # In simple terms: Run source-size and sandboxed compiler checks before Agent 1 is called.
+    # Checks the submitted C code and compilation before spending an AI request on Agent 1.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # - http_request: the http request used for this step.
@@ -1014,7 +1014,7 @@ def instructor_ui_preflight(request: PreparationRequest, http_request: Request):
 
 @app.post("/api/ui/prepare")
 def instructor_ui_prepare(request: PreparationRequest, http_request: Request):
-    # In simple terms: Helps with instructor ui prepare.
+    # Starts Agent 1’s problem review and saves its draft for the instructor.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # - http_request: the http request used for this step.
@@ -1112,7 +1112,7 @@ def instructor_ui_prepare(request: PreparationRequest, http_request: Request):
 
 @app.post("/api/ui/confirm-assignment")
 def instructor_ui_confirm(request: UIConfirmRequest, http_request: Request):
-    # In simple terms: Helps with instructor ui confirm.
+    # Confirms the reviewed assignment and ties later work to that exact version.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # - http_request: the http request used for this step.
@@ -1167,7 +1167,7 @@ def instructor_ui_generate_references(
     request: UIGenerateReferencesRequest,
     http_request: Request,
 ):
-    # In simple terms: Helps with instructor ui generate references.
+    # Requests Agent 2’s solutions for the confirmed assignment.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # - http_request: the http request used for this step.
@@ -1219,7 +1219,7 @@ def instructor_ui_generate_tests(
     request: UIGenerateTestsRequest,
     http_request: Request,
 ):
-    # In simple terms: Helps with instructor ui generate tests.
+    # Requests test inputs using the confirmed assignment rules.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # - http_request: the http request used for this step.
@@ -1574,7 +1574,7 @@ def instructor_ui_generate_tests(
 
 def _agent4_benchmark_evidence(benchmark):
     """Adapt measured student observations to the legacy reconciler format."""
-    # In simple terms: Adapt measured student observations to the legacy reconciler format.
+    # Handles agent4 benchmark evidence as a supporting part of web .
     # What the inputs mean:
     # - benchmark: the benchmark used for this step.
     # What it gives back: It returns the result that the next step needs.
@@ -1622,7 +1622,7 @@ def _agent4_benchmark_evidence(benchmark):
 
 def _attach_agent4_complexity_graphs(analysis):
     """Evaluate AI-reported complexity notation with the bounded math engine."""
-    # In simple terms: Evaluate AI-reported complexity notation with the bounded math engine.
+    # Handles attach agent4 complexity graphs as a supporting part of web .
     # What the inputs mean:
     # - analysis: the analysis used for this step.
     # What it gives back: It returns the result that the next step needs.
@@ -1654,7 +1654,7 @@ def instructor_ui_download_test_cases(
     request: UIExecuteTestsRequest,
     http_request: Request,
 ):
-    # In simple terms: Helps with instructor ui download test cases.
+    # Helps with instructor ui download test cases inside instructor ui download test cases.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # - http_request: the http request used for this step.
@@ -1748,7 +1748,7 @@ def instructor_ui_download_test_cases(
 
 def _grade_metric_snapshot_eligible(result: dict[str, Any], provider: Any) -> bool:
     """Only freeze metrics after every AI stage needed by the rubric returned usable output."""
-    # In simple terms: Only freeze metrics after every AI stage needed by the rubric returned usable output.
+    # Checks that all required reviews are complete before saving their scores for repeat use.
     # What the inputs mean:
     # - result: the result used for this step.
     # - provider: the selected AI service.
@@ -1784,7 +1784,7 @@ def _grade_metric_snapshot_eligible(result: dict[str, Any], provider: Any) -> bo
 
 def _grade_snapshot_analysis_identity(provider: Any, result: dict[str, Any]) -> dict[str, Any]:
     """Fingerprint the provider/model and prompt/schema implementation that produced metrics."""
-    # In simple terms: Records which AI model and analysis code were used for this grade.
+    # Identifies the AI model and analysis code so changed review logic gets a new grade identity.
     # What the inputs mean:
     # - provider: the selected AI service.
     # - result: the result used for this step.
@@ -1837,7 +1837,7 @@ def instructor_ui_execute_tests(
     request: UIExecuteTestsRequest,
     http_request: Request,
 ):
-    # In simple terms: Helps with instructor ui execute tests.
+    # Runs the test inputs, gathers later reviews, and calculates the grade.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # - http_request: the http request used for this step.
@@ -2288,7 +2288,7 @@ def instructor_ui_benchmark_complexity(
     request: UIComplexityBenchmarkRequest,
     http_request: Request,
 ):
-    # In simple terms: Helps with instructor ui benchmark complexity.
+    # Helps with instructor ui benchmark complexity inside instructor ui benchmark complexity.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # - http_request: the http request used for this step.
@@ -2349,7 +2349,7 @@ def instructor_ui_generate_report(
     request: UIPDFReportRequest,
     http_request: Request,
 ):
-    # In simple terms: Helps with instructor ui generate report.
+    # Builds the downloadable report from the collected results.
     # What the inputs mean:
     # - request: the information sent to this web endpoint.
     # - http_request: the http request used for this step.
@@ -2402,7 +2402,7 @@ def instructor_ui_generate_report(
 @app.get("/workflow", include_in_schema=False)
 async def evaluation_workflow_page():
     """Serve the standalone evaluation workflow page."""
-    # In simple terms: Serve the standalone evaluation workflow page.
+    # Handles evaluation workflow page as a supporting part of web .
     # This function takes no named inputs.
     # What it gives back: It returns the result that the next step needs.
     return FileResponse(
@@ -2414,7 +2414,7 @@ async def evaluation_workflow_page():
 @app.get("/rubric", include_in_schema=False)
 async def grading_rubric_page():
     """Serve the standalone grading rubric page."""
-    # In simple terms: Serve the standalone grading rubric page.
+    # Handles grading rubric page as a supporting part of web .
     # This function takes no named inputs.
     # What it gives back: It returns the result that the next step needs.
     return FileResponse(
@@ -2426,7 +2426,7 @@ async def grading_rubric_page():
 @app.get("/principles", include_in_schema=False)
 async def design_principles_page():
     """Serve the standalone design principles page."""
-    # In simple terms: Serve the standalone design principles page.
+    # Handles design principles page as a supporting part of web .
     # This function takes no named inputs.
     # What it gives back: It returns the result that the next step needs.
     return FileResponse(

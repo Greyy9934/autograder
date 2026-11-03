@@ -1,5 +1,5 @@
 """DeepSeek provider using its OpenAI-compatible chat completions API."""
-# In plain terms: This file sends requests to DeepSeek and turns its replies and errors into results the app can handle.
+# This file handles deepseek provider as one part of the app.
 
 import json
 import os
@@ -33,7 +33,7 @@ class DeepSeekProvider:
         sleep=time.sleep,
         max_response_bytes: int = 1048576,
     ):
-        # In simple terms: Sets up .
+        # Helps with init inside init.
         # What the inputs mean:
         # - api_key: the private key used to contact the AI service.
         # - model: the AI model selected in settings.
@@ -96,7 +96,7 @@ class DeepSeekProvider:
         payload: dict[str, Any],
         schema: dict[str, Any],
     ) -> dict[str, Any]:
-        # In simple terms: Creates json.
+        # Creates json.
         # What the inputs mean:
         # - task: the task used for this step.
         # - payload: the information being sent to an AI service.
@@ -231,7 +231,7 @@ class DeepSeekProvider:
 
     @staticmethod
     def _extract_usage(raw: bytes) -> dict[str, int] | None:
-        # In simple terms: Helps with extract usage.
+        # Helps with extract usage inside extract usage.
         # What the inputs mean:
         # - raw: the raw used for this step.
         # What it gives back: It returns a set of named results for the next step.
@@ -264,7 +264,7 @@ class DeepSeekProvider:
 
     @staticmethod
     def _extract_finish_reason(raw: bytes) -> str | None:
-        # In simple terms: Helps with extract finish reason.
+        # Helps with extract finish reason inside extract finish reason.
         # What the inputs mean:
         # - raw: the raw used for this step.
         # What it gives back: It returns text or nothing if unavailable.
@@ -278,7 +278,7 @@ class DeepSeekProvider:
 
     @staticmethod
     def _parse_response(raw: bytes) -> tuple[dict[str, Any], dict[str, int] | None]:
-        # In simple terms: Helps with parse response.
+        # Handles extract finish reason as a supporting part of deepseek provider .
         # What the inputs mean:
         # - raw: the raw used for this step.
         # What it gives back: It returns a small group of related values.

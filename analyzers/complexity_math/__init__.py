@@ -1,5 +1,5 @@
 """General mathematical engine for Agent 4 complexity graphs."""
-# In plain terms: This file handles init, one part of the AutoGrader’s workflow.
+# This file handles init as one part of the app.
 
 from .models import ExpressionLimits, ParsedExpression, ParseResult
 from .parser import parse_complexity_expression

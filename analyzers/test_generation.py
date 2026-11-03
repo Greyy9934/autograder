@@ -1,5 +1,5 @@
 """Coordinate Agent 3A and Agent 3B using a confirmed assignment."""
-# In plain terms: This file prepares random and targeted test inputs using the approved input rules.
+# It prepares random and targeted tests using the approved input rules.
 
 from typing import Any
 
@@ -24,7 +24,7 @@ def generate_test_plans(
     reference_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Generate random and adversarial inputs without executing student code."""
-    # In simple terms: Makes random and targeted test plans using the instructor-approved input rules.
+    # Builds random and targeted test inputs from the reviewed assignment rules before any student code is run.
     # What the inputs mean:
     # - source: the C code being checked.
     # - spec: the settings or assignment details used here.

@@ -1,5 +1,5 @@
 """Compile a C submission once, then execute a bounded batch of inputs."""
-# In plain terms: This file runs the student and reference programs on the same inputs and records what happened.
+# It compares the student and reference programs fairly by giving them the same inputs and shared time limit.
 
 import math
 import subprocess
@@ -26,7 +26,7 @@ def benchmark_time_budget_for_case_count(case_count: int) -> float:
     leaves most of a 100-case batch unverified even when the inputs are small.
     Keep the window bounded so the request remains predictable on hosted servers.
     """
-    # In simple terms: Scale the shared benchmark window with process-per-case overhead.
+    # Chooses a fair shared time allowance based on how many cases are being run.
     # What the inputs mean:
     # - case_count: the case count used for this step.
     # What it gives back: It returns the float result.
@@ -40,7 +40,7 @@ def benchmark_time_budget_for_case_count(case_count: int) -> float:
 
 def _classify_execution(run: dict[str, Any]) -> str:
     """Classify execution outcomes without confusing infrastructure with student errors."""
-    # In simple terms: Classify execution outcomes without confusing infrastructure with student errors.
+    # Handles classify execution as a supporting part of batch execution .
     # What the inputs mean:
     # - run: the run used for this step.
     # What it gives back: It returns text.
@@ -70,7 +70,7 @@ def _classify_benchmark_run(
     shared_budget_limited: bool,
 ) -> str:
     """Separate a global benchmark cutoff from a program's own time limit."""
-    # In simple terms: Separate a global benchmark cutoff from a program's own time limit.
+    # Handles classify benchmark run as a supporting part of batch execution .
     # What the inputs mean:
     # - run: the run used for this step.
     # - shared_budget_limited: the shared budget limited used for this step.
@@ -82,7 +82,7 @@ def _classify_benchmark_run(
 
 def _summarize_results(results: list[dict[str, Any]]) -> dict[str, int]:
     """Count each execution category for deterministic downstream reporting."""
-    # In simple terms: Count each execution category for deterministic downstream reporting.
+    # Summarizes results.
     # What the inputs mean:
     # - results: the outcomes from an earlier step.
     # What it gives back: It returns a set of named results for the next step.
@@ -109,7 +109,7 @@ class _SharedExecutionGate:
     """Start all benchmark workers against one wall-clock deadline."""
 
     def __init__(self, workers: int, budget_seconds: float):
-        # In simple terms: Sets up .
+        # Helps with init inside init.
         # What the inputs mean:
         # - workers: the workers used for this step.
         # - budget_seconds: the budget seconds used for this step.
@@ -124,7 +124,7 @@ class _SharedExecutionGate:
         self.aborted = False
 
     def abort(self):
-        # In simple terms: Sets up this object with the information it needs.
+        # Handles init as a supporting part of batch execution .
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns the result that the next step needs.
@@ -133,7 +133,7 @@ class _SharedExecutionGate:
             self.condition.notify_all()
 
     def wait_until_all_ready(self):
-        # In simple terms: Helps with wait until all ready.
+        # Handles abort as a supporting part of batch execution .
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns the result that the next step needs.
@@ -168,7 +168,7 @@ def run_c_batch(
     per_case_timeout_seconds: float | None = None,
 ) -> dict[str, Any]:
 
-    # In simple terms: Runs c batch.
+    # Compiles one C program and runs it on each input while recording its output and timeouts.
     # What the inputs mean:
     # - source: the C code being checked.
     # - inputs: the inputs used for this step.
@@ -422,7 +422,7 @@ def _adaptive_benchmark_case_order(
     set of additional low-size cases, before the upper probes and remaining
     cases. The brute-force worker may stop after an actual per-case timeout.
     """
-    # In simple terms: Chooses an order that tries small and medium inputs before spending time on the largest cases.
+    # Chooses a useful run order: representative sizes first, more small and medium cases next, then remaining cases.
     # What the inputs mean:
     # - generated_cases: the test inputs produced for this run.
     # - max_ladder_points: the max ladder points used for this step.
@@ -509,7 +509,7 @@ def benchmark_three_programs_parallel(
     time_budget_seconds: float = 2.0,
 ) -> dict[str, Any]:
     """Compile three programs, then execute them concurrently on one clock."""
-    # In simple terms: Runs the student and both reference programs on the same inputs within one shared time limit.
+    # Runs the student, brute-force, and efficient programs on the same inputs under one shared time limit.
     # What the inputs mean:
     # - student_source: the student’s C code.
     # - brute_force_source: the slow reference C code used on small cases.

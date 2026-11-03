@@ -3,7 +3,7 @@
 This module does not parse the full C language and never claims to prove
 asymptotic complexity.
 """
-# In plain terms: This file handles complexity estimator, one part of the AutoGrader’s workflow.
+# This file handles complexity estimator as one part of the app.
 
 import re
 from typing import Any
@@ -20,7 +20,7 @@ ALLOCATION_PATTERN = re.compile(r"\b(malloc|calloc|realloc)\s*\(")
 
 def _loop_model(kind: str, header: str, body: str = "") -> dict[str, Any]:
     """Classify common loop forms without claiming full C semantics."""
-    # In simple terms: Classify common loop forms without claiming full C semantics.
+    # Handles loop model as a supporting part of complexity estimator .
     # What the inputs mean:
     # - kind: the kind used for this step.
     # - header: the header used for this step.
@@ -77,7 +77,7 @@ def _loop_model(kind: str, header: str, body: str = "") -> dict[str, Any]:
 
 def _brace_body(source: str, opening: int) -> str:
     """Return a brace-delimited loop body, if one is present."""
-    # In simple terms: Return a brace-delimited loop body, if one is present.
+    # Handles brace body as a supporting part of complexity estimator .
     # What the inputs mean:
     # - source: the C code being checked.
     # - opening: the opening used for this step.
@@ -99,7 +99,7 @@ def _brace_body(source: str, opening: int) -> str:
 
 def _mask_comments_and_strings(source: str) -> str:
     """Replace comments and string/character contents while preserving lines."""
-    # In simple terms: Replace comments and string/character contents while preserving lines.
+    # Handles mask comments and strings as a supporting part of complexity estimator .
     # What the inputs mean:
     # - source: the C code being checked.
     # What it gives back: It returns text.
@@ -173,7 +173,7 @@ def _mask_comments_and_strings(source: str) -> str:
 
 
 def _invalid_result() -> dict[str, Any]:
-    # In simple terms: Helps with invalid result.
+    # Helps with invalid result inside invalid result.
     # This function takes no named inputs.
     # What it gives back: It returns a set of named results for the next step.
     return {
@@ -194,7 +194,7 @@ def _invalid_result() -> dict[str, Any]:
 
 def estimate_complexity(source: str) -> dict[str, Any]:
     """Estimate complexity from source patterns; not a semantic proof."""
-    # In simple terms: Estimate complexity from source patterns; not a semantic proof.
+    # Handles estimate complexity as a supporting part of complexity estimator .
     # What the inputs mean:
     # - source: the C code being checked.
     # What it gives back: It returns a set of named results for the next step.

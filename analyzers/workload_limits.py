@@ -1,5 +1,5 @@
 """Hard resource limits for schema-valid local test generation."""
-# In plain terms: This file handles workload limits, one part of the AutoGrader’s workflow.
+# This file handles workload limits as one part of the app.
 
 MAX_GENERATED_CASE_INPUT_BYTES = 16 * 1024
 MAX_GENERATED_BATCH_INPUT_BYTES = 512 * 1024
@@ -9,7 +9,7 @@ MAX_GENERATED_ARRAY_LENGTH = 512
 
 def max_generated_array_length(schema) -> int | None:
     """Return a conservative per-length-field cap for a schema's arrays."""
-    # In simple terms: Return a conservative per-length-field cap for a schema's arrays.
+    # Handles max generated array length as a supporting part of workload limits .
     # What the inputs mean:
     # - schema: the schema used for this step.
     # What it gives back: It returns the int | None result.

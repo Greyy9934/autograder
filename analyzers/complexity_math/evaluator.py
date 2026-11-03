@@ -3,8 +3,7 @@
 This module evaluates only ASTs produced by the restricted parser.
 It never evaluates Python source strings or calls Python eval().
 """
-# In plain terms: This file calculates graph values with limits so very large functions cannot use unlimited time or memory.
-# Why it matters: Careful number limits let the graph show extremely fast growth without letting calculations run without bounds.
+# It calculates graph values while placing limits on large or difficult calculations.
 
 from __future__ import annotations
 
@@ -45,7 +44,7 @@ class EvaluationResult:
 
     def to_dict(self) -> dict[str, Any]:
         """Return JSON-friendly output without losing large-value information."""
-        # In simple terms: Turns the current details into a simple set of named values for the next step.
+        # Puts the current details into a simple set of named values.
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns a set of named results for the next step.
@@ -66,7 +65,7 @@ class EvaluationResult:
 
 
 def _format_number(value: mp.mpf | None) -> str | None:
-    # In simple terms: Helps with format number.
+    # Formats number.
     # What the inputs mean:
     # - value: the particular value being checked or changed.
     # What it gives back: It returns text or nothing if unavailable.
@@ -80,7 +79,7 @@ def _format_number(value: mp.mpf | None) -> str | None:
 
 
 def _validate_limits(limits: EvaluationLimits) -> None:
-    # In simple terms: Helps with validate limits.
+    # Formats number.
     # What the inputs mean:
     # - limits: the limits used for this step.
     # What it gives back: It does its work and does not return a value.
@@ -109,7 +108,7 @@ def _validate_limits(limits: EvaluationLimits) -> None:
 
 def _log_star(value: mp.mpf) -> mp.mpf:
     """Count base-2 logarithms needed to bring value down to <= 1."""
-    # In simple terms: Count base-2 logarithms needed to bring value down to <= 1.
+    # Handles log star as a supporting part of evaluator .
     # What the inputs mean:
     # - value: the particular value being checked or changed.
     # What it gives back: It returns the mp.mpf result.
@@ -134,7 +133,7 @@ def _inverse_ackermann_approx(value: mp.mpf) -> mp.mpf:
     Uses conservative threshold levels. This is a graphing approximation,
     not an exact symbolic inverse of a particular Ackermann definition.
     """
-    # In simple terms: Small, explicitly approximate inverse-Ackermann growth function.
+    # Handles inverse ackermann approx as a supporting part of evaluator .
     # What the inputs mean:
     # - value: the particular value being checked or changed.
     # What it gives back: It returns the mp.mpf result.
@@ -159,7 +158,7 @@ def _inverse_ackermann_approx(value: mp.mpf) -> mp.mpf:
 
 class _EvaluationFailure(Exception):
     def __init__(self, code: str, message: str):
-        # In simple terms: Sets up .
+        # Helps with init inside init.
         # What the inputs mean:
         # - code: the code used for this step.
         # - message: the message used for this step.
@@ -176,7 +175,7 @@ class _Evaluator:
         input_size: int,
         limits: EvaluationLimits,
     ):
-        # In simple terms: Sets up this object with the information it needs.
+        # Handles init as a supporting part of evaluator .
         # What the inputs mean:
         # - expression: the math formula the graph is asked to draw.
         # - input_size: the input size used for this step.
@@ -191,7 +190,7 @@ class _Evaluator:
         self.approximations: list[str] = []
 
     def _tick(self) -> None:
-        # In simple terms: Sets up this object with the information it needs.
+        # Handles init as a supporting part of evaluator .
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It does its work and does not return a value.
@@ -203,7 +202,7 @@ class _Evaluator:
             )
 
     def _finite(self, value: mp.mpf) -> mp.mpf:
-        # In simple terms: Helps with finite.
+        # Handles tick as a supporting part of evaluator .
         # What the inputs mean:
         # - value: the particular value being checked or changed.
         # - self/cls: the current object this function belongs to.
@@ -219,7 +218,7 @@ class _Evaluator:
         # A variable exponent such as 2^n must be allowed to grow with n.
         # The effective ceiling is bounded by both the configured exponent
         # limit and the maximum permitted input size.
-        # In simple terms: Helps with power.
+        # Handles finite as a supporting part of evaluator .
         # What the inputs mean:
         # - base: the base used for this step.
         # - exponent: the exponent used for this step.
@@ -258,7 +257,7 @@ class _Evaluator:
             raise _EvaluationFailure("invalid_power", str(exc)) from exc
 
     def _function(self, name: str, argument: mp.mpf) -> mp.mpf:
-        # In simple terms: Helps with function.
+        # Helps with function inside function.
         # What the inputs mean:
         # - name: the name used to identify this item.
         # - argument: the argument used for this step.
@@ -330,7 +329,7 @@ class _Evaluator:
         )
 
     def visit(self, node: ast.AST) -> mp.mpf:
-        # In simple terms: Helps with visit.
+        # Helps with visit inside visit.
         # What the inputs mean:
         # - node: the current piece of the formula being checked.
         # - self/cls: the current object this function belongs to.
@@ -433,7 +432,7 @@ def evaluate_complexity_expression(
     precision: int | None = None,
 ) -> EvaluationResult:
     """Evaluate a parser-validated expression at one positive input size."""
-    # In simple terms: Calculates one point on a checked complexity formula while keeping the work bounded.
+    # Calculates one value of an approved formula while limiting the amount of work and precision.
     # What the inputs mean:
     # - expression: the math formula the graph is asked to draw.
     # - input_size: the input size used for this step.

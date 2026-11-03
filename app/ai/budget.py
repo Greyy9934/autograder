@@ -1,6 +1,5 @@
 """Persistent, concurrency-safe AI request budget."""
-# In plain terms: This file keeps track of AI requests so the app can apply its daily request limit.
-# Why it matters: The app reserves a request slot before calling an AI provider. A token limit only says how long an answer may be; the provider charges for what it actually uses.
+# It reserves request slots and records usage around calls to an AI provider.
 
 import logging
 import os
@@ -24,7 +23,7 @@ class RequestBudget:
         database_path: str | Path,
         daily_limit: int,
     ) -> None:
-        # In simple terms: Sets up .
+        # Helps with init inside init.
         # What the inputs mean:
         # - database_path: where the local development database is stored.
         # - daily_limit: the daily limit used for this step.
@@ -74,7 +73,7 @@ class RequestBudget:
             ) from exc
 
     def _connect(self):
-        # In simple terms: Helps with connect.
+        # Opens the configured database connection.
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns the result that the next step needs.
@@ -88,7 +87,7 @@ class RequestBudget:
 
     def reserve(self, credits: int = 1) -> int:
         """Atomically reserve credits before an AI operation."""
-        # In simple terms: Opens the configured database connection.
+        # Opens the shared database, or the local development database when appropriate.
         # What the inputs mean:
         # - credits: the credits used for this step.
         # - self/cls: the current object this function belongs to.
@@ -162,7 +161,7 @@ class RequestBudget:
 
     def record_usage(self, usage: dict) -> None:
         """Persist provider-reported token counts without storing prompts or code."""
-        # In simple terms: Persist provider-reported token counts without storing prompts or code.
+        # Records usage.
         # What the inputs mean:
         # - usage: the usage used for this step.
         # - self/cls: the current object this function belongs to.
@@ -218,7 +217,7 @@ class BudgetedProvider:
     """Reserve budget credits before delegating to an AI provider."""
 
     def __init__(self, provider, budget: RequestBudget, credits_per_call: int = 1):
-        # In simple terms: Sets up .
+        # Helps with init inside init.
         # What the inputs mean:
         # - provider: the selected AI service.
         # - budget: the budget used for this step.
@@ -239,7 +238,7 @@ class BudgetedProvider:
     def generate_json(self, task, payload, schema):
         # Keep the concrete provider object intact for existing integrations.
         # Enforce the same request/response contract at the shared call boundary.
-        # In simple terms: Creates json.
+        # Creates json.
         # What the inputs mean:
         # - task: the task used for this step.
         # - payload: the information being sent to an AI service.
@@ -341,7 +340,7 @@ class BudgetedProvider:
         return result
 
     def _record_provider_usage(self) -> None:
-        # In simple terms: Helps with record provider usage.
+        # Records provider usage.
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It does its work and does not return a value.
@@ -361,7 +360,7 @@ class BudgetedProvider:
 
 
 def create_request_budget() -> RequestBudget:
-    # In simple terms: Creates request budget.
+    # Creates request budget.
     # This function takes no named inputs.
     # What it gives back: It returns the Request Budget result.
     default_path = Path.home() / ".local" / "share" / "autograder" / "ai-budget.sqlite3"

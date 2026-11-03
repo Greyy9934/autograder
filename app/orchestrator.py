@@ -1,5 +1,5 @@
 """Application-level coordination for AutoGrader."""
-# In plain terms: This file puts the analysis stages in the right order and combines their results.
+# It runs the analysis stages in order and joins their results into one evaluation.
 #   Branches may stop early; the numbered sequence describes the intended full workflow.
 
 import hashlib
@@ -24,7 +24,7 @@ from app.runner import compile_c_source
 
 def _attach_grading(result: dict[str, Any]) -> dict[str, Any]:
     """Attach a conservative, rule-driven grade to any evaluation result."""
-    # In simple terms: Attach a conservative, rule-driven grade to any evaluation result.
+    # Handles attach grading as a supporting part of orchestrator .
     # What the inputs mean:
     # - result: the result used for this step.
     # What it gives back: It returns a set of named results for the next step.
@@ -45,7 +45,7 @@ def _attach_grading(result: dict[str, Any]) -> dict[str, Any]:
 
 
 def _compact_complexity_static(value: Any) -> dict[str, Any] | None:
-    # In simple terms: Helps with compact complexity static.
+    # Adds the grade summary to this evaluation result.
     # What the inputs mean:
     # - value: the particular value being checked or changed.
     # What it gives back: It returns a set of named results for the next step.
@@ -67,7 +67,7 @@ def _compact_complexity_static(value: Any) -> dict[str, Any] | None:
 
 
 def _compact_complexity_benchmark(value: Any) -> dict[str, Any] | None:
-    # In simple terms: Helps with compact complexity benchmark.
+    # Shortens timing details for display.
     # What the inputs mean:
     # - value: the particular value being checked or changed.
     # What it gives back: It returns a set of named results for the next step.
@@ -99,7 +99,7 @@ def _compact_complexity_benchmark(value: Any) -> dict[str, Any] | None:
 
 
 def _compact_complexity_analysis(value: Any) -> dict[str, Any] | None:
-    # In simple terms: Helps with compact complexity analysis.
+    # Keeps the key points from the complexity review in a compact form.
     # What the inputs mean:
     # - value: the particular value being checked or changed.
     # What it gives back: It returns a set of named results for the next step.
@@ -132,7 +132,7 @@ def evaluate_execution_evidence(
     complexity_benchmark: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run execution-dependent checks after preparation is complete."""
-    # In simple terms: Run execution-dependent checks after preparation is complete.
+    # Handles evaluate execution evidence as a supporting part of orchestrator .
     # What the inputs mean:
     # - source: the C code being checked.
     # - prepared_result: the prepared result used for this step.
@@ -357,7 +357,7 @@ def generate_reference_solutions_for_confirmed_spec(
     user_supplied_problem_statement: str | None = None,
 ) -> dict[str, Any]:
     """Run Agent 2 only after explicit instructor approval."""
-    # In simple terms: Run Agent 2 only after explicit instructor approval.
+    # Creates reference solutions for confirmed spec.
     # What the inputs mean:
     # - spec: the settings or assignment details used here.
     # - provider: the selected AI service.
@@ -413,7 +413,7 @@ def evaluate_submission(
     Run preflight and heuristic source-risk analysis, then optional
     problem reconstruction. Source-risk findings are not confirmed bugs.
     """
-    # In simple terms: Run preflight and heuristic source-risk analysis, then optional
+    # Handles evaluate submission as a supporting part of orchestrator .
     # What the inputs mean:
     # - source: the C code being checked.
     # - problem_statement: the problem description, if one was supplied.

@@ -1,5 +1,5 @@
 """Deterministic input/output test-case analyzer."""
-# In plain terms: This file handles test cases, one part of the AutoGrader’s workflow.
+# This file handles test cases as one part of the app.
 
 from typing import Any
 
@@ -14,7 +14,7 @@ def analyze_test_cases(
     test_cases: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """Run explicit input/output cases using one compilation per batch."""
-    # In simple terms: Run explicit input/output cases using one compilation per batch.
+    # Looks at test cases.
     # What the inputs mean:
     # - source: the C code being checked.
     # - test_cases: the example inputs used for checking programs.

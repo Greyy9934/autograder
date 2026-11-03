@@ -1,5 +1,5 @@
 """Per-agent DeepSeek completion budgets for one standard grading workflow."""
-# In plain terms: This file sets a reasonable maximum answer size for each agent. The limits are ceilings, not a bill or a promise to use every token.
+# It gives each AI task enough room to answer while setting a maximum on answer length.
 
 from types import MappingProxyType
 
@@ -53,7 +53,7 @@ if any(
 
 def reasoning_effort_for_task(task: str) -> str:
     """Return the deliberately selected DeepSeek reasoning mode for a task."""
-    # In simple terms: Return the deliberately selected DeepSeek reasoning mode for a task.
+    # Handles reasoning effort for task as a supporting part of output budget .
     # What the inputs mean:
     # - task: the task used for this step.
     # What it gives back: It returns text.
@@ -68,7 +68,7 @@ def reasoning_effort_for_task(task: str) -> str:
 
 def output_token_cap_for_task(task: str) -> int:
     """Return the cap for a known task; reject unmapped calls rather than guess."""
-    # In simple terms: Return the cap for a known task; reject unmapped calls rather than guess.
+    # Handles output token cap for task as a supporting part of output budget .
     # What the inputs mean:
     # - task: the task used for this step.
     # What it gives back: It returns the int result.

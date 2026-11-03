@@ -1,5 +1,5 @@
 """Optional memory diagnostics; findings are evidence, not proof of safety."""
-# In plain terms: This file runs extra checks that can help find memory mistakes in C programs.
+# This file handles memory safety as one part of the app.
 
 import os
 import shutil
@@ -24,7 +24,7 @@ from app.runner import (
 
 
 def _tool_result(status: str, message: str, **extra: Any) -> dict[str, Any]:
-    # In simple terms: Helps with tool result.
+    # Helps with tool result inside tool result.
     # What the inputs mean:
     # - status: the current result label.
     # - message: the message used for this step.
@@ -46,7 +46,7 @@ def _compile_and_run(
     address_space_limit_bytes: int | None = MEMORY_LIMIT_BYTES,
 ) -> dict[str, Any]:
     """Compile a temporary diagnostic binary and run it with bounded resources."""
-    # In simple terms: Compile a temporary diagnostic binary and run it with bounded resources.
+    # Handles compile and run as a supporting part of memory safety .
     # What the inputs mean:
     # - source: the C code being checked.
     # - stdin: the stdin used for this step.
@@ -169,7 +169,7 @@ def _compile_and_run(
 
 def run_asan(source: str, stdin: str = "") -> dict[str, Any]:
     """Run GCC AddressSanitizer and UndefinedBehaviorSanitizer diagnostics."""
-    # In simple terms: Run GCC AddressSanitizer and UndefinedBehaviorSanitizer diagnostics.
+    # Runs asan.
     # What the inputs mean:
     # - source: the C code being checked.
     # - stdin: the stdin used for this step.
@@ -212,7 +212,7 @@ def run_asan(source: str, stdin: str = "") -> dict[str, Any]:
 
 def run_valgrind(source: str, stdin: str = "") -> dict[str, Any]:
     """Run Valgrind Memcheck when available."""
-    # In simple terms: Run Valgrind Memcheck when available.
+    # Runs valgrind.
     # What the inputs mean:
     # - source: the C code being checked.
     # - stdin: the stdin used for this step.
@@ -272,7 +272,7 @@ def analyze_memory_safety(
     tools: tuple[str, ...] = ("asan", "valgrind"),
 ) -> dict[str, Any]:
     """Run explicitly selected memory diagnostics independently."""
-    # In simple terms: Run explicitly selected memory diagnostics independently.
+    # Looks at memory safety.
     # What the inputs mean:
     # - source: the C code being checked.
     # - stdin: the stdin used for this step.

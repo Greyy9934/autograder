@@ -1,5 +1,5 @@
 """Predictable AI provider for tests; makes no network requests."""
-# In plain terms: This file handles mock provider, one part of the AutoGrader’s workflow.
+# This file handles mock provider as one part of the app.
 
 from copy import deepcopy
 from typing import Any
@@ -9,7 +9,7 @@ from app.ai.base import AIProviderError
 
 class MockAIProvider:
     def __init__(self, response: dict[str, Any]):
-        # In simple terms: Sets up .
+        # Helps with init inside init.
         # What the inputs mean:
         # - response: the reply received from the AI service or web request.
         # - self/cls: the current object this function belongs to.
@@ -23,7 +23,7 @@ class MockAIProvider:
         payload: dict[str, Any],
         schema: dict[str, Any],
     ) -> dict[str, Any]:
-        # In simple terms: Sets up this object with the information it needs.
+        # Handles init as a supporting part of mock provider .
         # What the inputs mean:
         # - task: the task used for this step.
         # - payload: the information being sent to an AI service.

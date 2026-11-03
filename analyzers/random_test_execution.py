@@ -1,5 +1,5 @@
 """Execute generated random inputs using one compilation per batch."""
-# In plain terms: This file handles random test execution, one part of the AutoGrader’s workflow.
+# This file handles random test execution as one part of the app.
 
 import hashlib
 from typing import Any
@@ -8,7 +8,7 @@ from analyzers.batch_execution import run_c_batch
 
 
 def execute_random_test_inputs(source: str, inputs: list[str]) -> dict[str, Any]:
-    # In simple terms: Runs random test inputs.
+    # Runs random test inputs.
     # What the inputs mean:
     # - source: the C code being checked.
     # - inputs: the inputs used for this step.

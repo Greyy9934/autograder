@@ -1,5 +1,5 @@
 """Strict, deterministic schemas for whitespace-separated integer input."""
-# In plain terms: This file describes the allowed input fields and checks that each test case follows those rules.
+# It describes valid input values and checks that every generated test follows those rules.
 
 from dataclasses import dataclass
 import random
@@ -13,7 +13,7 @@ class StructuredIntegerInputSchema:
     version: int = 1
 
     def __post_init__(self):
-        # In simple terms: Checks the new object .
+        # Helps with post init inside post init.
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns the result that the next step needs.
@@ -56,7 +56,7 @@ class StructuredIntegerInputSchema:
 
     @classmethod
     def from_dict(cls, data):
-        # In simple terms: Helps with from dict.
+        # Builds this object from a set of named values.
         # What the inputs mean:
         # - data: the information this function is working with.
         # - self/cls: the current object this function belongs to.
@@ -73,7 +73,7 @@ class StructuredIntegerInputSchema:
         )
 
     def to_dict(self):
-        # In simple terms: Helps with to dict.
+        # Builds this object from a set of named values.
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns the result that the next step needs.
@@ -84,7 +84,7 @@ class StructuredIntegerInputSchema:
         }
 
     def parse(self, text):
-        # In simple terms: Turns the current details into a simple set of named values for the next step.
+        # Puts the current details into a simple set of named values.
         # What the inputs mean:
         # - text: the text being parsed or shown.
         # - self/cls: the current object this function belongs to.
@@ -121,7 +121,7 @@ class StructuredIntegerInputSchema:
         return values
 
     def validate(self, text):
-        # In simple terms: Helps with validate.
+        # Checks that the supplied information follows the rules.
         # What the inputs mean:
         # - text: the text being parsed or shown.
         # - self/cls: the current object this function belongs to.
@@ -133,7 +133,7 @@ class StructuredIntegerInputSchema:
             return False
 
     def input_size(self, text):
-        # In simple terms: Checks that the supplied information follows the rules and reports whether it is usable.
+        # Checks whether the supplied information follows the rules.
         # What the inputs mean:
         # - text: the text being parsed or shown.
         # - self/cls: the current object this function belongs to.
@@ -154,7 +154,7 @@ class StructuredIntegerInputSchema:
         *,
         max_array_length: int = 512,
     ):
-        # In simple terms: Helps with generate.
+        # Helps with generate inside generate.
         # What the inputs mean:
         # - rng: the rng used for this step.
         # - distribution: the way random values should be chosen.

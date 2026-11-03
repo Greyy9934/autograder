@@ -1,7 +1,6 @@
 """AI-authored Agent 3A generator and Agent 3B edge-case analysis."""
 from __future__ import annotations
-# In plain terms: This file asks AI to suggest test inputs, runs the generated helper safely, and checks every input before use.
-# Why it matters: AI-written test-making code is treated as untrusted: it runs in a restricted environment, and its proposed inputs still have to pass our own checks.
+# It requests test ideas, runs the generated helper with limits, and checks every test before use.
 
 import json
 import signal
@@ -69,7 +68,7 @@ EDGE_SCHEMA = {
 
 
 def _ask(provider: AIProvider, task: str, payload: dict, schema: dict) -> dict:
-    # In simple terms: Helps with ask.
+    # Sends one request to the selected AI and turns its reply or error into a result the app can use.
     # What the inputs mean:
     # - provider: the selected AI service.
     # - task: the task used for this step.
@@ -100,7 +99,7 @@ def generate_agent3a_program(
     requested_distribution: str = "uniform",
 ) -> dict:
     """Ask AI for a complete problem-specific executable test generator."""
-    # In simple terms: Asks AI to write a small program that creates test inputs for this problem.
+    # Asks Agent 3A to write a small test-making program using the problem, schema, and all three C solutions.
     # What the inputs mean:
     # - provider: the selected AI service.
     # - problem: the reconstructed problem details.
@@ -222,7 +221,7 @@ def generate_agent3a_program(
 
 def _schema_input_size(schema, text: str) -> int:
     """Return semantic size; never trust a generator-supplied size label."""
-    # In simple terms: Return semantic size; never trust a generator-supplied size label.
+    # Handles schema input size as a supporting part of agent3 ai .
     # What the inputs mean:
     # - schema: the schema used for this step.
     # - text: the text being parsed or shown.
@@ -235,7 +234,7 @@ def _schema_input_size(schema, text: str) -> int:
 
 
 def _supported_input_schema(schema) -> bool:
-    # In simple terms: Helps with supported input schema.
+    # Helps with schema input size inside schema input size.
     # What the inputs mean:
     # - schema: the schema used for this step.
     # What it gives back: It returns yes or no.
@@ -244,7 +243,7 @@ def _supported_input_schema(schema) -> bool:
 
 def _input_schema_error(schema, text: str) -> str:
     """Explain a rejected stdin without exposing its contents in the UI."""
-    # In simple terms: Explain a rejected stdin without exposing its contents in the UI.
+    # Handles supported input schema as a supporting part of agent3 ai .
     # What the inputs mean:
     # - schema: the schema used for this step.
     # - text: the text being parsed or shown.
@@ -269,7 +268,7 @@ def _input_schema_error(schema, text: str) -> str:
 
 def _approved_execution_contract(problem: dict, schema: dict) -> dict:
     """Create the canonical Agent 3 I/O contract and reject any missing or drifting term."""
-    # In simple terms: Create the canonical Agent 3 I/O contract and reject any missing or drifting term.
+    # Handles approved execution contract as a supporting part of agent3 ai .
     # What the inputs mean:
     # - problem: the reconstructed problem details.
     # - schema: the schema used for this step.
@@ -314,7 +313,7 @@ def execute_agent3a_program(
     timeout_seconds: float = 5.0,
 ) -> dict:
     """Execute AI generator in bwrap and validate every generated stdin."""
-    # In simple terms: Runs the test-making program safely and checks each input before accepting it.
+    # Runs the AI-written test maker with strict limits, then checks each proposed input before accepting it.
     # What the inputs mean:
     # - program: the program being checked or run.
     # - seed: the starting number that makes random test generation repeatable.
@@ -479,7 +478,7 @@ def analyze_agent3b_edges(
     student_source: str,
 ) -> dict:
     """Ask AI for concrete, implementation-aware edge cases."""
-    # In simple terms: Ask AI for concrete, implementation-aware edge cases.
+    # Asks Agent 3B to find tricky inputs that could expose mistakes in the student program.
     # What the inputs mean:
     # - provider: the selected AI service.
     # - problem: the reconstructed problem details.
@@ -563,7 +562,7 @@ def validate_agent3b_edges(
     schema: IntegerInputSchema,
 ) -> dict:
     """Validate concrete Agent 3B inputs before they reach C execution."""
-    # In simple terms: Checks AI-suggested tricky inputs against the approved input rules.
+    # Rejects Agent 3B suggestions that do not follow the instructor-approved input rules.
     # What the inputs mean:
     # - proposal: the proposal used for this step.
     # - schema: the schema used for this step.

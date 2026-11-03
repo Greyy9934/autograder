@@ -3,7 +3,7 @@
 These examples are synthetic. They never inspect submissions, invoke an AI
 provider, compile code, or execute programs.
 """
-# In plain terms: This file handles demo fixtures, one part of the AutoGrader’s workflow.
+# This file handles demo fixtures as one part of the app.
 from copy import deepcopy
 from random import SystemRandom
 
@@ -128,7 +128,7 @@ _FIXTURES = {
 
 def build_demo_payload():
     """Return independent random fixtures; never accepts user input."""
-    # In simple terms: Return independent random fixtures; never accepts user input.
+    # Puts together demo payload.
     # This function takes no named inputs.
     # What it gives back: It returns the result that the next step needs.
     selected = {

@@ -1,5 +1,5 @@
 """Problem reconstruction intake and optional AI-provider integration."""
-# In plain terms: This file asks Agent 1 to work out the problem, input rules, and expected output from the code and any supplied description.
+# It asks Agent 1 to infer the problem and the input/output rules from the C code and optional description.
 
 import logging
 from typing import Any
@@ -76,7 +76,7 @@ RECONSTRUCTION_SCHEMA = {
 
 
 def _validate_response(result: Any) -> dict[str, Any]:
-    # In simple terms: Helps with validate response.
+    # Checks response.
     # What the inputs mean:
     # - result: the result used for this step.
     # What it gives back: It returns a set of named results for the next step.
@@ -149,7 +149,7 @@ def reconstruct_problem(
     provider: AIProvider | None = None,
 ) -> dict[str, Any]:
     """Accept source-only submissions and optionally invoke an AI provider."""
-    # In simple terms: Uses the C code and any supplied description to work out the problem and its input/output rules.
+    # Reads the C program and any optional description, then asks Agent 1 to work out the task and its input and output rules.
     # What the inputs mean:
     # - source: the C code being checked.
     # - problem_statement: the problem description, if one was supplied.

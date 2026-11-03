@@ -1,5 +1,5 @@
 """Request-scoped diagnostic context shared by workflow and provider logs."""
-# In plain terms: This file handles diagnostics, one part of the AutoGrader’s workflow.
+# This file handles diagnostics as one part of the app.
 
 from contextvars import ContextVar
 

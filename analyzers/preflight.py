@@ -1,5 +1,5 @@
 """Deterministic, source-only preflight checks for C submissions."""
-# In plain terms: This file handles preflight, one part of the AutoGrader’s workflow.
+# This file handles preflight as one part of the app.
 
 import json
 from pathlib import Path
@@ -11,7 +11,7 @@ DEFAULT_RULES_PATH = PROJECT_ROOT / "rules" / "preflight.json"
 
 def load_rules(path: str | Path = DEFAULT_RULES_PATH) -> dict[str, Any]:
     """Load and validate the source limits from preflight configuration."""
-    # In simple terms: Load and validate the source limits from preflight configuration.
+    # Loads rules.
     # What the inputs mean:
     # - path: the file location being read or written.
     # What it gives back: It returns a set of named results for the next step.
@@ -36,7 +36,7 @@ def preflight(
     rules_path: str | Path = DEFAULT_RULES_PATH,
 ) -> dict[str, Any]:
     """Validate submitted source without compiling or executing it."""
-    # In simple terms: Validate submitted source without compiling or executing it.
+    # Handles preflight as a supporting part of preflight .
     # What the inputs mean:
     # - source: the C code being checked.
     # - rules_path: the location of the grading rules file.

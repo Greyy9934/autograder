@@ -1,5 +1,5 @@
 """Reproducible random test generation bound to confirmed specifications."""
-# In plain terms: This file handles random test generator, one part of the AutoGrader’s workflow.
+# This file handles random test generator as one part of the app.
 
 import random
 from typing import Any, Callable
@@ -27,7 +27,7 @@ def generate_random_test_batch(
     distribution: str = "uniform",
 ) -> dict[str, Any]:
     """Generate and validate a deterministic batch using an explicit format adapter."""
-    # In simple terms: Generate and validate a deterministic batch using an explicit format adapter.
+    # Creates random test batch.
     # What the inputs mean:
     # - spec: the settings or assignment details used here.
     # - seed: the starting number that makes random test generation repeatable.
@@ -143,7 +143,7 @@ def generate_schema_test_batch(
     distribution: str = "uniform",
 ) -> dict[str, Any]:
     """Generate tests using an explicit integer input schema."""
-    # In simple terms: Generate tests using an explicit integer input schema.
+    # Creates schema test batch.
     # What the inputs mean:
     # - spec: the settings or assignment details used here.
     # - schema: the schema used for this step.

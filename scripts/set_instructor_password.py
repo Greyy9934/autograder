@@ -1,4 +1,4 @@
-# In plain terms: This file handles set instructor password, one part of the AutoGrader’s workflow.
+# This file handles set instructor password as one part of the app.
 from pathlib import Path
 from getpass import getpass
 from hashlib import pbkdf2_hmac

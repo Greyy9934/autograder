@@ -1,5 +1,5 @@
 """Gemini implementation of the provider-independent AI interface."""
-# In plain terms: This file sends requests to Gemini and turns its replies and errors into results the app can handle.
+# This file handles gemini provider as one part of the app.
 
 import json
 import os
@@ -13,7 +13,7 @@ _RETRYABLE_CODES = {429, 500, 502, 503, 504}
 
 def _classify_error(exc: Exception) -> AIProviderError:
     """Convert SDK exceptions into safe, stable application error categories."""
-    # In simple terms: Convert SDK exceptions into safe, stable application error categories.
+    # Handles classify error as a supporting part of gemini provider .
     # What the inputs mean:
     # - exc: the caught error being handled.
     # What it gives back: It returns the AIProvider Error result.
@@ -68,7 +68,7 @@ class GeminiProvider:
         max_retries: int = 2,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
-        # In simple terms: Sets up .
+        # Helps with init inside init.
         # What the inputs mean:
         # - api_key: the private key used to contact the AI service.
         # - model: the AI model selected in settings.
@@ -112,7 +112,7 @@ class GeminiProvider:
         payload: dict[str, Any],
         schema: dict[str, Any],
     ) -> dict[str, Any]:
-        # In simple terms: Creates json.
+        # Creates json.
         # What the inputs mean:
         # - task: the task used for this step.
         # - payload: the information being sent to an AI service.

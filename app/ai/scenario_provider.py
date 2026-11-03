@@ -1,5 +1,5 @@
 """Deterministic multi-scenario AI provider for exhaustive offline testing."""
-# In plain terms: This file handles scenario provider, one part of the AutoGrader’s workflow.
+# This file handles scenario provider as one part of the app.
 
 from collections import deque
 from copy import deepcopy
@@ -12,7 +12,7 @@ class ScenarioAIProvider:
     """Replay realistic responses and failures without making network requests."""
 
     def __init__(self, scenarios: Iterable[Any], *, repeat_last: bool = False):
-        # In simple terms: Sets up .
+        # Helps with init inside init.
         # What the inputs mean:
         # - scenarios: the scenarios used for this step.
         # - repeat_last: the repeat last used for this step.
@@ -25,7 +25,7 @@ class ScenarioAIProvider:
 
     @property
     def remaining(self) -> int:
-        # In simple terms: Sets up this object with the information it needs.
+        # Handles init as a supporting part of scenario provider .
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns the int result.
@@ -37,7 +37,7 @@ class ScenarioAIProvider:
         payload: dict[str, Any],
         schema: dict[str, Any],
     ) -> dict[str, Any]:
-        # In simple terms: Creates json.
+        # Handles remaining as a supporting part of scenario provider .
         # What the inputs mean:
         # - task: the task used for this step.
         # - payload: the information being sent to an AI service.
@@ -81,7 +81,7 @@ class ScenarioAIProvider:
 
 
 def provider_timeout(message: str = "Simulated provider timeout.") -> AIProviderError:
-    # In simple terms: Helps with provider timeout.
+    # Helps with provider timeout inside provider timeout.
     # What the inputs mean:
     # - message: the message used for this step.
     # What it gives back: It returns the AIProvider Error result.
@@ -91,7 +91,7 @@ def provider_timeout(message: str = "Simulated provider timeout.") -> AIProvider
 
 
 def provider_rate_limit(message: str = "Simulated rate limit.") -> AIProviderError:
-    # In simple terms: Helps with provider rate limit.
+    # Handles provider timeout as a supporting part of scenario provider .
     # What the inputs mean:
     # - message: the message used for this step.
     # What it gives back: It returns the AIProvider Error result.
@@ -101,7 +101,7 @@ def provider_rate_limit(message: str = "Simulated rate limit.") -> AIProviderErr
 
 
 def provider_auth_failure(message: str = "Simulated authentication failure.") -> AIProviderError:
-    # In simple terms: Helps with provider auth failure.
+    # Handles provider rate limit as a supporting part of scenario provider .
     # What the inputs mean:
     # - message: the message used for this step.
     # What it gives back: It returns the AIProvider Error result.
@@ -111,7 +111,7 @@ def provider_auth_failure(message: str = "Simulated authentication failure.") ->
 
 
 def provider_unavailable(message: str = "Simulated provider outage.") -> AIProviderError:
-    # In simple terms: Helps with provider unavailable.
+    # Handles provider auth failure as a supporting part of scenario provider .
     # What the inputs mean:
     # - message: the message used for this step.
     # What it gives back: It returns the AIProvider Error result.

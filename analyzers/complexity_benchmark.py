@@ -3,7 +3,7 @@
 Measurements reuse the isolated batch runner. They are observations, not
 proofs of asymptotic complexity.
 """
-# In plain terms: This file handles complexity benchmark, one part of the AutoGrader’s workflow.
+# This file handles complexity benchmark as one part of the app.
 
 import hashlib
 import math
@@ -32,7 +32,7 @@ def benchmark_complexity(
     The caller is responsible for ensuring that input_size meaningfully
     describes the supplied input. No inputs are generated automatically.
     """
-    # In simple terms: Measure runtime for explicitly supplied input sizes and inputs.
+    # Measures complexity.
     # What the inputs mean:
     # - source: the C code being checked.
     # - benchmark_cases: the benchmark cases used for this step.

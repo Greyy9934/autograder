@@ -1,5 +1,5 @@
 """AI provider configuration and construction."""
-# In plain terms: This file handles config, one part of the AutoGrader’s workflow.
+# This file handles config as one part of the app.
 
 import os
 from pathlib import Path
@@ -16,7 +16,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 def mock_mode_enabled() -> bool:
     """Return whether explicit offline mock mode is enabled."""
-    # In simple terms: Return whether explicit offline mock mode is enabled.
+    # Handles mock mode enabled as a supporting part of config .
     # This function takes no named inputs.
     # What it gives back: It returns yes or no.
     return os.getenv("AUTOGRADER_MOCK_MODE", "").strip().lower() in {
@@ -26,7 +26,7 @@ def mock_mode_enabled() -> bool:
 
 def create_ai_provider():
     """Create the explicitly selected offline mock or configured AI provider."""
-    # In simple terms: Create the explicitly selected offline mock or configured AI provider.
+    # Creates ai provider.
     # This function takes no named inputs.
     # What it gives back: It returns the result that the next step needs.
     load_dotenv(PROJECT_ROOT / ".env", override=False)

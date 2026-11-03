@@ -1,5 +1,5 @@
 """Deterministic checks for generated reference programs."""
-# In plain terms: This file handles reference validation, one part of the AutoGrader’s workflow.
+# This file handles reference validation as one part of the app.
 
 from typing import Any
 
@@ -12,7 +12,7 @@ def validate_reference_program(
     test_cases: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """Run a candidate reference against cases; never infer a proof."""
-    # In simple terms: Run a candidate reference against cases; never infer a proof.
+    # Checks reference program.
     # What the inputs mean:
     # - source: the C code being checked.
     # - test_cases: the example inputs used for checking programs.
@@ -139,7 +139,7 @@ def validate_reference_pair(
     test_cases: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """Compare two candidate references on the same supplied cases."""
-    # In simple terms: Compare two candidate references on the same supplied cases.
+    # Checks reference pair.
     # What the inputs mean:
     # - brute_force_source: the slow reference C code used on small cases.
     # - efficient_source: the faster reference C code.

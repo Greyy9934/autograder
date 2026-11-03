@@ -3,8 +3,7 @@
 Presets are reference metadata only. Every expression is parsed and evaluated
 through complexity_math; no AI-provided expression is executed as Python.
 """
-# In plain terms: This file draws the shape of a complexity formula. It is separate from the chart of measured program times.
-# Why it matters: This chart explains the shape of a formula; it does not claim to be measured program speed or a proof of Big-O.
+# It draws the general shape of a complexity formula, separately from measured program times.
 
 from __future__ import annotations
 
@@ -50,7 +49,7 @@ PRESET_NOTATIONS = (
 
 def _candidate_sizes(max_input_size: int) -> list[int]:
     """Create dense small-input samples followed by bounded geometric samples."""
-    # In simple terms: Create dense small-input samples followed by bounded geometric samples.
+    # Handles candidate sizes as a supporting part of complexity graph .
     # What the inputs mean:
     # - max_input_size: the largest input size to include in the formula chart.
     # What it gives back: It returns a list of the items it found or made.
@@ -67,7 +66,7 @@ def _candidate_sizes(max_input_size: int) -> list[int]:
 
 def _preset_match(normalized_expression: str) -> bool:
     """Check metadata equivalence without restricting accepted expressions."""
-    # In simple terms: Check metadata equivalence without restricting accepted expressions.
+    # Handles preset match as a supporting part of complexity graph .
     # What the inputs mean:
     # - normalized_expression: the normalized expression used for this step.
     # What it gives back: It returns yes or no.
@@ -88,7 +87,7 @@ def _failure(
     message: str = "A valid supported asymptotic expression is required.",
     **extra: Any,
 ) -> dict[str, Any]:
-    # In simple terms: Helps with failure.
+    # Helps with preset match inside preset match.
     # What the inputs mean:
     # - notation: the complexity formula written as text.
     # - status: the current result label.
@@ -118,7 +117,7 @@ def generate_complexity_graph(
     Parameters must be supplied explicitly. For example:
         generate_complexity_graph("O(n^k)", parameters={"k": 2.5})
     """
-    # In simple terms: Calculates and returns points for drawing the shape of the requested complexity formula.
+    # Creates chart points for a complexity formula, adding more points where the curve bends noticeably.
     # What the inputs mean:
     # - notation: the complexity formula written as text.
     # - parameters: the named number values used in a formula.
@@ -460,7 +459,7 @@ def generate_complexity_graph(
 
 def list_preset_notations() -> list[str]:
     """Return the reference notation-pattern library."""
-    # In simple terms: Return the reference notation-pattern library.
+    # Lists preset notations.
     # This function takes no named inputs.
     # What it gives back: It returns a list of the items it found or made.
     return list(PRESET_NOTATIONS)

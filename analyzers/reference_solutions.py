@@ -1,5 +1,5 @@
 """Generate candidate reference solutions; never assume they are correct."""
-# In plain terms: This file asks Agent 2 for a slow simple solution and a faster solution to compare against the student code.
+# It asks Agent 2 for a simple correctness reference and an efficient reference.
 
 from typing import Any
 
@@ -47,7 +47,7 @@ REFERENCE_SCHEMA = {
 
 def _validate_reference(result: Any) -> dict[str, Any]:
     """Check shape and essential content, not algorithmic correctness."""
-    # In simple terms: Check shape and essential content, not algorithmic correctness.
+    # Checks reference.
     # What the inputs mean:
     # - result: the result used for this step.
     # What it gives back: It returns a set of named results for the next step.
@@ -90,7 +90,7 @@ def generate_reference_solutions(
     provider: AIProvider,
 ) -> dict[str, Any]:
     """Generate candidate references for a selected, unambiguous problem."""
-    # In simple terms: Generate candidate references for a selected, unambiguous problem.
+    # Asks Agent 2 for a straightforward reference and a faster reference, both based on the approved assignment.
     # What the inputs mean:
     # - problem: the reconstructed problem details.
     # - provider: the selected AI service.

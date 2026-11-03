@@ -1,5 +1,5 @@
 """Execute adversarial candidates using one compilation per batch."""
-# In plain terms: This file handles adversarial execution, one part of the AutoGrader’s workflow.
+# This file handles adversarial execution as one part of the app.
 
 import hashlib
 from typing import Any
@@ -11,7 +11,7 @@ def execute_adversarial_candidates(
     source: str,
     plan: dict[str, Any],
 ) -> dict[str, Any]:
-    # In simple terms: Runs adversarial candidates.
+    # Runs adversarial candidates.
     # What the inputs mean:
     # - source: the C code being checked.
     # - plan: the plan used for this step.

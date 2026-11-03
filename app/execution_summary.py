@@ -1,5 +1,5 @@
 """Summarize execution observations without assigning correctness scores."""
-# In plain terms: This file handles execution summary, one part of the AutoGrader’s workflow.
+# This file handles execution summary as one part of the app.
 
 from typing import Any
 
@@ -16,7 +16,7 @@ OUTCOME_KEYS = (
 
 
 def _summarize_one(result: Any) -> dict[str, Any]:
-    # In simple terms: Helps with summarize one.
+    # Summarizes one.
     # What the inputs mean:
     # - result: the result used for this step.
     # What it gives back: It returns a set of named results for the next step.
@@ -47,7 +47,7 @@ def _summarize_one(result: Any) -> dict[str, Any]:
 
 def summarize_execution_evidence(evidence: dict[str, Any]) -> dict[str, Any]:
     """Combine random/adversarial observations; never derive correctness."""
-    # In simple terms: Combine random/adversarial observations; never derive correctness.
+    # Summarizes execution evidence.
     # What the inputs mean:
     # - evidence: the test and review results used to make a decision.
     # What it gives back: It returns a set of named results for the next step.

@@ -1,5 +1,5 @@
 """Source-informed adversarial test planning; does not execute or grade tests."""
-# In plain terms: This file handles adversarial test planner, one part of the AutoGrader’s workflow.
+# This file handles adversarial test planner as one part of the app.
 
 import hashlib
 import random
@@ -25,7 +25,7 @@ def plan_adversarial_tests(
     static_findings: list[dict[str, Any]] | None = None,
     reference_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    # In simple terms: Helps with plan adversarial tests.
+    # Helps with plan adversarial tests inside plan adversarial tests.
     # What the inputs mean:
     # - source: the C code being checked.
     # - spec: the settings or assignment details used here.
@@ -73,7 +73,7 @@ def plan_adversarial_tests(
     seen: set[str] = set()
 
     def add(text: str, reason: str, priority: str, trigger: str):
-        # In simple terms: Helps with add.
+        # Helps with add inside add.
         # What the inputs mean:
         # - text: the text being parsed or shown.
         # - reason: the reason used for this step.

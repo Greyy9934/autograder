@@ -1,5 +1,5 @@
 """Targeted, cautious C source-risk checks and structural counts."""
-# In plain terms: This file handles source risks, one part of the AutoGrader’s workflow.
+# This file handles source risks as one part of the app.
 
 import re
 from typing import Any
@@ -14,7 +14,7 @@ from analyzers.complexity_estimator import (
 
 def analyze_source_risks(source: str) -> dict[str, Any]:
     """Report actionable source patterns; ordinary constructs are not alarms."""
-    # In simple terms: Report actionable source patterns; ordinary constructs are not alarms.
+    # Looks at source risks.
     # What the inputs mean:
     # - source: the C code being checked.
     # What it gives back: It returns a set of named results for the next step.
@@ -27,7 +27,7 @@ def analyze_source_risks(source: str) -> dict[str, Any]:
     findings: list[dict[str, Any]] = []
 
     def add(rule_id: str, line: int, severity: str, message: str) -> None:
-        # In simple terms: Helps with add.
+        # Looks at source risks.
         # What the inputs mean:
         # - rule_id: the rule id used for this step.
         # - line: the line used for this step.

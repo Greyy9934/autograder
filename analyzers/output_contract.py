@@ -1,5 +1,5 @@
 """Canonical output-format contract and stdout normalization policy."""
-# In plain terms: This file handles output contract, one part of the AutoGrader’s workflow.
+# This file handles output contract as one part of the app.
 
 OUTPUT_COMPARISON_RULE = (
     "Normalize CRLF to LF; ignore trailing spaces on each line and final newline; "
@@ -8,7 +8,7 @@ OUTPUT_COMPARISON_RULE = (
 
 
 def output_contract(output_format: str) -> dict:
-    # In simple terms: Helps with output contract.
+    # Turns the agreed answer format into simple rules for comparing program output.
     # What the inputs mean:
     # - output_format: how the program’s answer is expected to look.
     # What it gives back: It returns the dict result.
@@ -23,7 +23,7 @@ def output_contract(output_format: str) -> dict:
 
 
 def normalize_stdout(value: str) -> str:
-    # In simple terms: Cleans up stdout.
+    # Turns the approved answer description into the rules used to compare program output.
     # What the inputs mean:
     # - value: the particular value being checked or changed.
     # What it gives back: It returns text.

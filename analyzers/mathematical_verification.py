@@ -3,7 +3,7 @@
 The result is an AI-generated mathematical argument, not a mechanically
 verified formal proof.
 """
-# In plain terms: This file handles mathematical verification, one part of the AutoGrader’s workflow.
+# This file handles mathematical verification as one part of the app.
 
 from typing import Any
 
@@ -63,7 +63,7 @@ VERIFICATION_SCHEMA = {
 
 
 def _invalid(message: str) -> dict[str, Any]:
-    # In simple terms: Helps with invalid.
+    # Helps with invalid inside invalid.
     # What the inputs mean:
     # - message: the message used for this step.
     # What it gives back: It returns a set of named results for the next step.
@@ -80,7 +80,7 @@ def verify_algorithm(
     provider: AIProvider,
 ) -> dict[str, Any]:
     """Ask an AI reviewer for a rigorous, problem-specific correctness proof."""
-    # In simple terms: Ask an AI reviewer for a rigorous, problem-specific correctness proof.
+    # Handles invalid as a supporting part of mathematical verification .
     # What the inputs mean:
     # - problem: the reconstructed problem details.
     # - algorithm: the algorithm used for this step.

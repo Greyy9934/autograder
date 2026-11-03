@@ -1,5 +1,5 @@
 """Deterministic, heuristic code-quality analysis for C submissions."""
-# In plain terms: This file handles code quality, one part of the AutoGrader’s workflow.
+# This file handles code quality as one part of the app.
 
 import re
 from typing import Any
@@ -8,7 +8,7 @@ from app.ai.output_budget import TASK_CODE_QUALITY
 
 
 def analyze_code_quality(source: str) -> dict[str, Any]:
-    # In simple terms: Looks at code quality.
+    # Looks at code quality.
     # What the inputs mean:
     # - source: the C code being checked.
     # What it gives back: It returns a set of named results for the next step.
@@ -23,7 +23,7 @@ def analyze_code_quality(source: str) -> dict[str, Any]:
     findings: list[dict[str, str]] = []
 
     def add(rule: str, severity: str, message: str) -> None:
-        # In simple terms: Helps with add.
+        # Looks at code quality.
         # What the inputs mean:
         # - rule: the rule used for this step.
         # - severity: the severity used for this step.
@@ -166,7 +166,7 @@ def review_code_quality(
     context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run the AI-led final code-quality review and validate cited evidence."""
-    # In simple terms: Run the AI-led final code-quality review and validate cited evidence.
+    # Handles review code quality as a supporting part of code quality .
     # What the inputs mean:
     # - source: the C code being checked.
     # - provider: the selected AI service.

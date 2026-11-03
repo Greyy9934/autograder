@@ -1,5 +1,5 @@
 """Provider-independent validation and safety boundary for AI agents."""
-# In plain terms: This file checks that AI requests and replies are a safe size and have the fields the app expects.
+# This file handles guardrails as one part of the app.
 
 import json
 import os
@@ -14,7 +14,7 @@ class GuardedProvider:
     """Validate all AI inputs and outputs before they enter the application."""
 
     def __init__(self, provider: Any) -> None:
-        # In simple terms: Sets up .
+        # Helps with init inside init.
         # What the inputs mean:
         # - provider: the selected AI service.
         # - self/cls: the current object this function belongs to.
@@ -34,7 +34,7 @@ class GuardedProvider:
 
     @staticmethod
     def _encode(value: Any, label: str) -> bytes:
-        # In simple terms: Helps with encode.
+        # Helps with encode inside encode.
         # What the inputs mean:
         # - value: the particular value being checked or changed.
         # - label: the label used for this step.
@@ -58,7 +58,7 @@ class GuardedProvider:
         payload: dict[str, Any],
         schema: dict[str, Any],
     ) -> dict[str, Any]:
-        # In simple terms: Creates json.
+        # Creates json.
         # What the inputs mean:
         # - task: the task used for this step.
         # - payload: the information being sent to an AI service.

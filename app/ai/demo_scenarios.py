@@ -1,6 +1,6 @@
 """Pinned, task-routed AI responses for the authenticated Demo workflow."""
 from __future__ import annotations
-# In plain terms: This file handles demo scenarios, one part of the AutoGrader’s workflow.
+# This file handles demo scenarios as one part of the app.
 
 from copy import deepcopy
 import secrets
@@ -126,7 +126,7 @@ print(json.dumps({"inputs":cases}))'''
 
 
 def _edge(name: str, text: str, expected: str, rationale: str) -> dict[str, Any]:
-    # In simple terms: Helps with edge.
+    # Helps with edge inside edge.
     # What the inputs mean:
     # - name: the name used to identify this item.
     # - text: the text being parsed or shown.
@@ -171,7 +171,7 @@ SUBSET_EDGES = [
 
 
 def _refs(alg: str, code: str, time: str, space: str) -> dict[str, str]:
-    # In simple terms: Helps with refs.
+    # Helps with refs inside refs.
     # What the inputs mean:
     # - alg: the alg used for this step.
     # - code: the code used for this step.
@@ -184,7 +184,7 @@ def _refs(alg: str, code: str, time: str, space: str) -> dict[str, str]:
 def _agent4(name: str, desc: str, model: str, best: str, avg: str, worst: str,
             aux: str, total: str, derivation: str, line: int) -> dict[str, Any]:
     # The scenario-specific source is available through the associated reference.
-    # In simple terms: Helps with agent4.
+    # Handles refs as a supporting part of demo scenarios .
     # What the inputs mean:
     # - name: the name used to identify this item.
     # - desc: the desc used for this step.
@@ -208,7 +208,7 @@ def _agent4(name: str, desc: str, model: str, best: str, avg: str, worst: str,
 
 
 def _proof(theorem: str, strategy: str, steps: list[dict[str, str]]) -> dict[str, Any]:
-    # In simple terms: Helps with proof.
+    # Handles agent4 as a supporting part of demo scenarios .
     # What the inputs mean:
     # - theorem: the theorem used for this step.
     # - strategy: the strategy used for this step.
@@ -223,7 +223,7 @@ def _proof(theorem: str, strategy: str, steps: list[dict[str, str]]) -> dict[str
 
 
 def _step(claim: str, justification: str, equation: str) -> dict[str, str]:
-    # In simple terms: Helps with step.
+    # Handles proof as a supporting part of demo scenarios .
     # What the inputs mean:
     # - claim: the claim used for this step.
     # - justification: the justification used for this step.
@@ -233,7 +233,7 @@ def _step(claim: str, justification: str, equation: str) -> dict[str, str]:
 
 
 def _quality(summary: str, strengths: list[str], source: str, ratings: tuple[int, int, int] = (3, 3, 3)) -> dict[str, Any]:
-    # In simple terms: Helps with quality.
+    # Handles step as a supporting part of demo scenarios .
     # What the inputs mean:
     # - summary: the summary used for this step.
     # - strengths: the strengths used for this step.
@@ -484,7 +484,7 @@ for i in range(count):
 print(json.dumps({"inputs":cases}))'''
 
 def _tsp_input(matrix: list[list[int]]) -> str:
-    # In simple terms: Helps with tsp input.
+    # Helps with tsp input inside tsp input.
     # What the inputs mean:
     # - matrix: the matrix used for this step.
     # What it gives back: It returns text.
@@ -525,7 +525,7 @@ TSP = {
 }
 
 def _bind_complexity_rubric_evidence(scenario: dict[str, Any]) -> None:
-    # In simple terms: Helps with bind complexity rubric evidence.
+    # Helps with bind complexity rubric evidence inside bind complexity rubric evidence.
     # What the inputs mean:
     # - scenario: the scenario used for this step.
     # What it gives back: It does its work and does not return a value.
@@ -558,7 +558,7 @@ TASK_TO_AGENT = {
 
 
 def get_demo_scenario(scenario_id: str) -> dict[str, Any]:
-    # In simple terms: Gets demo scenario.
+    # Gets demo scenario.
     # What the inputs mean:
     # - scenario_id: the scenario id used for this step.
     # What it gives back: It returns a set of named results for the next step.
@@ -570,7 +570,7 @@ def get_demo_scenario(scenario_id: str) -> dict[str, Any]:
 
 def select_demo_scenario(scenario_id: str | None = None) -> dict[str, Any]:
     """Pin a requested scenario, or select one for the whole submission."""
-    # In simple terms: Pin a requested scenario, or select one for the whole submission.
+    # Gets demo scenario.
     # What the inputs mean:
     # - scenario_id: the scenario id used for this step.
     # What it gives back: It returns a set of named results for the next step.
@@ -578,7 +578,7 @@ def select_demo_scenario(scenario_id: str | None = None) -> dict[str, Any]:
 
 
 def validate_demo_input(scenario_id: str, text: str) -> bool:
-    # In simple terms: Checks demo input.
+    # Helps with select demo scenario inside select demo scenario.
     # What the inputs mean:
     # - scenario_id: the scenario id used for this step.
     # - text: the text being parsed or shown.
@@ -609,7 +609,7 @@ def validate_demo_input(scenario_id: str, text: str) -> bool:
 
 class _ResponseAdapter:
     def __init__(self, provider: "DemoScenarioProvider") -> None:
-        # In simple terms: Sets up .
+        # Helps with init inside init.
         # What the inputs mean:
         # - provider: the selected AI service.
         # - self/cls: the current object this function belongs to.
@@ -617,7 +617,7 @@ class _ResponseAdapter:
         self.provider = provider
 
     def generate_json(self, task: str, payload: dict, schema: dict) -> dict:
-        # In simple terms: Sets up this object with the information it needs.
+        # Handles init as a supporting part of demo scenarios .
         # What the inputs mean:
         # - task: the task used for this step.
         # - payload: the information being sent to an AI service.
@@ -633,7 +633,7 @@ class DemoScenarioProvider:
     provider_name = "demo_scenario"
 
     def __init__(self, scenario_id: str) -> None:
-        # In simple terms: Sets up .
+        # Creates json.
         # What the inputs mean:
         # - scenario_id: the scenario id used for this step.
         # - self/cls: the current object this function belongs to.
@@ -646,7 +646,7 @@ class DemoScenarioProvider:
         self._guarded = GuardedProvider(_ResponseAdapter(self))
 
     def _response(self, task: str) -> dict[str, Any]:
-        # In simple terms: Sets up this object with the information it needs.
+        # Handles init as a supporting part of demo scenarios .
         # What the inputs mean:
         # - task: the task used for this step.
         # - self/cls: the current object this function belongs to.
@@ -664,7 +664,7 @@ class DemoScenarioProvider:
         return response
 
     def generate_json(self, task: str, payload: dict, schema: dict) -> dict:
-        # In simple terms: Creates json.
+        # Handles response as a supporting part of demo scenarios .
         # What the inputs mean:
         # - task: the task used for this step.
         # - payload: the information being sent to an AI service.

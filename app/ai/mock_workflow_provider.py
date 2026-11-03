@@ -4,7 +4,7 @@ AI-shaped responses are deterministic simulations. Compilation, schema
 validation, generated-input execution, benchmarking, and C execution remain real.
 '''
 from __future__ import annotations
-# In plain terms: This file handles mock workflow provider, one part of the AutoGrader’s workflow.
+# This file handles mock workflow provider as one part of the app.
 
 import json
 import random
@@ -24,7 +24,7 @@ from app.ai.output_budget import (
 
 
 def _sample_input(schema: dict[str, Any], seed: int = 0) -> str:
-    # In simple terms: Helps with sample input.
+    # Helps with sample input inside sample input.
     # What the inputs mean:
     # - schema: the schema used for this step.
     # - seed: the starting number that makes random test generation repeatable.
@@ -55,7 +55,7 @@ def _sample_input(schema: dict[str, Any], seed: int = 0) -> str:
 
 
 def _generator_program(schema: dict[str, Any]) -> str:
-    # In simple terms: Helps with generator program.
+    # Helps with generator program inside generator program.
     # What the inputs mean:
     # - schema: the schema used for this step.
     # What it gives back: It returns text.
@@ -101,14 +101,14 @@ class MockWorkflowProvider:
     provider_name = "offline_mock"
 
     def __init__(self):
-        # In simple terms: Sets up .
+        # Helps with init inside init.
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns the result that the next step needs.
         self.calls: list[dict[str, Any]] = []
 
     def generate_json(self, task: str, payload: dict, schema: dict) -> dict:
-        # In simple terms: Sets up this object with the information it needs.
+        # Handles init as a supporting part of mock workflow provider .
         # What the inputs mean:
         # - task: the task used for this step.
         # - payload: the information being sent to an AI service.
@@ -119,7 +119,7 @@ class MockWorkflowProvider:
 
         class _MockAdapter:
             def __init__(self, owner):
-                # In simple terms: Sets up .
+                # Creates json.
                 # What the inputs mean:
                 # - owner: the owner used for this step.
                 # - self/cls: the current object this function belongs to.
@@ -127,7 +127,7 @@ class MockWorkflowProvider:
                 self.owner = owner
 
             def generate_json(self, inner_task, inner_payload, inner_schema):
-                # In simple terms: Sets up this object with the information it needs.
+                # Handles init as a supporting part of mock workflow provider .
                 # What the inputs mean:
                 # - inner_task: the inner task used for this step.
                 # - inner_payload: the inner payload used for this step.
@@ -143,7 +143,7 @@ class MockWorkflowProvider:
         )
 
     def _generate_json_unchecked(self, task: str, payload: dict, schema: dict) -> dict:
-        # In simple terms: Helps with generate json unchecked.
+        # Creates json.
         # What the inputs mean:
         # - task: the task used for this step.
         # - payload: the information being sent to an AI service.

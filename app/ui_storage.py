@@ -3,8 +3,7 @@
 SQLite is retained only for local development and tests. Production refuses to use
 a local file and requires Neon through NEON_DATABASE_URL or DATABASE_URL.
 """
-# In plain terms: This file saves workflow data and grades. It uses Neon in production and a local database during development.
-# Why it matters: A saved grade snapshot keeps a later repeat from changing the first complete score. Neon is the shared production database; local SQLite is for development.
+# It saves submissions and grade records in the shared production database or local development storage.
 
 import hmac
 import json
@@ -19,7 +18,7 @@ class UIStorageError(RuntimeError):
 
 
 def _neon_database_url() -> str | None:
-    # In simple terms: Helps with neon database url.
+    # Finds the database address from the app settings, if one has been set.
     # This function takes no named inputs.
     # What it gives back: It returns text or nothing if unavailable.
     value = os.getenv("NEON_DATABASE_URL", "").strip() or os.getenv("DATABASE_URL", "").strip()
@@ -27,7 +26,7 @@ def _neon_database_url() -> str | None:
 
 
 def grading_snapshot_backend() -> str:
-    # In simple terms: Helps with grading snapshot backend.
+    # Handles neon database url as a supporting part of ui storage .
     # This function takes no named inputs.
     # What it gives back: It returns text.
     if _neon_database_url():
@@ -38,7 +37,7 @@ def grading_snapshot_backend() -> str:
 
 
 def _database_path() -> str:
-    # In simple terms: Helps with database path.
+    # Handles grading snapshot backend as a supporting part of ui storage .
     # This function takes no named inputs.
     # What it gives back: It returns text.
     configured = os.getenv("AUTOGRADER_STATE_DB", "").strip()
@@ -55,7 +54,7 @@ class _Connection:
     """Small SQL compatibility wrapper for PostgreSQL and explicit local SQLite."""
 
     def __init__(self, raw, *, postgres: bool):
-        # In simple terms: Sets up .
+        # Helps with init inside init.
         # What the inputs mean:
         # - raw: the raw used for this step.
         # - postgres: the postgres used for this step.
@@ -65,7 +64,7 @@ class _Connection:
         self.postgres = postgres
 
     def execute(self, statement: str, parameters=()):
-        # In simple terms: Sets up this object with the information it needs.
+        # Handles init as a supporting part of ui storage .
         # What the inputs mean:
         # - statement: the statement used for this step.
         # - parameters: the named number values used in a formula.
@@ -76,28 +75,28 @@ class _Connection:
         return self.raw.execute(statement, parameters)
 
     def commit(self):
-        # In simple terms: Helps with commit.
+        # Handles execute as a supporting part of ui storage .
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns the result that the next step needs.
         self.raw.commit()
 
     def rollback(self):
-        # In simple terms: Helps with rollback.
+        # Saves the database changes.
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns the result that the next step needs.
         self.raw.rollback()
 
     def close(self):
-        # In simple terms: Helps with close.
+        # Cancels the unfinished database changes.
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns the result that the next step needs.
         self.raw.close()
 
     def begin_write(self):
-        # In simple terms: Closes the file, connection, or other resource when the work is done.
+        # Closes the resource when this work is finished.
         # This function takes no named inputs.
         # - self/cls: the current object this function belongs to.
         # What it gives back: It returns the result that the next step needs.
@@ -105,7 +104,7 @@ class _Connection:
 
 
 def _connect() -> _Connection:
-    # In simple terms: Helps with connect.
+    # Handles begin write as a supporting part of ui storage .
     # This function takes no named inputs.
     # What it gives back: It returns the Connection result.
     database_url = _neon_database_url()
@@ -129,7 +128,7 @@ def _connect() -> _Connection:
 
 def verify_storage() -> None:
     """Connect to the configured store and verify its schema/query path."""
-    # In simple terms: Connect to the configured store and verify its schema/query path.
+    # Checks storage.
     # This function takes no named inputs.
     # What it gives back: It does its work and does not return a value.
     connection = _connect()
@@ -148,7 +147,7 @@ def verify_storage() -> None:
 
 
 def _initialize(connection: _Connection) -> None:
-    # In simple terms: Helps with initialize.
+    # Checks that the database can be reached and has the tables the app needs.
     # What the inputs mean:
     # - connection: the connection used for this step.
     # What it gives back: It does its work and does not return a value.
@@ -202,7 +201,7 @@ def _initialize(connection: _Connection) -> None:
 
 
 def revoke_session(token_digest: str, ttl_seconds: int = 1800) -> None:
-    # In simple terms: Revokes session.
+    # Marks a login session as no longer valid.
     # What the inputs mean:
     # - token_digest: the token digest used for this step.
     # - ttl_seconds: the ttl seconds used for this step.
@@ -229,7 +228,7 @@ def revoke_session(token_digest: str, ttl_seconds: int = 1800) -> None:
 
 
 def is_session_revoked(token_digest: str) -> bool:
-    # In simple terms: Checks whether session revoked.
+    # Checks whether a login session was previously signed out or disabled.
     # What the inputs mean:
     # - token_digest: the token digest used for this step.
     # What it gives back: It returns yes or no.
@@ -265,7 +264,7 @@ def save_submission(
     ttl_seconds: int = 1800,
     max_records: int = 100,
 ) -> None:
-    # In simple terms: Saves submission.
+    # Stores a submission with the session that owns it.
     # What the inputs mean:
     # - submission_id: the identifier for this submission.
     # - session_id: the instructor session that owns this submission.
@@ -318,7 +317,7 @@ def save_submission(
 
 
 def clear_submissions(session_id: str) -> None:
-    # In simple terms: Clears submissions.
+    # Removes saved submissions belonging to a session.
     # What the inputs mean:
     # - session_id: the instructor session that owns this submission.
     # What it gives back: It does its work and does not return a value.
@@ -337,7 +336,7 @@ def clear_submissions(session_id: str) -> None:
 
 
 def get_submission(session_id: str, submission_id: str) -> dict | None:
-    # In simple terms: Gets submission.
+    # Loads a submission only for the session that owns it.
     # What the inputs mean:
     # - session_id: the instructor session that owns this submission.
     # - submission_id: the identifier for this submission.
@@ -370,7 +369,7 @@ def get_submission(session_id: str, submission_id: str) -> dict | None:
 
 def get_grading_metric_snapshot(snapshot_key: str) -> dict | None:
     """Return the immutable complete metric snapshot for a stable evaluation key."""
-    # In simple terms: Return the immutable complete metric snapshot for a stable evaluation key.
+    # Looks up the saved score set for an evaluation that has already been graded.
     # What the inputs mean:
     # - snapshot_key: the identity used to find a saved grade.
     # What it gives back: It returns the dict | None result.
@@ -394,7 +393,7 @@ def get_grading_metric_snapshot(snapshot_key: str) -> dict | None:
 
 def save_grading_metric_snapshot(snapshot_key: str, scores: dict) -> dict:
     """Persist the first complete metric snapshot; concurrent first writer wins."""
-    # In simple terms: Saves the first complete set of scores so a repeat can reuse it.
+    # Saves the first complete score set for an evaluation so later repeats can reuse it.
     # What the inputs mean:
     # - snapshot_key: the identity used to find a saved grade.
     # - scores: the complete set of scores to save.
@@ -440,7 +439,7 @@ def save_grading_metric_snapshot(snapshot_key: str, scores: dict) -> dict:
 
 def reserve_ai_request_credits(credits: int, daily_limit: int) -> int | None:
     """Atomically reserve shared daily AI credits; None means the cap is reached."""
-    # In simple terms: Atomically reserve shared daily AI credits; None means the cap is reached.
+    # Reserves request slots before paid AI work so concurrent requests cannot quietly exceed the daily limit.
     # What the inputs mean:
     # - credits: the credits used for this step.
     # - daily_limit: the daily limit used for this step.
@@ -489,7 +488,7 @@ def record_ai_token_usage(
     total_tokens: int,
 ) -> None:
     """Add provider-reported token totals to today's shared usage row."""
-    # In simple terms: Add provider-reported token totals to today's shared usage row.
+    # Records ai token usage.
     # What the inputs mean:
     # - prompt_tokens: the prompt tokens used for this step.
     # - completion_tokens: the completion tokens used for this step.
@@ -523,7 +522,7 @@ def record_ai_token_usage(
 
 def get_ai_request_usage(usage_date: str | None = None) -> dict | None:
     """Read aggregate AI request and token usage for a UTC date (today by default)."""
-    # In simple terms: Read aggregate AI request and token usage for a UTC date (today by default).
+    # Gets ai request usage.
     # What the inputs mean:
     # - usage_date: the usage date used for this step.
     # What it gives back: It returns the dict | None result.

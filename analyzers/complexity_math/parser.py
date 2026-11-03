@@ -3,8 +3,7 @@
 This module never evaluates Python code. It converts mathematical notation
 into a validated AST with strict syntax, symbol, depth and size limits.
 """
-# In plain terms: This file accepts only the math expressions the graph knows how to understand; it never runs the expression as code.
-# Why it matters: A restricted math grammar lets the graph understand formulas without running arbitrary text as a program.
+# It checks math formulas without treating them as code to execute.
 
 from __future__ import annotations
 
@@ -31,7 +30,7 @@ DEFAULT_LIMITS = ExpressionLimits()
 
 def _validate_limits(limits: ExpressionLimits) -> None:
     """Reject invalid or unsafe parser resource configurations."""
-    # In simple terms: Reject invalid or unsafe parser resource configurations.
+    # Checks limits.
     # What the inputs mean:
     # - limits: the limits used for this step.
     # What it gives back: It does its work and does not return a value.
@@ -75,7 +74,7 @@ def _validate_limits(limits: ExpressionLimits) -> None:
 
 class ExpressionParseError(ValueError):
     def __init__(self, code: str, message: str):
-        # In simple terms: Sets up .
+        # Helps with init inside init.
         # What the inputs mean:
         # - code: the code used for this step.
         # - message: the message used for this step.
@@ -91,7 +90,7 @@ def _strip_asymptotic_wrapper(text: str) -> tuple[str, str]:
     Only a wrapper that encloses the entire expression is removed.
     Nested parentheses are checked explicitly.
     """
-    # In simple terms: Sets up this object with the information it needs.
+    # Handles strip asymptotic wrapper as a supporting part of parser .
     # What the inputs mean:
     # - text: the text being parsed or shown.
     # What it gives back: It returns a small group of related values.
@@ -170,7 +169,7 @@ def _strip_asymptotic_wrapper(text: str) -> tuple[str, str]:
 
 def _normalize(text: str) -> str:
     """Normalize mathematical notation without corrupting function names."""
-    # In simple terms: Normalize mathematical notation without corrupting function names.
+    # Handles normalize as a supporting part of parser .
     # What the inputs mean:
     # - text: the text being parsed or shown.
     # What it gives back: It returns text.
@@ -203,7 +202,7 @@ def _normalize(text: str) -> str:
     )
 
     def expand_log_chain(match: re.Match[str]) -> str:
-        # In simple terms: Helps with expand log chain.
+        # Helps with expand log chain inside expand log chain.
         # What the inputs mean:
         # - match: the match used for this step.
         # What it gives back: It returns text.
@@ -274,7 +273,7 @@ def _walk_and_validate(
     limits: ExpressionLimits,
     supplied_parameters: dict[str, float],
 ) -> tuple[frozenset[str], frozenset[str], frozenset[str]]:
-    # In simple terms: Helps with walk and validate.
+    # Helps with walk and validate inside walk and validate.
     # What the inputs mean:
     # - root: the root used for this step.
     # - limits: the limits used for this step.
@@ -291,7 +290,7 @@ def _walk_and_validate(
     allowed_unary = (ast.UAdd, ast.USub)
 
     def visit(node: ast.AST, depth: int = 0) -> None:
-        # In simple terms: Helps with visit.
+        # Handles walk and validate as a supporting part of parser .
         # What the inputs mean:
         # - node: the current piece of the formula being checked.
         # - depth: the depth used for this step.
@@ -369,7 +368,7 @@ def parse_complexity_expression(
     limits: ExpressionLimits = DEFAULT_LIMITS,
 ) -> ParseResult:
     """Parse and validate an asymptotic expression without executing it."""
-    # In simple terms: Reads a complexity formula and checks that it uses only math the app supports.
+    # Checks that a written complexity formula uses only the math this app knows how to handle.
     # What the inputs mean:
     # - notation: the complexity formula written as text.
     # - parameters: the named number values used in a formula.

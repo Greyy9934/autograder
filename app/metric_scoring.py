@@ -1,11 +1,11 @@
 """Derive normalized grading metrics only from validated evidence."""
-# In plain terms: This file turns test results and reviewed agent feedback into the score parts used by grading.
+# It turns test results and review evidence into the individual parts of a grade.
 
 from typing import Any
 
 
 def _valid_counts(report: Any) -> tuple[int, int] | None:
-    # In simple terms: Helps with valid counts.
+    # Helps with valid counts inside valid counts.
     # What the inputs mean:
     # - report: the report used for this step.
     # What it gives back: It returns a small group of related values.
@@ -21,7 +21,7 @@ def _valid_counts(report: Any) -> tuple[int, int] | None:
 
 
 def _comparison_trials(report: Any, suite_name: str, input_cases: list[Any] | None = None) -> list[tuple[str, bool]]:
-    # In simple terms: Helps with comparison trials.
+    # Handles valid counts as a supporting part of metric scoring .
     # What the inputs mean:
     # - report: the report used for this step.
     # - suite_name: the suite name used for this step.
@@ -58,7 +58,7 @@ def _comparison_trials(report: Any, suite_name: str, input_cases: list[Any] | No
 
 
 def _determinate_trials(evidence: dict[str, Any]) -> list[tuple[str, bool]]:
-    # In simple terms: Helps with determinate trials.
+    # Helps with determinate trials inside determinate trials.
     # What the inputs mean:
     # - evidence: the test and review results used to make a decision.
     # What it gives back: It returns a list of the items it found or made.
@@ -93,7 +93,7 @@ def _determinate_trials(evidence: dict[str, Any]) -> list[tuple[str, bool]]:
 
 
 def _score_trials(trials: list[tuple[str, bool]]) -> float | None:
-    # In simple terms: Helps with score trials.
+    # Works out how many of the clear pass/fail cases succeeded.
     # What the inputs mean:
     # - trials: the trials used for this step.
     # What it gives back: It returns the float | None result.
@@ -104,7 +104,7 @@ def _score_trials(trials: list[tuple[str, bool]]) -> float | None:
 
 
 def _comparison_rate(report: Any) -> tuple[int, int] | None:
-    # In simple terms: Works out the percent of usable cases that passed.
+    # Works out the pass percentage from the cases that produced a clear result.
     # What the inputs mean:
     # - report: the report used for this step.
     # What it gives back: It returns a small group of related values.
@@ -116,7 +116,7 @@ def _comparison_rate(report: Any) -> tuple[int, int] | None:
 
 
 def _rating_score(item: Any) -> float | None:
-    # In simple terms: Helps with rating score.
+    # Handles comparison rate as a supporting part of metric scoring .
     # What the inputs mean:
     # - item: the item used for this step.
     # What it gives back: It returns the float | None result.
@@ -133,7 +133,7 @@ def _rating_score(item: Any) -> float | None:
 
 def derive_metric_scores(evidence: dict[str, Any]) -> dict[str, float | None]:
     """Apply the published mappings; AI never supplies a numeric score directly."""
-    # In simple terms: Turns test and review evidence into the individual score parts.
+    # Accepts only a supported AI rating with evidence and converts it to the app’s score scale.
     # What the inputs mean:
     # - evidence: the test and review results used to make a decision.
     # What it gives back: It returns a set of named results for the next step.

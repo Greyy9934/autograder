@@ -1,5 +1,5 @@
 """AI-first algorithm complexity analysis with deterministic validation."""
-# In plain terms: This file handles complexity analysis, one part of the AutoGrader’s workflow.
+# This file handles complexity analysis as one part of the app.
 
 from typing import Any
 
@@ -85,7 +85,7 @@ COMPLEXITY_ANALYSIS_SCHEMA = {
 
 
 def _nonempty_text(value: Any) -> bool:
-    # In simple terms: Helps with nonempty text.
+    # Helps with nonempty text inside nonempty text.
     # What the inputs mean:
     # - value: the particular value being checked or changed.
     # What it gives back: It returns yes or no.
@@ -93,7 +93,7 @@ def _nonempty_text(value: Any) -> bool:
 
 
 def _validate_complexity_expression(value: Any, field: str, errors: list[str]):
-    # In simple terms: Helps with validate complexity expression.
+    # Handles nonempty text as a supporting part of complexity analysis .
     # What the inputs mean:
     # - value: the particular value being checked or changed.
     # - field: one input value and its rules.
@@ -114,7 +114,7 @@ def _validate_complexity_expression(value: Any, field: str, errors: list[str]):
 
 def _validate_response(response: Any, source: str) -> tuple[dict | None, list[str]]:
     """Validate structure, complexity notation, and source-line references."""
-    # In simple terms: Validate structure, complexity notation, and source-line references.
+    # Checks response.
     # What the inputs mean:
     # - response: the reply received from the AI service or web request.
     # - source: the C code being checked.
@@ -237,7 +237,7 @@ def analyze_complexity(
     problem_context: dict | None = None,
 ) -> dict[str, Any]:
     """Use AI as the primary analyst; static and empirical data are supporting evidence."""
-    # In simple terms: Use AI as the primary analyst; static and empirical data are supporting evidence.
+    # Looks at complexity.
     # What the inputs mean:
     # - source: the C code being checked.
     # - provider: the selected AI service.

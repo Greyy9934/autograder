@@ -1,6 +1,5 @@
 from __future__ import annotations
-# In plain terms: This file compiles and runs C programs with time, memory, and output limits so one program cannot run forever or flood the server.
-# Why it matters: Bubblewrap gives each run its own restricted view of the system, and operating-system limits cap its resources. These protections reduce risk; they are not a claim that hostile code is perfectly safe.
+# It compiles and runs C code with limits so a slow or noisy program cannot take over the server.
 
 import os
 import resource
@@ -29,7 +28,7 @@ MAX_OPEN_FILES = 64
 
 def _set_compile_limits() -> None:
     """Apply basic resource limits to GCC and its immediate process."""
-    # In simple terms: Apply basic resource limits to GCC and its immediate process.
+    # Handles set compile limits as a supporting part of runner .
     # This function takes no named inputs.
     # What it gives back: It does its work and does not return a value.
     resource.setrlimit(
@@ -49,7 +48,7 @@ def _set_compile_limits() -> None:
 
 def _kill_process_group(process: subprocess.Popen[bytes]) -> None:
     """Terminate the process group, then force-kill it if necessary."""
-    # In simple terms: Terminate the process group, then force-kill it if necessary.
+    # Handles kill process group as a supporting part of runner .
     # What the inputs mean:
     # - process: the process used for this step.
     # What it gives back: It does its work and does not return a value.
@@ -81,7 +80,7 @@ def _capture_bounded(
     key: str,
 ) -> None:
     """Drain a pipe fully but retain at most OUTPUT_LIMIT_BYTES."""
-    # In simple terms: Reads program output while keeping only a safe, limited amount.
+    # Reads program output while keeping only a safe amount in memory.
     # What the inputs mean:
     # - stream: the stream used for this step.
     # - storage: the storage used for this step.
@@ -113,7 +112,7 @@ def _run_bounded(
     preexec_fn: Any = None,
 ) -> dict[str, Any]:
     """Run a process with bounded output and prompt process-group cleanup."""
-    # In simple terms: Runs a child process with limits and stops it if it takes too long or prints too much.
+    # Starts a program with limits and stops it if it runs too long or produces too much output.
     # What the inputs mean:
     # - command: the command used to start a program.
     # - stdin_file: the stdin file used for this step.
@@ -212,7 +211,7 @@ def _run_bounded(
 
 def _normalize_result(result: dict[str, Any]) -> dict[str, Any]:
     """Ensure every worker response has consistent output fields."""
-    # In simple terms: Ensure every worker response has consistent output fields.
+    # Cleans up result.
     # What the inputs mean:
     # - result: the result used for this step.
     # What it gives back: It returns a set of named results for the next step.
@@ -225,7 +224,7 @@ def _normalize_result(result: dict[str, Any]) -> dict[str, Any]:
 
 def compile_c_source(source: str) -> dict[str, Any]:
     """Compile C in the restricted sandbox without executing the submission."""
-    # In simple terms: Compile C in the restricted sandbox without executing the submission.
+    # Handles compile c source as a supporting part of runner .
     # What the inputs mean:
     # - source: the C code being checked.
     # What it gives back: It returns a set of named results for the next step.
@@ -296,7 +295,7 @@ def _run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
     This is a development worker, not a security-certified public sandbox.
     Compilation and execution run inside separate Bubblewrap namespaces.
     """
-    # In simple terms: Compile and execute C code using a restricted Bubblewrap workspace.
+    # Runs c program.
     # What the inputs mean:
     # - source: the C code being checked.
     # - stdin: the stdin used for this step.
@@ -453,7 +452,7 @@ def _run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
 
 def run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
     """Public worker API with a consistent result shape."""
-    # In simple terms: Public worker API with a consistent result shape.
+    # Runs c program.
     # What the inputs mean:
     # - source: the C code being checked.
     # - stdin: the stdin used for this step.
