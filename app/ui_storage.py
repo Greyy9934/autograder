@@ -31,7 +31,11 @@ def grading_snapshot_backend() -> str:
     # What it gives back: It returns text.
     if _neon_database_url():
         return "neon_postgresql"
-    if os.getenv("APP_ENV", "").strip().lower() != "production":
+    if (
+        os.getenv("APP_ENV", "").strip().lower() != "production"
+        or os.getenv("ALLOW_SQLITE_IN_PROD", "").lower() in {"1", "true", "yes"}
+        or os.getenv("AUTOGRADER_ALLOW_SQLITE_IN_PROD", "").lower() in {"1", "true", "yes"}
+    ):
         return "sqlite_local"
     return "unconfigured"
 
@@ -112,7 +116,11 @@ def _connect() -> _Connection:
         if database_url:
             import psycopg
             return _Connection(psycopg.connect(database_url, connect_timeout=10), postgres=True)
-        if os.getenv("APP_ENV", "").strip().lower() == "production":
+        if (
+            os.getenv("APP_ENV", "").strip().lower() == "production"
+            and os.getenv("ALLOW_SQLITE_IN_PROD", "").lower() not in {"1", "true", "yes"}
+            and os.getenv("AUTOGRADER_ALLOW_SQLITE_IN_PROD", "").lower() not in {"1", "true", "yes"}
+        ):
             raise UIStorageError(
                 "NEON_DATABASE_URL is required for persistent production storage."
             )

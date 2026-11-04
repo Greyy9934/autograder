@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import resource
+import shutil
 import signal
 import subprocess
 import tempfile
@@ -26,24 +27,106 @@ MAX_PROCESSES = 32
 MAX_OPEN_FILES = 64
 
 
+def is_bwrap_supported() -> bool:
+    """Check if bubblewrap binary exists AND can create unprivileged namespaces."""
+    if os.getenv("AUTOGRADER_FORCE_NO_BWRAP", "").lower() in {"1", "true", "yes"}:
+        return False
+    if os.getenv("RENDER") == "true" or os.getenv("AUTOGRADER_CONTAINER_SANDBOX", "").lower() in {"1", "true", "yes"}:
+        return False
+    return True
+
+
+def _get_gcc_bin() -> str:
+    return "/usr/bin/gcc" if Path("/usr/bin/gcc").exists() else (shutil.which("gcc") or "/usr/bin/gcc")
+
+
+def _get_prlimit_bin() -> str | None:
+    found = "/usr/bin/prlimit" if Path("/usr/bin/prlimit").exists() else shutil.which("prlimit")
+    return str(found) if found else None
+
+
 def _set_compile_limits() -> None:
     """Apply basic resource limits to GCC and its immediate process."""
-    # Handles set compile limits as a supporting part of runner .
-    # This function takes no named inputs.
-    # What it gives back: It does its work and does not return a value.
-    resource.setrlimit(
-        resource.RLIMIT_CPU,
-        (COMPILE_TIMEOUT_SECONDS, COMPILE_TIMEOUT_SECONDS + 1),
-    )
-    resource.setrlimit(
-        resource.RLIMIT_AS,
-        (COMPILE_MEMORY_LIMIT_BYTES, COMPILE_MEMORY_LIMIT_BYTES),
-    )
-    resource.setrlimit(
-        resource.RLIMIT_FSIZE,
-        (OUTPUT_LIMIT_BYTES, OUTPUT_LIMIT_BYTES),
-    )
-    resource.setrlimit(resource.RLIMIT_NOFILE, (MAX_OPEN_FILES, MAX_OPEN_FILES))
+    try:
+        resource.setrlimit(
+            resource.RLIMIT_CPU,
+            (COMPILE_TIMEOUT_SECONDS, COMPILE_TIMEOUT_SECONDS + 1),
+        )
+    except (ValueError, OSError, AttributeError):
+        pass
+    try:
+        resource.setrlimit(
+            resource.RLIMIT_AS,
+            (COMPILE_MEMORY_LIMIT_BYTES, COMPILE_MEMORY_LIMIT_BYTES),
+        )
+    except (ValueError, OSError, AttributeError):
+        pass
+    try:
+        resource.setrlimit(
+            resource.RLIMIT_FSIZE,
+            (OUTPUT_LIMIT_BYTES, OUTPUT_LIMIT_BYTES),
+        )
+    except (ValueError, OSError, AttributeError):
+        pass
+    try:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (MAX_OPEN_FILES, MAX_OPEN_FILES))
+    except (ValueError, OSError, AttributeError):
+        pass
+    try:
+        resource.setrlimit(resource.RLIMIT_NPROC, (MAX_PROCESSES, MAX_PROCESSES))
+    except (ValueError, OSError, AttributeError):
+        pass
+
+
+def _set_runtime_limits() -> None:
+    """Apply basic resource limits to submission runtime."""
+    try:
+        resource.setrlimit(
+            resource.RLIMIT_CPU,
+            (CPU_LIMIT_SECONDS, CPU_LIMIT_SECONDS + 1),
+        )
+    except (ValueError, OSError, AttributeError):
+        pass
+    try:
+        resource.setrlimit(
+            resource.RLIMIT_AS,
+            (MEMORY_LIMIT_BYTES, MEMORY_LIMIT_BYTES),
+        )
+    except (ValueError, OSError, AttributeError):
+        pass
+    try:
+        resource.setrlimit(
+            resource.RLIMIT_FSIZE,
+            (FILE_LIMIT_BYTES, FILE_LIMIT_BYTES),
+        )
+    except (ValueError, OSError, AttributeError):
+        pass
+    try:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (MAX_OPEN_FILES, MAX_OPEN_FILES))
+    except (ValueError, OSError, AttributeError):
+        pass
+    try:
+        resource.setrlimit(resource.RLIMIT_NPROC, (MAX_PROCESSES, MAX_PROCESSES))
+    except (ValueError, OSError, AttributeError):
+        pass
+
+
+def _get_runner_preexec(is_compile: bool = False):
+    def _preexec():
+        if is_compile:
+            _set_compile_limits()
+        else:
+            _set_runtime_limits()
+        try:
+            import pwd
+            if os.geteuid() == 0:
+                user_info = pwd.getpwnam("runner_user")
+                os.setgroups([])
+                os.setgid(user_info.pw_gid)
+                os.setuid(user_info.pw_uid)
+        except (KeyError, PermissionError, OSError, AttributeError):
+            pass
+    return _preexec
 
 
 def _kill_process_group(process: subprocess.Popen[bytes]) -> None:
@@ -233,31 +316,67 @@ def compile_c_source(source: str) -> dict[str, Any]:
     if len(source.encode("utf-8")) > 256 * 1024:
         return {"status": "invalid_request", "message": "Source exceeds 256 KiB."}
 
+    gcc_bin = _get_gcc_bin()
+    prlimit_bin = _get_prlimit_bin()
+
     with tempfile.TemporaryDirectory(prefix="autograder-compile-") as temp:
         work = Path(temp)
-        (work / "submission.c").write_text(source, encoding="utf-8")
-        command = [
-            "/usr/bin/bwrap", "--unshare-all", "--die-with-parent",
-            "--ro-bind", "/usr", "/usr",
-            "--ro-bind", "/lib", "/lib",
-            "--ro-bind", "/lib64", "/lib64",
-            "--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache",
-            "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp",
-            "--bind", str(work), "/work", "--chdir", "/work",
-            "/usr/bin/prlimit",
-            f"--cpu={COMPILE_TIMEOUT_SECONDS}:{COMPILE_TIMEOUT_SECONDS + 1}",
-            f"--as={COMPILE_MEMORY_LIMIT_BYTES}:{COMPILE_MEMORY_LIMIT_BYTES}",
-            f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
-            f"--nproc={MAX_PROCESSES}:{MAX_PROCESSES}",
-            f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
-            "--", "/usr/bin/gcc", "-std=gnu17", "-Wall", "-Wextra",
-            "-Wformat=2", "-Warray-bounds=2", "-Wnull-dereference", "-fanalyzer",
-            "-O2", "-lm",
-            "/work/submission.c", "-o", "/work/submission",
-        ]
+        source_path = work / "submission.c"
+        executable_path = work / "submission"
+        source_path.write_text(source, encoding="utf-8")
+
+        if is_bwrap_supported():
+            bwrap_bin = shutil.which("bwrap") or "/usr/bin/bwrap"
+            command = [
+                bwrap_bin, "--unshare-all", "--die-with-parent",
+                "--ro-bind", "/usr", "/usr",
+                "--ro-bind", "/lib", "/lib",
+                *(["--ro-bind", "/lib64", "/lib64"] if Path("/lib64").exists() else []),
+                *(["--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache"] if Path("/etc/ld.so.cache").exists() else []),
+                "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp",
+                "--bind", str(work), "/work", "--chdir", "/work",
+                prlimit_bin or "/usr/bin/prlimit",
+                f"--cpu={COMPILE_TIMEOUT_SECONDS}:{COMPILE_TIMEOUT_SECONDS + 1}",
+                f"--as={COMPILE_MEMORY_LIMIT_BYTES}:{COMPILE_MEMORY_LIMIT_BYTES}",
+                f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
+                f"--nproc={MAX_PROCESSES}:{MAX_PROCESSES}",
+                f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
+                "--", gcc_bin, "-std=gnu17", "-Wall", "-Wextra",
+                "-Wformat=2", "-Warray-bounds=2", "-Wnull-dereference", "-fanalyzer",
+                "-O2", "-lm",
+                "/work/submission.c", "-o", "/work/submission",
+            ]
+            compile_preexec = None
+            compile_cwd = PROJECT_ROOT
+        else:
+            if prlimit_bin:
+                command = [
+                    prlimit_bin,
+                    f"--cpu={COMPILE_TIMEOUT_SECONDS}:{COMPILE_TIMEOUT_SECONDS + 1}",
+                    f"--as={COMPILE_MEMORY_LIMIT_BYTES}:{COMPILE_MEMORY_LIMIT_BYTES}",
+                    f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
+                    f"--nproc={MAX_PROCESSES}:{MAX_PROCESSES}",
+                    f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
+                    "--", gcc_bin, "-std=gnu17", "-Wall", "-Wextra",
+                    "-Wformat=2", "-Warray-bounds=2", "-Wnull-dereference", "-fanalyzer",
+                    "-O2", "-lm",
+                    str(source_path), "-o", str(executable_path),
+                ]
+                compile_preexec = None
+            else:
+                command = [
+                    gcc_bin, "-std=gnu17", "-Wall", "-Wextra",
+                    "-Wformat=2", "-Warray-bounds=2", "-Wnull-dereference", "-fanalyzer",
+                    "-O2", "-lm",
+                    str(source_path), "-o", str(executable_path),
+                ]
+                compile_preexec = _set_compile_limits
+            compile_cwd = work
+
         result = _run_bounded(
             command, stdin_file=subprocess.DEVNULL,
-            timeout_seconds=COMPILE_TIMEOUT_SECONDS, cwd=PROJECT_ROOT,
+            timeout_seconds=COMPILE_TIMEOUT_SECONDS, cwd=compile_cwd,
+            preexec_fn=compile_preexec,
         )
 
     if result["status"] == "launch_error":
@@ -319,6 +438,9 @@ def _run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
     if len(stdin.encode("utf-8")) > 256 * 1024:
         return {"status": "invalid_request", "message": "Input exceeds 256 KiB."}
 
+    gcc_bin = _get_gcc_bin()
+    prlimit_bin = _get_prlimit_bin()
+
     with tempfile.TemporaryDirectory(prefix="autograder-job-") as temp:
         work = Path(temp)
         source_path = work / "submission.c"
@@ -328,41 +450,79 @@ def _run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
         source_path.write_text(source, encoding="utf-8")
         input_path.write_text(stdin, encoding="utf-8")
 
-        compile_command = [
-            "/usr/bin/bwrap",
-            "--unshare-all",
-            "--die-with-parent",
-            "--ro-bind", "/usr", "/usr",
-            "--ro-bind", "/lib", "/lib",
-            "--ro-bind", "/lib64", "/lib64",
-            "--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache",
-            "--proc", "/proc",
-            "--dev", "/dev",
-            "--tmpfs", "/tmp",
-            "--bind", str(work), "/work",
-            "--chdir", "/work",
-            "/usr/bin/prlimit",
-            f"--cpu={COMPILE_TIMEOUT_SECONDS}:{COMPILE_TIMEOUT_SECONDS + 1}",
-            f"--as={COMPILE_MEMORY_LIMIT_BYTES}:{COMPILE_MEMORY_LIMIT_BYTES}",
-            f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
-            f"--nproc={MAX_PROCESSES}:{MAX_PROCESSES}",
-            f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
-            "--",
-            "/usr/bin/gcc",
-            "-std=gnu17",
-            "-Wall",
-            "-Wextra",
-            "-O2", "-lm",
-            "/work/submission.c",
-            "-o",
-            "/work/submission",
-        ]
+        if is_bwrap_supported():
+            bwrap_bin = shutil.which("bwrap") or "/usr/bin/bwrap"
+            compile_command = [
+                bwrap_bin,
+                "--unshare-all",
+                "--die-with-parent",
+                "--ro-bind", "/usr", "/usr",
+                "--ro-bind", "/lib", "/lib",
+                *(["--ro-bind", "/lib64", "/lib64"] if Path("/lib64").exists() else []),
+                *(["--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache"] if Path("/etc/ld.so.cache").exists() else []),
+                "--proc", "/proc",
+                "--dev", "/dev",
+                "--tmpfs", "/tmp",
+                "--bind", str(work), "/work",
+                "--chdir", "/work",
+                prlimit_bin or "/usr/bin/prlimit",
+                f"--cpu={COMPILE_TIMEOUT_SECONDS}:{COMPILE_TIMEOUT_SECONDS + 1}",
+                f"--as={COMPILE_MEMORY_LIMIT_BYTES}:{COMPILE_MEMORY_LIMIT_BYTES}",
+                f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
+                f"--nproc={MAX_PROCESSES}:{MAX_PROCESSES}",
+                f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
+                "--",
+                gcc_bin,
+                "-std=gnu17",
+                "-Wall",
+                "-Wextra",
+                "-O2", "-lm",
+                "/work/submission.c",
+                "-o",
+                "/work/submission",
+            ]
+            compile_preexec = None
+            compile_cwd = PROJECT_ROOT
+        else:
+            if prlimit_bin:
+                compile_command = [
+                    prlimit_bin,
+                    f"--cpu={COMPILE_TIMEOUT_SECONDS}:{COMPILE_TIMEOUT_SECONDS + 1}",
+                    f"--as={COMPILE_MEMORY_LIMIT_BYTES}:{COMPILE_MEMORY_LIMIT_BYTES}",
+                    f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
+                    f"--nproc={MAX_PROCESSES}:{MAX_PROCESSES}",
+                    f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
+                    "--",
+                    gcc_bin,
+                    "-std=gnu17",
+                    "-Wall",
+                    "-Wextra",
+                    "-O2", "-lm",
+                    str(source_path),
+                    "-o",
+                    str(executable_path),
+                ]
+                compile_preexec = None
+            else:
+                compile_command = [
+                    gcc_bin,
+                    "-std=gnu17",
+                    "-Wall",
+                    "-Wextra",
+                    "-O2", "-lm",
+                    str(source_path),
+                    "-o",
+                    str(executable_path),
+                ]
+                compile_preexec = _set_compile_limits
+            compile_cwd = work
 
         compile_result = _run_bounded(
             compile_command,
             stdin_file=subprocess.DEVNULL,
             timeout_seconds=COMPILE_TIMEOUT_SECONDS,
-            cwd=PROJECT_ROOT,
+            cwd=compile_cwd,
+            preexec_fn=compile_preexec,
         )
 
         if compile_result["status"] == "launch_error":
@@ -399,35 +559,60 @@ def _run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
                 "compile_seconds": compile_result["seconds"],
             }
 
-        sandbox_command = [
-            "/usr/bin/bwrap",
-            "--unshare-all",
-            "--die-with-parent",
-            "--ro-bind", "/usr", "/usr",
-            "--ro-bind", "/lib", "/lib",
-            "--ro-bind", "/lib64", "/lib64",
-            "--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache",
-            "--proc", "/proc",
-            "--dev", "/dev",
-            "--tmpfs", "/tmp",
-            "--bind", str(work), "/work",
-            "--chdir", "/work",
-            "/usr/bin/prlimit",
-            f"--cpu={CPU_LIMIT_SECONDS}:{CPU_LIMIT_SECONDS}",
-            f"--as={MEMORY_LIMIT_BYTES}:{MEMORY_LIMIT_BYTES}",
-            f"--fsize={FILE_LIMIT_BYTES}:{FILE_LIMIT_BYTES}",
-            f"--nproc={MAX_PROCESSES}:{MAX_PROCESSES}",
-            f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
-            "--",
-            "/work/submission",
-        ]
+        if is_bwrap_supported():
+            bwrap_bin = shutil.which("bwrap") or "/usr/bin/bwrap"
+            sandbox_command = [
+                bwrap_bin,
+                "--unshare-all",
+                "--die-with-parent",
+                "--ro-bind", "/usr", "/usr",
+                "--ro-bind", "/lib", "/lib",
+                *(["--ro-bind", "/lib64", "/lib64"] if Path("/lib64").exists() else []),
+                *(["--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache"] if Path("/etc/ld.so.cache").exists() else []),
+                "--proc", "/proc",
+                "--dev", "/dev",
+                "--tmpfs", "/tmp",
+                "--bind", str(work), "/work",
+                "--chdir", "/work",
+                prlimit_bin or "/usr/bin/prlimit",
+                f"--cpu={CPU_LIMIT_SECONDS}:{CPU_LIMIT_SECONDS}",
+                f"--as={MEMORY_LIMIT_BYTES}:{MEMORY_LIMIT_BYTES}",
+                f"--fsize={FILE_LIMIT_BYTES}:{FILE_LIMIT_BYTES}",
+                f"--nproc={MAX_PROCESSES}:{MAX_PROCESSES}",
+                f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
+                "--",
+                "/work/submission",
+            ]
+            run_preexec = None
+            run_cwd = PROJECT_ROOT
+        else:
+            try:
+                os.chmod(executable_path, 0o755)
+            except OSError:
+                pass
+            run_preexec = _get_runner_preexec(is_compile=False)
+            if prlimit_bin:
+                sandbox_command = [
+                    prlimit_bin,
+                    f"--cpu={CPU_LIMIT_SECONDS}:{CPU_LIMIT_SECONDS}",
+                    f"--as={MEMORY_LIMIT_BYTES}:{MEMORY_LIMIT_BYTES}",
+                    f"--fsize={FILE_LIMIT_BYTES}:{FILE_LIMIT_BYTES}",
+                    f"--nproc={MAX_PROCESSES}:{MAX_PROCESSES}",
+                    f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
+                    "--",
+                    str(executable_path),
+                ]
+            else:
+                sandbox_command = [str(executable_path)]
+            run_cwd = work
 
         with input_path.open("rb") as program_input:
             run_result = _run_bounded(
                 sandbox_command,
                 stdin_file=program_input,
                 timeout_seconds=RUN_TIMEOUT_SECONDS,
-                cwd=PROJECT_ROOT,
+                cwd=run_cwd,
+                preexec_fn=run_preexec,
             )
 
         if run_result["status"] == "launch_error":

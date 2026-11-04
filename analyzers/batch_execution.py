@@ -2,6 +2,7 @@
 # It compares the student and reference programs fairly by giving them the same inputs and shared time limit.
 
 import math
+import shutil
 import subprocess
 import tempfile
 import time
@@ -215,33 +216,62 @@ def run_c_batch(
         executable_path = work / "submission"
         source_path.write_text(source, encoding="utf-8")
 
-        compile_command = [
-            "/usr/bin/bwrap",
-            "--unshare-all", "--die-with-parent",
-            "--ro-bind", "/usr", "/usr",
-            "--ro-bind", "/lib", "/lib",
-            "--ro-bind", "/lib64", "/lib64",
-            "--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache",
-            "--proc", "/proc", "--dev", "/dev",
-            "--tmpfs", "/tmp",
-            "--bind", str(work), "/work",
-            "--chdir", "/work",
-            "/usr/bin/prlimit",
-            f"--cpu={runner.COMPILE_TIMEOUT_SECONDS}:{runner.COMPILE_TIMEOUT_SECONDS + 1}",
-            f"--as={runner.COMPILE_MEMORY_LIMIT_BYTES}:{runner.COMPILE_MEMORY_LIMIT_BYTES}",
-            f"--fsize={runner.OUTPUT_LIMIT_BYTES}:{runner.OUTPUT_LIMIT_BYTES}",
-            f"--nproc={runner.MAX_PROCESSES}:{runner.MAX_PROCESSES}",
-            f"--nofile={runner.MAX_OPEN_FILES}:{runner.MAX_OPEN_FILES}",
-            "--",
-            "/usr/bin/gcc", "-std=gnu17", "-Wall", "-Wextra", "-O2", "-lm",
-            "/work/submission.c", "-o", "/work/submission",
-        ]
+        gcc_bin = runner._get_gcc_bin()
+        prlimit_bin = runner._get_prlimit_bin()
+
+        if runner.is_bwrap_supported():
+            bwrap_bin = shutil.which("bwrap") or "/usr/bin/bwrap"
+            compile_command = [
+                bwrap_bin,
+                "--unshare-all", "--die-with-parent",
+                "--ro-bind", "/usr", "/usr",
+                "--ro-bind", "/lib", "/lib",
+                *(["--ro-bind", "/lib64", "/lib64"] if Path("/lib64").exists() else []),
+                *(["--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache"] if Path("/etc/ld.so.cache").exists() else []),
+                "--proc", "/proc", "--dev", "/dev",
+                "--tmpfs", "/tmp",
+                "--bind", str(work), "/work",
+                "--chdir", "/work",
+                prlimit_bin or "/usr/bin/prlimit",
+                f"--cpu={runner.COMPILE_TIMEOUT_SECONDS}:{runner.COMPILE_TIMEOUT_SECONDS + 1}",
+                f"--as={runner.COMPILE_MEMORY_LIMIT_BYTES}:{runner.COMPILE_MEMORY_LIMIT_BYTES}",
+                f"--fsize={runner.OUTPUT_LIMIT_BYTES}:{runner.OUTPUT_LIMIT_BYTES}",
+                f"--nproc={runner.MAX_PROCESSES}:{runner.MAX_PROCESSES}",
+                f"--nofile={runner.MAX_OPEN_FILES}:{runner.MAX_OPEN_FILES}",
+                "--",
+                gcc_bin, "-std=gnu17", "-Wall", "-Wextra", "-O2", "-lm",
+                "/work/submission.c", "-o", "/work/submission",
+            ]
+            compile_preexec = None
+            compile_cwd = runner.PROJECT_ROOT
+        else:
+            if prlimit_bin:
+                compile_command = [
+                    prlimit_bin,
+                    f"--cpu={runner.COMPILE_TIMEOUT_SECONDS}:{runner.COMPILE_TIMEOUT_SECONDS + 1}",
+                    f"--as={runner.COMPILE_MEMORY_LIMIT_BYTES}:{runner.COMPILE_MEMORY_LIMIT_BYTES}",
+                    f"--fsize={runner.OUTPUT_LIMIT_BYTES}:{runner.OUTPUT_LIMIT_BYTES}",
+                    f"--nproc={runner.MAX_PROCESSES}:{runner.MAX_PROCESSES}",
+                    f"--nofile={runner.MAX_OPEN_FILES}:{runner.MAX_OPEN_FILES}",
+                    "--",
+                    gcc_bin, "-std=gnu17", "-Wall", "-Wextra", "-O2", "-lm",
+                    str(source_path), "-o", str(executable_path),
+                ]
+                compile_preexec = None
+            else:
+                compile_command = [
+                    gcc_bin, "-std=gnu17", "-Wall", "-Wextra", "-O2", "-lm",
+                    str(source_path), "-o", str(executable_path),
+                ]
+                compile_preexec = runner._set_compile_limits
+            compile_cwd = work
 
         compile_result = runner._run_bounded(
             compile_command,
             stdin_file=subprocess.DEVNULL,
             timeout_seconds=runner.COMPILE_TIMEOUT_SECONDS,
-            cwd=runner.PROJECT_ROOT,
+            cwd=compile_cwd,
+            preexec_fn=compile_preexec,
         )
 
         if compile_result["status"] != "completed":
@@ -309,26 +339,46 @@ def run_c_batch(
             input_path = work / f"stdin-{index}.txt"
             input_path.write_text(value, encoding="utf-8")
 
-            command = [
-                "/usr/bin/bwrap",
-                "--unshare-all", "--die-with-parent",
-                "--ro-bind", "/usr", "/usr",
-                "--ro-bind", "/lib", "/lib",
-                "--ro-bind", "/lib64", "/lib64",
-                "--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache",
-                "--proc", "/proc", "--dev", "/dev",
-                "--tmpfs", "/tmp",
-                "--ro-bind", str(work), "/work",
-                "--chdir", "/work",
-                "/usr/bin/prlimit",
-                f"--cpu={runner.CPU_LIMIT_SECONDS}:{runner.CPU_LIMIT_SECONDS}",
-                f"--as={runner.MEMORY_LIMIT_BYTES}:{runner.MEMORY_LIMIT_BYTES}",
-                f"--fsize={runner.FILE_LIMIT_BYTES}:{runner.FILE_LIMIT_BYTES}",
-                f"--nproc={runner.MAX_PROCESSES}:{runner.MAX_PROCESSES}",
-                f"--nofile={runner.MAX_OPEN_FILES}:{runner.MAX_OPEN_FILES}",
-                "--",
-                "/work/submission",
-            ]
+            if runner.is_bwrap_supported():
+                bwrap_bin = shutil.which("bwrap") or "/usr/bin/bwrap"
+                command = [
+                    bwrap_bin,
+                    "--unshare-all", "--die-with-parent",
+                    "--ro-bind", "/usr", "/usr",
+                    "--ro-bind", "/lib", "/lib",
+                    *(["--ro-bind", "/lib64", "/lib64"] if Path("/lib64").exists() else []),
+                    *(["--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache"] if Path("/etc/ld.so.cache").exists() else []),
+                    "--proc", "/proc", "--dev", "/dev",
+                    "--tmpfs", "/tmp",
+                    "--ro-bind", str(work), "/work",
+                    "--chdir", "/work",
+                    prlimit_bin or "/usr/bin/prlimit",
+                    f"--cpu={runner.CPU_LIMIT_SECONDS}:{runner.CPU_LIMIT_SECONDS}",
+                    f"--as={runner.MEMORY_LIMIT_BYTES}:{runner.MEMORY_LIMIT_BYTES}",
+                    f"--fsize={runner.FILE_LIMIT_BYTES}:{runner.FILE_LIMIT_BYTES}",
+                    f"--nproc={runner.MAX_PROCESSES}:{runner.MAX_PROCESSES}",
+                    f"--nofile={runner.MAX_OPEN_FILES}:{runner.MAX_OPEN_FILES}",
+                    "--",
+                    "/work/submission",
+                ]
+                run_preexec = None
+                run_cwd = runner.PROJECT_ROOT
+            else:
+                run_preexec = runner._get_runner_preexec(is_compile=False)
+                if prlimit_bin:
+                    command = [
+                        prlimit_bin,
+                        f"--cpu={runner.CPU_LIMIT_SECONDS}:{runner.CPU_LIMIT_SECONDS}",
+                        f"--as={runner.MEMORY_LIMIT_BYTES}:{runner.MEMORY_LIMIT_BYTES}",
+                        f"--fsize={runner.FILE_LIMIT_BYTES}:{runner.FILE_LIMIT_BYTES}",
+                        f"--nproc={runner.MAX_PROCESSES}:{runner.MAX_PROCESSES}",
+                        f"--nofile={runner.MAX_OPEN_FILES}:{runner.MAX_OPEN_FILES}",
+                        "--",
+                        str(executable_path),
+                    ]
+                else:
+                    command = [str(executable_path)]
+                run_cwd = work
 
             case_timeout = (
                 runner.RUN_TIMEOUT_SECONDS
@@ -345,7 +395,8 @@ def run_c_batch(
                     command,
                     stdin_file=program_input,
                     timeout_seconds=effective_timeout,
-                    cwd=runner.PROJECT_ROOT,
+                    cwd=run_cwd,
+                    preexec_fn=run_preexec,
                 )
 
             shared_budget_limited = (
