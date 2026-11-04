@@ -2,6 +2,7 @@
 # It compares the student and reference programs fairly by giving them the same inputs and shared time limit.
 
 import math
+import os
 import shutil
 import subprocess
 import tempfile

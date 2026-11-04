@@ -3,6 +3,7 @@ from __future__ import annotations
 # It requests test ideas, runs the generated helper with limits, and checks every test before use.
 
 import json
+import os
 import shutil
 import signal
 import subprocess
