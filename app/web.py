@@ -240,6 +240,7 @@ def _is_code_execution_enabled() -> bool:
     return False
 
 
+@app.get("/healthz", include_in_schema=False)
 @app.get("/health")
 def health():
     # Handles home as a supporting part of web .

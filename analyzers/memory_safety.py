@@ -58,6 +58,13 @@ def _compile_and_run(
     # What it gives back: It returns a set of named results for the next step.
     with tempfile.TemporaryDirectory(prefix="autograder-memory-") as directory:
         work = Path(directory)
+        # Ensure the temp directory is world-readable/executable so that prlimit
+        # and child processes can access files inside it on Linux containers where
+        # tempfile creates directories with mode 0o700 (owner-only).
+        try:
+            os.chmod(work, 0o755)
+        except OSError:
+            pass
         source_path = work / "submission.c"
         executable_path = work / "submission"
         input_path = work / "stdin.txt"

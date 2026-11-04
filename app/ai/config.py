@@ -71,6 +71,7 @@ def create_ai_provider():
             api_key=api_key,
             model=os.getenv("DEEPSEEK_MODEL", "deepseek-flash").strip(),
             max_retries=0,
+            timeout=90,  # Increased from 45s — Render's container network can be slow
         )
 
     else:

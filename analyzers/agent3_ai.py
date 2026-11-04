@@ -341,6 +341,10 @@ def execute_agent3a_program(
     try:
         with tempfile.TemporaryDirectory(prefix="agent3-generator-") as temp:
             root = Path(temp)
+            try:
+                os.chmod(root, 0o755)
+            except OSError:
+                pass
             (root / "generator.py").write_text(code, encoding="utf-8")
             prlimit_bin = runner._get_prlimit_bin()
             python_bin = sys.executable or "/usr/bin/python3"

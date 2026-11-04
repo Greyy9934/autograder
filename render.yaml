@@ -17,7 +17,7 @@ services:
       - key: NEON_DATABASE_URL
         sync: false
       - key: ALLOW_SQLITE_IN_PROD
-        value: "0"
+        value: "1"
       - key: AI_PROVIDER
         value: gemini
       - key: GEMINI_API_KEY

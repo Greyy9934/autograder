@@ -212,6 +212,10 @@ def run_c_batch(
 
     with tempfile.TemporaryDirectory(prefix="autograder-batch-") as temp:
         work = Path(temp)
+        try:
+            os.chmod(work, 0o755)
+        except OSError:
+            pass
         source_path = work / "submission.c"
         executable_path = work / "submission"
         source_path.write_text(source, encoding="utf-8")
@@ -310,7 +314,10 @@ def run_c_batch(
                 "results": [],
             }
 
-        executable_path.chmod(0o555)
+        try:
+            executable_path.chmod(0o755)
+        except OSError:
+            pass
 
         # Start timing only after every implementation has compiled.
         if _shared_gate is not None:

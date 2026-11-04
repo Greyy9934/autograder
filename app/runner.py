@@ -117,15 +117,6 @@ def _get_runner_preexec(is_compile: bool = False):
             _set_compile_limits()
         else:
             _set_runtime_limits()
-        try:
-            import pwd
-            if os.geteuid() == 0:
-                user_info = pwd.getpwnam("runner_user")
-                os.setgroups([])
-                os.setgid(user_info.pw_gid)
-                os.setuid(user_info.pw_uid)
-        except (KeyError, PermissionError, OSError, AttributeError):
-            pass
     return _preexec
 
 
@@ -140,7 +131,7 @@ def _kill_process_group(process: subprocess.Popen[bytes]) -> None:
 
     try:
         os.killpg(process.pid, signal.SIGTERM)
-    except ProcessLookupError:
+    except (ProcessLookupError, PermissionError, OSError):
         pass
 
     try:
@@ -148,11 +139,11 @@ def _kill_process_group(process: subprocess.Popen[bytes]) -> None:
     except subprocess.TimeoutExpired:
         try:
             os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
+        except (ProcessLookupError, PermissionError, OSError):
             pass
         try:
             process.wait(timeout=1)
-        except subprocess.TimeoutExpired:
+        except (subprocess.TimeoutExpired, ProcessLookupError, PermissionError, OSError):
             pass
 
 
@@ -321,6 +312,10 @@ def compile_c_source(source: str) -> dict[str, Any]:
 
     with tempfile.TemporaryDirectory(prefix="autograder-compile-") as temp:
         work = Path(temp)
+        try:
+            os.chmod(work, 0o755)
+        except OSError:
+            pass
         source_path = work / "submission.c"
         executable_path = work / "submission"
         source_path.write_text(source, encoding="utf-8")
@@ -443,6 +438,10 @@ def _run_c_program(source: str, stdin: str = "") -> dict[str, Any]:
 
     with tempfile.TemporaryDirectory(prefix="autograder-job-") as temp:
         work = Path(temp)
+        try:
+            os.chmod(work, 0o755)
+        except OSError:
+            pass
         source_path = work / "submission.c"
         executable_path = work / "submission"
         input_path = work / "stdin.txt"
