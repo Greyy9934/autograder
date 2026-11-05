@@ -2409,6 +2409,9 @@ int main(void) {
     const healthDetail = $("#health-detail");
     const healthState = $("#health-state");
     const footerStatus = $("#footer-status");
+    const executionState = $("#execution-state");
+    const gradingState = $("#grading-state");
+    const executionMode = $("#execution-mode");
 
     try {
       const response = await fetch("/health", {
@@ -2420,6 +2423,7 @@ int main(void) {
 
       const data = await response.json();
       const healthy = data.status === "ok";
+      const execEnabled = data.code_execution_enabled === true;
 
       if (serviceStatus) serviceStatus.textContent = healthy ? "Service online" : "Service issue";
       if (healthCheck) healthCheck.textContent = healthy ? "✓" : "!";
@@ -2430,6 +2434,18 @@ int main(void) {
       if (healthDetail) healthDetail.textContent = healthy ? "API responded successfully" : "API returned an unhealthy status";
       if (healthState) healthState.textContent = healthy ? "ONLINE" : "CHECK";
       if (footerStatus) footerStatus.textContent = healthy ? "API connected" : "API issue";
+
+      // Update execution and grading status dynamically from /health response
+      if (executionState) {
+        executionState.textContent = execEnabled ? "ONLINE" : "LOCKED";
+        executionState.style.color = execEnabled ? "" : "";
+      }
+      if (gradingState) {
+        gradingState.textContent = execEnabled ? "ONLINE" : "NOT CONNECTED";
+      }
+      if (executionMode) {
+        executionMode.textContent = execEnabled ? "Live execution enabled" : "Locked on public instance";
+      }
 
       if (evaluateButton) {
         evaluateButton.disabled = false;
@@ -2445,6 +2461,9 @@ int main(void) {
       if (healthDetail) healthDetail.textContent = "Could not reach /health";
       if (healthState) healthState.textContent = "OFFLINE";
       if (footerStatus) footerStatus.textContent = "API disconnected";
+      if (executionState) executionState.textContent = "UNKNOWN";
+      if (gradingState) gradingState.textContent = "UNKNOWN";
+      if (executionMode) executionMode.textContent = "Status unavailable";
     }
   }
 

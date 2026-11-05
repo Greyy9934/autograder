@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from app import runner
 from app.runner import (
     COMPILE_TIMEOUT_SECONDS,
     COMPILE_MEMORY_LIMIT_BYTES,
@@ -20,6 +21,7 @@ from app.runner import (
     RUN_TIMEOUT_SECONDS,
     _normalize_result,
     _run_bounded,
+    _set_compile_limits,
 )
 
 
@@ -56,48 +58,98 @@ def _compile_and_run(
     # What it gives back: It returns a set of named results for the next step.
     with tempfile.TemporaryDirectory(prefix="autograder-memory-") as directory:
         work = Path(directory)
+        # Ensure the temp directory is world-readable/executable so that prlimit
+        # and child processes can access files inside it on Linux containers where
+        # tempfile creates directories with mode 0o700 (owner-only).
+        try:
+            os.chmod(work, 0o755)
+        except OSError:
+            pass
         source_path = work / "submission.c"
         executable_path = work / "submission"
         input_path = work / "stdin.txt"
         source_path.write_text(source, encoding="utf-8")
         input_path.write_text(stdin, encoding="utf-8")
 
-        compile_command = [
-            "/usr/bin/bwrap",
-            "--unshare-all",
-            "--die-with-parent",
-            "--ro-bind", "/usr", "/usr",
-            "--ro-bind", "/lib", "/lib",
-            "--ro-bind", "/lib64", "/lib64",
-            "--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache",
-            "--proc", "/proc",
-            "--dev", "/dev",
-            "--tmpfs", "/tmp",
-            "--bind", str(work), "/work",
-            "--chdir", "/work",
-            "/usr/bin/prlimit",
-            f"--cpu={COMPILE_TIMEOUT_SECONDS}:{COMPILE_TIMEOUT_SECONDS + 1}",
-            f"--as={COMPILE_MEMORY_LIMIT_BYTES}:{COMPILE_MEMORY_LIMIT_BYTES}",
-            f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
-            f"--nproc={MAX_PROCESSES}:{MAX_PROCESSES}",
-            f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
-            "--",
-            "/usr/bin/gcc",
-            "-std=c17",
-            "-Wall",
-            "-Wextra",
-            "-g",
-            *compiler_flags,
-            "/work/submission.c",
-            "-o",
-            "/work/submission",
-        ]
+        gcc_bin = runner._get_gcc_bin()
+        prlimit_bin = runner._get_prlimit_bin()
+
+        if runner.is_bwrap_supported():
+            bwrap_bin = shutil.which("bwrap") or "/usr/bin/bwrap"
+            compile_command = [
+                bwrap_bin,
+                "--unshare-all",
+                "--die-with-parent",
+                "--ro-bind", "/usr", "/usr",
+                "--ro-bind", "/lib", "/lib",
+                *(["--ro-bind", "/lib64", "/lib64"] if Path("/lib64").exists() else []),
+                *(["--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache"] if Path("/etc/ld.so.cache").exists() else []),
+                "--proc", "/proc",
+                "--dev", "/dev",
+                "--tmpfs", "/tmp",
+                "--bind", str(work), "/work",
+                "--chdir", "/work",
+                prlimit_bin or "/usr/bin/prlimit",
+                f"--cpu={COMPILE_TIMEOUT_SECONDS}:{COMPILE_TIMEOUT_SECONDS + 1}",
+                f"--as={COMPILE_MEMORY_LIMIT_BYTES}:{COMPILE_MEMORY_LIMIT_BYTES}",
+                f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
+                f"--nproc={MAX_PROCESSES}:{MAX_PROCESSES}",
+                f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
+                "--",
+                "/usr/bin/gcc" if Path("/usr/bin/gcc").exists() else gcc_bin,
+                "-std=c17",
+                "-Wall",
+                "-Wextra",
+                "-g",
+                *compiler_flags,
+                "/work/submission.c",
+                "-o",
+                "/work/submission",
+            ]
+            compile_preexec = None
+            compile_cwd = PROJECT_ROOT
+        else:
+            if prlimit_bin:
+                compile_command = [
+                    prlimit_bin,
+                    f"--cpu={COMPILE_TIMEOUT_SECONDS}:{COMPILE_TIMEOUT_SECONDS + 1}",
+                    f"--as={COMPILE_MEMORY_LIMIT_BYTES}:{COMPILE_MEMORY_LIMIT_BYTES}",
+                    f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
+                    f"--nproc={MAX_PROCESSES}:{MAX_PROCESSES}",
+                    f"--nofile={MAX_OPEN_FILES}:{MAX_OPEN_FILES}",
+                    "--",
+                    gcc_bin,
+                    "-std=c17",
+                    "-Wall",
+                    "-Wextra",
+                    "-g",
+                    *compiler_flags,
+                    str(source_path),
+                    "-o",
+                    str(executable_path),
+                ]
+                compile_preexec = None
+            else:
+                compile_command = [
+                    gcc_bin,
+                    "-std=c17",
+                    "-Wall",
+                    "-Wextra",
+                    "-g",
+                    *compiler_flags,
+                    str(source_path),
+                    "-o",
+                    str(executable_path),
+                ]
+                compile_preexec = _set_compile_limits
+            compile_cwd = work
 
         compile_result = _run_bounded(
             compile_command,
             stdin_file=subprocess.DEVNULL,
             timeout_seconds=COMPILE_TIMEOUT_SECONDS,
-            cwd=PROJECT_ROOT,
+            cwd=compile_cwd,
+            preexec_fn=compile_preexec,
         )
 
         if compile_result["status"] != "completed" or compile_result.get("exit_code") != 0:
@@ -112,39 +164,72 @@ def _compile_and_run(
         # Diagnostics run inside the same Bubblewrap isolation used by the
         # normal worker. The tool executable and its runtime libraries must
         # be present in the read-only /usr and /lib mounts.
-        command = [
-            "/usr/bin/bwrap",
-            "--unshare-all",
-            "--die-with-parent",
-            "--ro-bind", "/usr", "/usr",
-            "--ro-bind", "/lib", "/lib",
-            "--ro-bind", "/lib64", "/lib64",
-            "--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache",
-            "--proc", "/proc",
-            "--dev", "/dev",
-            "--tmpfs", "/tmp",
-            "--bind", str(work), "/work",
-            "--chdir", "/work",
-            "/usr/bin/prlimit",
-            f"--cpu={5}:{5}",
-            *(
-                [f"--as={address_space_limit_bytes}:{address_space_limit_bytes}"]
-                if address_space_limit_bytes is not None
-                else []
-            ),
-            f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
-            "--nproc=32:32",
-            "--nofile=64:64",
-            "--",
-            *runtime_command,
-        ]
+        if runner.is_bwrap_supported():
+            bwrap_bin = shutil.which("bwrap") or "/usr/bin/bwrap"
+            command = [
+                bwrap_bin,
+                "--unshare-all",
+                "--die-with-parent",
+                "--ro-bind", "/usr", "/usr",
+                "--ro-bind", "/lib", "/lib",
+                *(["--ro-bind", "/lib64", "/lib64"] if Path("/lib64").exists() else []),
+                *(["--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache"] if Path("/etc/ld.so.cache").exists() else []),
+                "--proc", "/proc",
+                "--dev", "/dev",
+                "--tmpfs", "/tmp",
+                "--bind", str(work), "/work",
+                "--chdir", "/work",
+                prlimit_bin or "/usr/bin/prlimit",
+                f"--cpu={5}:{5}",
+                *(
+                    [f"--as={address_space_limit_bytes}:{address_space_limit_bytes}"]
+                    if address_space_limit_bytes is not None
+                    else []
+                ),
+                f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
+                "--nproc=32:32",
+                "--nofile=64:64",
+                "--",
+                *runtime_command,
+            ]
+            run_preexec = None
+            run_cwd = PROJECT_ROOT
+        else:
+            try:
+                os.chmod(executable_path, 0o755)
+            except OSError:
+                pass
+            resolved_runtime = [
+                str(executable_path) if arg == "/work/submission" else arg
+                for arg in runtime_command
+            ]
+            run_preexec = runner._get_runner_preexec(is_compile=False)
+            if prlimit_bin:
+                command = [
+                    prlimit_bin,
+                    f"--cpu={5}:{5}",
+                    *(
+                        [f"--as={address_space_limit_bytes}:{address_space_limit_bytes}"]
+                        if address_space_limit_bytes is not None
+                        else []
+                    ),
+                    f"--fsize={OUTPUT_LIMIT_BYTES}:{OUTPUT_LIMIT_BYTES}",
+                    "--nproc=32:32",
+                    "--nofile=64:64",
+                    "--",
+                    *resolved_runtime,
+                ]
+            else:
+                command = resolved_runtime
+            run_cwd = work
 
         with input_path.open("rb") as program_input:
             run_result = _run_bounded(
                 command,
                 stdin_file=program_input,
                 timeout_seconds=RUN_TIMEOUT_SECONDS,
-                cwd=PROJECT_ROOT,
+                cwd=run_cwd,
+                preexec_fn=run_preexec,
             )
 
         run_result = _normalize_result(run_result)
@@ -167,6 +252,24 @@ def _compile_and_run(
         }
 
 
+def _is_container_execution_allowed() -> bool:
+    return (
+        os.getenv("RENDER") == "true"
+        or os.getenv("AUTOGRADER_CONTAINER_SANDBOX", "").lower() in {"1", "true", "yes"}
+        or os.getenv("HOSTED_CODE_EXECUTION_ENABLED", "").lower() in {"1", "true", "yes"}
+    )
+
+
+def _get_valgrind_bin() -> str | None:
+    found = (
+        shutil.which("valgrind")
+        or shutil.which("valgrind.bin")
+        or ("/usr/bin/valgrind.bin" if Path("/usr/bin/valgrind.bin").exists() else None)
+        or ("/usr/bin/valgrind" if Path("/usr/bin/valgrind").exists() else None)
+    )
+    return str(found) if found else None
+
+
 def run_asan(source: str, stdin: str = "") -> dict[str, Any]:
     """Run GCC AddressSanitizer and UndefinedBehaviorSanitizer diagnostics."""
     # Runs asan.
@@ -177,7 +280,8 @@ def run_asan(source: str, stdin: str = "") -> dict[str, Any]:
     if not isinstance(source, str) or not source.strip() or not isinstance(stdin, str):
         return _tool_result("invalid_request", "Source and input must be strings.")
 
-    if shutil.which("gcc") is None or not Path("/usr/bin/bwrap").exists():
+    gcc_path = shutil.which("gcc") or ("/usr/bin/gcc" if Path("/usr/bin/gcc").exists() else None)
+    if gcc_path is None or (not runner.is_bwrap_supported() and not _is_container_execution_allowed()):
         return _tool_result("unavailable", "GCC or Bubblewrap is unavailable.")
 
     result = _compile_and_run(
@@ -220,7 +324,8 @@ def run_valgrind(source: str, stdin: str = "") -> dict[str, Any]:
     if not isinstance(source, str) or not source.strip() or not isinstance(stdin, str):
         return _tool_result("invalid_request", "Source and input must be strings.")
 
-    if shutil.which("valgrind") is None or not Path("/usr/bin/bwrap").exists():
+    valgrind_bin = _get_valgrind_bin()
+    if valgrind_bin is None or (not runner.is_bwrap_supported() and not _is_container_execution_allowed()):
         return _tool_result("unavailable", "Valgrind or Bubblewrap is unavailable.")
 
     # Valgrind's runtime overhead can exceed the ordinary worker's memory
@@ -230,7 +335,7 @@ def run_valgrind(source: str, stdin: str = "") -> dict[str, Any]:
         stdin,
         ["-O0"],
         [
-            "/usr/bin/valgrind.bin",
+            valgrind_bin,
             "--quiet",
             "--leak-check=full",
             "--show-leak-kinds=all",

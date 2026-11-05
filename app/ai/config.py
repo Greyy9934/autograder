@@ -33,7 +33,10 @@ def create_ai_provider():
 
     mock_enabled = mock_mode_enabled()
     if mock_enabled:
-        if os.getenv("APP_ENV", "development").strip().lower() in {"production", "prod"}:
+        if (
+            os.getenv("APP_ENV", "development").strip().lower() in {"production", "prod"}
+            and os.getenv("AUTOGRADER_ALLOW_MOCK_IN_PROD", "").lower() not in {"1", "true", "yes"}
+        ):
             raise AIProviderError(
                 "Offline mock mode is disabled in production.",
                 category="configuration_error",
@@ -68,6 +71,7 @@ def create_ai_provider():
             api_key=api_key,
             model=os.getenv("DEEPSEEK_MODEL", "deepseek-flash").strip(),
             max_retries=0,
+            timeout=90,  # Increased from 45s — Render's container network can be slow
         )
 
     else:

@@ -346,11 +346,11 @@
             <button id="health-check" type="button">[ check connection ]</button>
             <div class="status-entry">
               <span>PUBLIC CODE EXECUTION</span>
-              <strong>LOCKED</strong>
+              <strong id="execution-state">CHECKING</strong>
             </div>
             <div class="status-entry">
               <span>GRADING API</span>
-              <strong>NOT CONNECTED</strong>
+              <strong id="grading-state">CHECKING</strong>
             </div>
           </section>
 
@@ -360,7 +360,7 @@
             <p><strong>Engine:</strong> Rule-driven</p>
             <p><strong>Scoring:</strong> Deterministic</p>
             <p><strong>AI assistance:</strong> Advisory</p>
-            <p><strong>Execution:</strong> Locked on public instance</p>
+            <p><strong>Execution:</strong> <span id="execution-mode">Checking...</span></p>
           </section>
 
           <section class="side-box">

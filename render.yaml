@@ -1,15 +1,38 @@
 services:
   - type: web
     name: autograder-api
-    runtime: python
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.web:app --host 0.0.0.0 --port $PORT
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: starter
     healthCheckPath: /health
     envVars:
       - key: APP_ENV
         value: production
+      - key: HOSTED_CODE_EXECUTION_ENABLED
+        value: "true"
+      - key: LOCAL_CODE_EXECUTION_ENABLED
+        value: "true"
+      - key: AUTOGRADER_CONTAINER_SANDBOX
+        value: "1"
       - key: NEON_DATABASE_URL
+        sync: false
+      - key: ALLOW_SQLITE_IN_PROD
+        value: "1"
+      - key: AI_PROVIDER
+        value: gemini
+      - key: GEMINI_API_KEY
         sync: false
       - key: AI_DAILY_REQUEST_CREDITS
         value: "350"
+      - key: AUTOGRADER_USERNAME
+        value: instructor
+      - key: AUTOGRADER_PASSWORD_HASH
+        sync: false
+      - key: INSTRUCTOR_TOKEN_SIGNING_KEY
+        generateValue: true
+      - key: INSTRUCTOR_CONFIRMATION_KEY
+        generateValue: true
+      - key: PREPARATION_API_KEY
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: "true"

@@ -232,6 +232,15 @@ def home(request: Request):
     )
 
 
+def _is_code_execution_enabled() -> bool:
+    if os.getenv("HOSTED_CODE_EXECUTION_ENABLED", "").lower() in {"1", "true", "yes"}:
+        return True
+    if os.getenv("LOCAL_CODE_EXECUTION_ENABLED", "").lower() in {"1", "true", "yes"}:
+        return os.getenv("APP_ENV", "development").strip().lower() not in {"production", "prod"}
+    return False
+
+
+@app.get("/healthz", include_in_schema=False)
 @app.get("/health")
 def health():
     # Handles home as a supporting part of web .
@@ -245,7 +254,7 @@ def health():
         "status": "ok",
         "service": "autograder",
         "storage": _grade_snapshot_backend(),
-        "code_execution_enabled": False,
+        "code_execution_enabled": _is_code_execution_enabled(),
         "ui_enabled": True,
     }
 
@@ -255,13 +264,18 @@ def api_status():
     # Helps with api status inside api status.
     # This function takes no named inputs.
     # What it gives back: It returns the result that the next step needs.
+    enabled = _is_code_execution_enabled()
     return {
         "service": "AutoGrader",
         "status": "online",
-        "evaluation_enabled": False,
+        "evaluation_enabled": enabled,
         "message": (
-            "The interface is available. Grading remains disabled until "
-            "the evaluation API and secure execution environment are connected."
+            "The interface and evaluation engine are online and ready."
+            if enabled
+            else (
+                "The interface is available. Grading remains disabled until "
+                "the evaluation API and secure execution environment are connected."
+            )
         ),
     }
 
@@ -1842,18 +1856,17 @@ def instructor_ui_execute_tests(
     # - request: the information sent to this web endpoint.
     # - http_request: the http request used for this step.
     # What it gives back: It returns the result that the next step needs.
-    if os.getenv("LOCAL_CODE_EXECUTION_ENABLED", "").lower() not in {"1", "true", "yes"}:
+    if not _is_code_execution_enabled():
+        if os.getenv("APP_ENV", "development").strip().lower() in {
+            "production", "prod"
+        }:
+            raise HTTPException(
+                status_code=403,
+                detail="Code execution is prohibited in the production environment.",
+            )
         raise HTTPException(
             status_code=503,
             detail="Local code execution is disabled. Enable it only in a controlled development environment.",
-        )
-
-    if os.getenv("APP_ENV", "development").strip().lower() in {
-        "production", "prod"
-    }:
-        raise HTTPException(
-            status_code=403,
-            detail="Code execution is prohibited in the production environment.",
         )
 
     session_id = _require_ui_session(http_request)
@@ -2293,20 +2306,17 @@ def instructor_ui_benchmark_complexity(
     # - request: the information sent to this web endpoint.
     # - http_request: the http request used for this step.
     # What it gives back: It returns the result that the next step needs.
-    if os.getenv("LOCAL_CODE_EXECUTION_ENABLED", "").lower() not in {
-        "1", "true", "yes"
-    }:
+    if not _is_code_execution_enabled():
+        if os.getenv("APP_ENV", "development").strip().lower() in {
+            "production", "prod"
+        }:
+            raise HTTPException(
+                status_code=403,
+                detail="Code execution is prohibited in the production environment.",
+            )
         raise HTTPException(
             status_code=503,
             detail="Local code execution is disabled. Enable it only in a controlled development environment.",
-        )
-
-    if os.getenv("APP_ENV", "development").strip().lower() in {
-        "production", "prod"
-    }:
-        raise HTTPException(
-            status_code=403,
-            detail="Code execution is prohibited in the production environment.",
         )
 
     session_id = _require_ui_session(http_request)

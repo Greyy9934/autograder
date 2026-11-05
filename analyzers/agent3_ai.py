@@ -3,12 +3,16 @@ from __future__ import annotations
 # It requests test ideas, runs the generated helper with limits, and checks every test before use.
 
 import json
+import os
+import shutil
 import signal
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
 
+from app import runner
 from app.ai.base import AIProvider, AIProviderError
 from app.ai.output_budget import TASK_EDGE_CASES, TASK_RANDOM_GENERATOR
 from analyzers.input_schema import IntegerInputSchema
@@ -338,32 +342,74 @@ def execute_agent3a_program(
     try:
         with tempfile.TemporaryDirectory(prefix="agent3-generator-") as temp:
             root = Path(temp)
+            try:
+                os.chmod(root, 0o755)
+            except OSError:
+                pass
             (root / "generator.py").write_text(code, encoding="utf-8")
-            command = [
-                "/usr/bin/bwrap", "--unshare-all", "--die-with-parent",
-                "--ro-bind", "/usr", "/usr",
-                "--ro-bind", "/lib", "/lib",
-                "--ro-bind", "/lib64", "/lib64",
-                "--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache",
-                "--proc", "/proc", "--dev", "/dev",
-                "--tmpfs", "/tmp",
-                "--ro-bind", str(root), "/work",
-                "--chdir", "/work",
-                "/usr/bin/prlimit",
-                "--cpu=4:5", "--as=268435456:268435456",
-                "--fsize=1048576:1048576", "--nproc=16:16",
-                "--nofile=64:64", "--",
-                "/usr/bin/python3", "-I", "/work/generator.py", str(seed),
-                str(max_cases),
-            ]
+            prlimit_bin = runner._get_prlimit_bin()
+            python_bin = sys.executable or "/usr/bin/python3"
+
+            if runner.is_bwrap_supported():
+                bwrap_bin = shutil.which("bwrap") or "/usr/bin/bwrap"
+                command = [
+                    bwrap_bin, "--unshare-all", "--die-with-parent",
+                    "--ro-bind", "/usr", "/usr",
+                    "--ro-bind", "/lib", "/lib",
+                    *(["--ro-bind", "/lib64", "/lib64"] if Path("/lib64").exists() else []),
+                    *(["--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache"] if Path("/etc/ld.so.cache").exists() else []),
+                    "--proc", "/proc", "--dev", "/dev",
+                    "--tmpfs", "/tmp",
+                    "--ro-bind", str(root), "/work",
+                    "--chdir", "/work",
+                    prlimit_bin or "/usr/bin/prlimit",
+                    "--cpu=4:5", "--as=268435456:268435456",
+                    "--fsize=1048576:1048576", "--nproc=16:16",
+                    "--nofile=64:64", "--",
+                    python_bin, "-I", "/work/generator.py", str(seed),
+                    str(max_cases),
+                ]
+                generator_preexec = None
+                generator_cwd = "/"
+            else:
+                def _gen_preexec():
+                    import resource
+                    resource.setrlimit(resource.RLIMIT_CPU, (4, 5))
+                    resource.setrlimit(resource.RLIMIT_AS, (268435456, 268435456))
+                    resource.setrlimit(resource.RLIMIT_FSIZE, (1048576, 1048576))
+                    resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
+                    try:
+                        resource.setrlimit(resource.RLIMIT_NPROC, (16, 16))
+                    except (ValueError, OSError, AttributeError):
+                        pass
+
+                if prlimit_bin:
+                    command = [
+                        prlimit_bin,
+                        "--cpu=4:5", "--as=268435456:268435456",
+                        "--fsize=1048576:1048576", "--nproc=16:16",
+                        "--nofile=64:64", "--",
+                        python_bin, "-I", str(root / "generator.py"), str(seed),
+                        str(max_cases),
+                    ]
+                    generator_preexec = None
+                else:
+                    command = [
+                        python_bin, "-I", str(root / "generator.py"), str(seed),
+                        str(max_cases),
+                    ]
+                    generator_preexec = _gen_preexec
+                generator_cwd = str(root)
+
             # Redirect to bounded regular files. capture_output=True uses pipes
             # and can accumulate unbounded output in this server process; the
             # child's RLIMIT_FSIZE now applies to its stdout/stderr as well.
             with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
                 run = subprocess.run(
                     command, stdout=stdout_file, stderr=stderr_file,
-                    timeout=float(timeout_seconds), cwd="/",
+                    timeout=float(timeout_seconds), cwd=generator_cwd,
                     env={"PATH": "/usr/bin:/bin", "PYTHONIOENCODING": "utf-8"},
+                    preexec_fn=generator_preexec,
                 )
                 stdout_file.seek(0)
                 stdout = stdout_file.read(MAX_AGENT3A_GENERATOR_OUTPUT_BYTES + 1)
